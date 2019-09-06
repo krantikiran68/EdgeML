@@ -3,7 +3,7 @@
 
 import numpy as np
 
-import Common
+import seedot.common as Common
 
 
 class Config:

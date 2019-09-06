@@ -3,10 +3,10 @@
 
 import os
 
-from Converter.Quantizer import *
-from Converter.Util import *
+from seedot.compiler.converter.quantizer import *
+from seedot.compiler.converter.util import *
 
-import Common
+import seedot.common as Common
 
 # Main file which sets the configurations and creates the corresponding object
 

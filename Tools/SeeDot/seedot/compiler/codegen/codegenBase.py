@@ -1,13 +1,17 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT license.
 
+'''
+CodegenBase has print functions for the IR classes defined in IR.py
+'''
+
 import numpy as np
 
-import IR.IR as IR
+import seedot.compiler.ir.ir as IR
 
-import Common
-import Type
-from Util import *
+import seedot.common as Common
+import seedot.compiler.type as Type
+from seedot.util import *
 
 
 class CodegenBase:

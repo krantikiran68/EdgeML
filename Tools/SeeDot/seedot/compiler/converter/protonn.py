@@ -4,7 +4,7 @@
 import numpy as np
 import os
 
-from Converter.Util import *
+from seedot.compiler.converter.util import *
 
 # Class to read ProtoNN model dumps and generate input files (C header file and the compiler input)
 # The two classes ProtonnFixed and ProtonnFloat are for generating fixed model and float model respectively

@@ -1,7 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT license.
 
-import AST.AST as AST
+'''
+ASTVisitor contains the dynamic dispatcher used by printAST.py
+'''
+
+import seedot.compiler.ast.ast as AST
 
 
 class ASTVisitor:

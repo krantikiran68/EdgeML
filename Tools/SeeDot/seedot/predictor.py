@@ -4,8 +4,8 @@
 import os
 import subprocess
 
-import Common
-import Util
+import seedot.common as Common
+import seedot.util as Util
 
 # Program to build and run the predictor project using msbuild
 # The accuracy and other statistics are written to the output file specified

@@ -8,13 +8,13 @@ import sys
 import operator
 import traceback
 
-from Converter.Converter import Converter
-from Converter.Bonsai import Bonsai
-from Converter.Protonn import Protonn
+from seedot.compiler.converter.converter import Converter
+from seedot.compiler.converter.bonsai import Bonsai
+from seedot.compiler.converter.protonn import Protonn
 
-import Common
-from Compiler import Compiler
-from Predictor import Predictor
+import seedot.common as Common
+from seedot.compiler.compiler import Compiler
+from seedot.predictor import Predictor
 
 
 class Main:

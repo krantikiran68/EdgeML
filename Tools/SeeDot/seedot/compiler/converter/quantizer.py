@@ -4,13 +4,13 @@
 from antlr4 import *
 import os
 
-from Antlr.SeeDotLexer import SeeDotLexer
-from Antlr.SeeDotParser import SeeDotParser
+from seedot.compiler.antlr.seedotLexer import seedotLexer as SeeDotLexer
+from seedot.compiler.antlr.seedotParser import seedotParser as SeeDotParser
 
-import AST.ASTBuilder as ASTBuilder
+import seedot.compiler.ast.astBuilder as ASTBuilder
 
-import Converter.ParamsBuilder as ParamsBuilder
-from Converter.Util import *
+import seedot.compiler.converter.paramsBuilder as ParamsBuilder
+from seeodt.compiler.converter.util import *
 
 
 class Quantizer:

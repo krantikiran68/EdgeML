@@ -5,8 +5,8 @@ from enum import Enum
 import numpy as np
 import traceback
 
-import Common
-from Util import *
+import seedot.common as Common
+from seedot.util import *
 
 
 class Op:
@@ -28,6 +28,7 @@ class BoolExpr(Expr):
 
 
 class Int(IntExpr):
+
     @staticmethod
     def max():
         return DataType.getMax()
@@ -72,6 +73,7 @@ class Var(IntExpr):
 
 
 class Bool(BoolExpr):
+
     def __init__(self, b: bool):
         self.b = b
 
@@ -80,6 +82,7 @@ class Bool(BoolExpr):
 
 
 class IntUop(IntExpr):
+
     def __init__(self, op: Op.Op, e: IntExpr):
         assert op in Op.Op.op_list('- ~')
         self.op = op
@@ -90,6 +93,7 @@ class IntUop(IntExpr):
 
 
 class IntBop(IntExpr):
+
     def __init__(self, e1: IntExpr, op: Op.Op, e2: IntExpr):
         assert op in Op.Op.op_list('+ - * / << >> & | ^')
         self.e1 = e1
@@ -101,6 +105,7 @@ class IntBop(IntExpr):
 
 
 class BoolUop(BoolExpr):
+
     def __init__(self, op: Op.Op, e: BoolExpr):
         assert op in Op.Op.op_list('')
         self.op = op
@@ -111,6 +116,7 @@ class BoolUop(BoolExpr):
 
 
 class BoolBop(BoolExpr):
+
     def __init__(self, e1: BoolExpr, op: Op.Op, e2: BoolExpr):
         assert op in Op.Op.op_list('&& ||')
         self.e1 = e1
@@ -122,6 +128,7 @@ class BoolBop(BoolExpr):
 
 
 class BoolCop(BoolExpr):
+
     def __init__(self, e1: IntExpr, op: Op.Op, e2: IntExpr):
         assert op in Op.Op.op_list('< <= > >= == !=')
         self.e1 = e1
@@ -133,6 +140,7 @@ class BoolCop(BoolExpr):
 
 
 class CExpr(Expr):
+
     def __init__(self, cond: BoolExpr, et: Expr, ef: Expr):
         self.cond = cond
         self.et = et
@@ -143,6 +151,7 @@ class CExpr(Expr):
 
 
 class Exp(IntExpr):
+
     def __init__(self, e: IntExpr):
         self.e = e
 
@@ -151,6 +160,7 @@ class Exp(IntExpr):
 
 
 class TypeCast(IntExpr):
+
     def __init__(self, type, expr: Expr):
         self.type = type
         self.expr = expr
@@ -168,6 +178,7 @@ class CmdList:
 
 
 class Assn(Cmd):
+
     def __init__(self, var: Var, e: Expr):
         self.var = var
         self.e = e
@@ -177,7 +188,8 @@ class Assn(Cmd):
 
 
 class If(Cmd):
-    def __init__(self, cond: Expr, trueCmds: CmdList, falseCmds: CmdList = []):
+
+    def __init__(self, cond: Expr, trueCmds: CmdList, falseCmds: CmdList=[]):
         self.cond = cond
         self.trueCmds = trueCmds
         self.falseCmds = falseCmds
@@ -191,6 +203,7 @@ class If(Cmd):
 
 
 class For(Cmd):
+
     def __init__(self, var: Var, st: int, cond: Expr, cmd_l: CmdList, fac=0):
         self.var = var
         self.st = DataType.getInt(st)
@@ -205,6 +218,7 @@ class For(Cmd):
 
 
 class While(Cmd):
+
     def __init__(self, expr: BoolExpr, cmds: CmdList):
         self.expr = expr
         self.cmds = cmds
@@ -215,6 +229,7 @@ class While(Cmd):
 
 
 class FuncCall(Cmd):
+
     def __init__(self, name, argList):
         self.name = name
         self.argList = argList
@@ -226,6 +241,7 @@ class FuncCall(Cmd):
 
 
 class Memset(Cmd):
+
     def __init__(self, e: Var, len: int, dim=1, lens=[]):
         self.e = e
         self.len = len
@@ -237,6 +253,7 @@ class Memset(Cmd):
 
 
 class Print(Cmd):
+
     def __init__(self, expr: Expr):
         self.expr = expr
 
@@ -245,6 +262,7 @@ class Print(Cmd):
 
 
 class PrintAsFloat(Cmd):
+
     def __init__(self, expr: Expr, expnt: int):
         self.expr = expr
         self.expnt = expnt
@@ -254,6 +272,7 @@ class PrintAsFloat(Cmd):
 
 
 class Pragmas(Cmd):
+
     def __init__(self, msg, vital=0):
         self.msg = msg
         self.vital = vital
@@ -263,6 +282,7 @@ class Pragmas(Cmd):
 
 
 class Comment(Cmd):
+
     def __init__(self, msg):
         self.msg = msg
 
@@ -271,6 +291,7 @@ class Comment(Cmd):
 
 
 class Prog:
+
     def __init__(self, cmd_l: CmdList, resource=0):
         self.cmd_l = cmd_l
         self.resource = resource
@@ -283,14 +304,9 @@ class Prog:
 
 class DataType:
     intType = {Common.Target.Arduino: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
-               Common.Target.Hls: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
-               Common.Target.Verilog: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
-               Common.Target.X86: {8: np.int8,
-                                   16: np.int16, 32: np.int32, 64: np.int64}
+               Common.Target.X86: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64}
                }
     intStr = {Common.Target.Arduino: 'MYINT',
-              Common.Target.Hls: 'MYINT',
-              Common.Target.Verilog: 'MYINT',
               Common.Target.X86: 'MYINT'
               }
     floatStr = "float"

@@ -4,14 +4,14 @@
 import numpy as np
 import os
 
-from Codegen.CodegenBase import CodegenBase
+from seedot.compiler.codegen.codegenBase import CodegenBase
 
-import IR.IR as IR
-import IR.IRUtil as IRUtil
+import seedot.compiler.ir.ir as IR
+import seedot.compiler.ir.irUtil as IRUtil
 
-import Type
-from Util import *
-from Writer import Writer
+import seedot.compiler.type as Type
+from seedot.util import *
+from seedot.writer import Writer
 
 
 class X86(CodegenBase):

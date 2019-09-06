@@ -3,10 +3,10 @@
 
 import numpy as np
 
-from IR.IR import *
+from seedot.compiler.ir.ir import *
 
-import Common
-from Util import *
+import seedot.common as Common
+from seedot.util import *
 
 
 def init():

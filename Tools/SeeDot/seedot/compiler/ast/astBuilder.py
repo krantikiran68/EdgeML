@@ -1,10 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT license.
 
-from Antlr.SeeDotParser import SeeDotParser
-from Antlr.SeeDotVisitor import SeeDotVisitor
+'''
+ASTBuilder creates the AST for a given SeeDot program.
+'''
 
-import AST.AST as AST
+from seedot.compiler.antlr.seedotParser import seedotParser as SeeDotParser
+from seedot.compiler.antlr.seedotVisitor import seedotVisitor as SeeDotVisitor
+
+import seedot.compiler.ast.ast as AST
 
 
 class ASTBuilder(SeeDotVisitor):

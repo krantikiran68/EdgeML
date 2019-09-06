@@ -16,15 +16,10 @@ tanh_limit = 1.0
 sigmoid_add = 2.0
 sigmoid_div = 4.0
 
-# LUT Upper bound for Artix-7
-LUTUpperBound = 0.9 * 20800
-LUTCount = 0
-
 # MSBuild location
 # Edit the path if not present at the following location
 msbuildPathOptions = [r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
                       ]
-vivadoInstallPath = r"C:\Xilinx\Vivado\2018.2\bin"
 
 
 class Algo:
@@ -51,8 +46,6 @@ class DatasetType:
 
 class Target:
     Arduino = "arduino"
-    Hls = "hls"
-    Verilog = "verilog"
     X86 = "x86"
     Default = X86
-    All = [Arduino, Hls, Verilog, X86]
+    All = [Arduino, X86]

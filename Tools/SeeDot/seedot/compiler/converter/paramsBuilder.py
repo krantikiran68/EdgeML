@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT license.
 
-from Antlr.SeeDotParser import SeeDotParser
+from seedot.compiler.antlr.seedotParser import seedotParser as SeeDotParser
 
-import AST.AST as AST
-from AST.ASTVisitor import ASTVisitor
+import seedot.compiler.ast.ast as AST
+from seedot.compiler.ast.astVisitor import ASTVisitor
 
 
 class Param:

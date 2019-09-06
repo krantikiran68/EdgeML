@@ -1,5 +1,5 @@
-import AST.AST as AST
-from AST.ASTVisitor import ASTVisitor
+import seedot.compiler.ast.ast as AST
+from seedot.compiler.ast.astVisitor import ASTVisitor
 
 
 class MtdAST(ASTVisitor):

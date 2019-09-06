@@ -4,14 +4,17 @@
 import numpy as np
 import operator
 
-from Antlr.SeeDotParser import SeeDotParser
-import AST.AST as AST
-from AST.ASTVisitor import ASTVisitor
-import IR.IR as IR
-import IR.IRUtil as IRUtil
-import Common
-import Type
-from Util import *
+from seedot.compiler.antlr.seedotParser import seedotParser as SeeDotParser
+
+import seedot.compiler.ast.ast as AST
+from seedot.compiler.ast.astVisitor import ASTVisitor
+
+import seedot.compiler.ir.ir as IR
+import seedot.compiler.ir.irUtil as IRUtil
+
+import seedot.common as Common
+import seedot.compiler.type as Type
+from seedot.util import *
 
 
 class IRBuilder(ASTVisitor):

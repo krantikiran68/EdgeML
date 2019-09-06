@@ -1,4 +1,4 @@
-# Generated from SeeDot.g4 by ANTLR 4.7
+# Generated from seedot.g4 by ANTLR 4.7
 from antlr4 import *
 from io import StringIO
 from typing.io import TextIO
@@ -131,7 +131,7 @@ def serializedATN():
         return buf.getvalue()
 
 
-class SeeDotLexer(Lexer):
+class seedotLexer(Lexer):
 
     atn = ATNDeserializer().deserialize(serializedATN())
 
@@ -199,7 +199,7 @@ class SeeDotLexer(Lexer):
                   "IntConst", "Digit", "FloatConst", "FracConst", "ExpntPart", 
                   "Sign", "WS", "LineComment" ]
 
-    grammarFileName = "SeeDot.g4"
+    grammarFileName = "seedot.g4"
 
     def __init__(self, input=None, output:TextIO = sys.stdout):
         super().__init__(input, output)

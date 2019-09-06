@@ -1,4 +1,4 @@
-# Generated from SeeDot.g4 by ANTLR 4.7
+# Generated from seedot.g4 by ANTLR 4.7
 # encoding: utf-8
 from antlr4 import *
 from io import StringIO
@@ -65,9 +65,9 @@ def serializedATN():
         return buf.getvalue()
 
 
-class SeeDotParser ( Parser ):
+class seedotParser ( Parser ):
 
-    grammarFileName = "SeeDot.g4"
+    grammarFileName = "seedot.g4"
 
     atn = ATNDeserializer().deserialize(serializedATN())
 
@@ -153,7 +153,7 @@ class SeeDotParser ( Parser ):
 
 
         def getRuleIndex(self):
-            return SeeDotParser.RULE_expr
+            return seedotParser.RULE_expr
 
      
         def copyFrom(self, ctx:ParserRuleContext):
@@ -162,18 +162,18 @@ class SeeDotParser ( Parser ):
 
     class Bop1Context(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def expr(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(SeeDotParser.ExprContext)
+                return self.getTypedRuleContexts(seedotParser.ExprContext)
             else:
-                return self.getTypedRuleContext(SeeDotParser.ExprContext,i)
+                return self.getTypedRuleContext(seedotParser.ExprContext,i)
 
         def binOp(self):
-            return self.getTypedRuleContext(SeeDotParser.BinOpContext,0)
+            return self.getTypedRuleContext(seedotParser.BinOpContext,0)
 
 
         def accept(self, visitor:ParseTreeVisitor):
@@ -185,15 +185,15 @@ class SeeDotParser ( Parser ):
 
     class InitContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def intConstList(self):
-            return self.getTypedRuleContext(SeeDotParser.IntConstListContext,0)
+            return self.getTypedRuleContext(seedotParser.IntConstListContext,0)
 
         def FloatConst(self):
-            return self.getToken(SeeDotParser.FloatConst, 0)
+            return self.getToken(seedotParser.FloatConst, 0)
 
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitInit" ):
@@ -204,18 +204,18 @@ class SeeDotParser ( Parser ):
 
     class Bop2Context(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def expr(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(SeeDotParser.ExprContext)
+                return self.getTypedRuleContexts(seedotParser.ExprContext)
             else:
-                return self.getTypedRuleContext(SeeDotParser.ExprContext,i)
+                return self.getTypedRuleContext(seedotParser.ExprContext,i)
 
         def addOp(self):
-            return self.getTypedRuleContext(SeeDotParser.AddOpContext,0)
+            return self.getTypedRuleContext(seedotParser.AddOpContext,0)
 
 
         def accept(self, visitor:ParseTreeVisitor):
@@ -227,20 +227,20 @@ class SeeDotParser ( Parser ):
 
     class DeclContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def intConstList(self):
-            return self.getTypedRuleContext(SeeDotParser.IntConstListContext,0)
+            return self.getTypedRuleContext(seedotParser.IntConstListContext,0)
 
         def In(self):
-            return self.getToken(SeeDotParser.In, 0)
+            return self.getToken(seedotParser.In, 0)
         def FloatConst(self, i:int=None):
             if i is None:
-                return self.getTokens(SeeDotParser.FloatConst)
+                return self.getTokens(seedotParser.FloatConst)
             else:
-                return self.getToken(SeeDotParser.FloatConst, i)
+                return self.getToken(seedotParser.FloatConst, i)
 
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitDecl" ):
@@ -251,15 +251,15 @@ class SeeDotParser ( Parser ):
 
     class IndexContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def expr(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(SeeDotParser.ExprContext)
+                return self.getTypedRuleContexts(seedotParser.ExprContext)
             else:
-                return self.getTypedRuleContext(SeeDotParser.ExprContext,i)
+                return self.getTypedRuleContext(seedotParser.ExprContext,i)
 
 
         def accept(self, visitor:ParseTreeVisitor):
@@ -271,21 +271,21 @@ class SeeDotParser ( Parser ):
 
     class SumContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def Sum(self):
-            return self.getToken(SeeDotParser.Sum, 0)
+            return self.getToken(seedotParser.Sum, 0)
         def Id(self):
-            return self.getToken(SeeDotParser.Id, 0)
+            return self.getToken(seedotParser.Id, 0)
         def IntConst(self, i:int=None):
             if i is None:
-                return self.getTokens(SeeDotParser.IntConst)
+                return self.getTokens(seedotParser.IntConst)
             else:
-                return self.getToken(SeeDotParser.IntConst, i)
+                return self.getToken(seedotParser.IntConst, i)
         def expr(self):
-            return self.getTypedRuleContext(SeeDotParser.ExprContext,0)
+            return self.getTypedRuleContext(seedotParser.ExprContext,0)
 
 
         def accept(self, visitor:ParseTreeVisitor):
@@ -297,20 +297,20 @@ class SeeDotParser ( Parser ):
 
     class ReshapeContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def Reshape(self):
-            return self.getToken(SeeDotParser.Reshape, 0)
+            return self.getToken(seedotParser.Reshape, 0)
         def expr(self):
-            return self.getTypedRuleContext(SeeDotParser.ExprContext,0)
+            return self.getTypedRuleContext(seedotParser.ExprContext,0)
 
         def intConstList(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(SeeDotParser.IntConstListContext)
+                return self.getTypedRuleContexts(seedotParser.IntConstListContext)
             else:
-                return self.getTypedRuleContext(SeeDotParser.IntConstListContext,i)
+                return self.getTypedRuleContext(seedotParser.IntConstListContext,i)
 
 
         def accept(self, visitor:ParseTreeVisitor):
@@ -322,12 +322,12 @@ class SeeDotParser ( Parser ):
 
     class FloatContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def FloatConst(self):
-            return self.getToken(SeeDotParser.FloatConst, 0)
+            return self.getToken(seedotParser.FloatConst, 0)
 
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitFloat" ):
@@ -338,18 +338,18 @@ class SeeDotParser ( Parser ):
 
     class CondContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def expr(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(SeeDotParser.ExprContext)
+                return self.getTypedRuleContexts(seedotParser.ExprContext)
             else:
-                return self.getTypedRuleContext(SeeDotParser.ExprContext,i)
+                return self.getTypedRuleContext(seedotParser.ExprContext,i)
 
         def IntConst(self):
-            return self.getToken(SeeDotParser.IntConst, 0)
+            return self.getToken(seedotParser.IntConst, 0)
 
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitCond" ):
@@ -360,12 +360,12 @@ class SeeDotParser ( Parser ):
 
     class IntContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def IntConst(self):
-            return self.getToken(SeeDotParser.IntConst, 0)
+            return self.getToken(seedotParser.IntConst, 0)
 
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitInt" ):
@@ -376,12 +376,12 @@ class SeeDotParser ( Parser ):
 
     class TranspContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def expr(self):
-            return self.getTypedRuleContext(SeeDotParser.ExprContext,0)
+            return self.getTypedRuleContext(seedotParser.ExprContext,0)
 
 
         def accept(self, visitor:ParseTreeVisitor):
@@ -393,12 +393,12 @@ class SeeDotParser ( Parser ):
 
     class ParenContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def expr(self):
-            return self.getTypedRuleContext(SeeDotParser.ExprContext,0)
+            return self.getTypedRuleContext(seedotParser.ExprContext,0)
 
 
         def accept(self, visitor:ParseTreeVisitor):
@@ -410,15 +410,15 @@ class SeeDotParser ( Parser ):
 
     class FuncContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def specialFunc(self):
-            return self.getTypedRuleContext(SeeDotParser.SpecialFuncContext,0)
+            return self.getTypedRuleContext(seedotParser.SpecialFuncContext,0)
 
         def expr(self):
-            return self.getTypedRuleContext(SeeDotParser.ExprContext,0)
+            return self.getTypedRuleContext(seedotParser.ExprContext,0)
 
 
         def accept(self, visitor:ParseTreeVisitor):
@@ -430,24 +430,24 @@ class SeeDotParser ( Parser ):
 
     class LoopContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def Loop(self):
-            return self.getToken(SeeDotParser.Loop, 0)
+            return self.getToken(seedotParser.Loop, 0)
         def Id(self):
-            return self.getToken(SeeDotParser.Id, 0)
+            return self.getToken(seedotParser.Id, 0)
         def IntConst(self, i:int=None):
             if i is None:
-                return self.getTokens(SeeDotParser.IntConst)
+                return self.getTokens(seedotParser.IntConst)
             else:
-                return self.getToken(SeeDotParser.IntConst, i)
+                return self.getToken(seedotParser.IntConst, i)
         def expr(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(SeeDotParser.ExprContext)
+                return self.getTypedRuleContexts(seedotParser.ExprContext)
             else:
-                return self.getTypedRuleContext(SeeDotParser.ExprContext,i)
+                return self.getTypedRuleContext(seedotParser.ExprContext,i)
 
 
         def accept(self, visitor:ParseTreeVisitor):
@@ -459,15 +459,15 @@ class SeeDotParser ( Parser ):
 
     class UopContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def addOp(self):
-            return self.getTypedRuleContext(SeeDotParser.AddOpContext,0)
+            return self.getTypedRuleContext(seedotParser.AddOpContext,0)
 
         def expr(self):
-            return self.getTypedRuleContext(SeeDotParser.ExprContext,0)
+            return self.getTypedRuleContext(seedotParser.ExprContext,0)
 
 
         def accept(self, visitor:ParseTreeVisitor):
@@ -479,22 +479,22 @@ class SeeDotParser ( Parser ):
 
     class LetContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def Let(self):
-            return self.getToken(SeeDotParser.Let, 0)
+            return self.getToken(seedotParser.Let, 0)
         def Id(self):
-            return self.getToken(SeeDotParser.Id, 0)
+            return self.getToken(seedotParser.Id, 0)
         def expr(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(SeeDotParser.ExprContext)
+                return self.getTypedRuleContexts(seedotParser.ExprContext)
             else:
-                return self.getTypedRuleContext(SeeDotParser.ExprContext,i)
+                return self.getTypedRuleContext(seedotParser.ExprContext,i)
 
         def In(self):
-            return self.getToken(SeeDotParser.In, 0)
+            return self.getToken(seedotParser.In, 0)
 
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitLet" ):
@@ -505,12 +505,12 @@ class SeeDotParser ( Parser ):
 
     class IdContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def Id(self):
-            return self.getToken(SeeDotParser.Id, 0)
+            return self.getToken(seedotParser.Id, 0)
 
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitId" ):
@@ -521,17 +521,17 @@ class SeeDotParser ( Parser ):
 
     class FuncCallContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def Id(self):
-            return self.getToken(SeeDotParser.Id, 0)
+            return self.getToken(seedotParser.Id, 0)
         def expr(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(SeeDotParser.ExprContext)
+                return self.getTypedRuleContexts(seedotParser.ExprContext)
             else:
-                return self.getTypedRuleContext(SeeDotParser.ExprContext,i)
+                return self.getTypedRuleContext(seedotParser.ExprContext,i)
 
 
         def accept(self, visitor:ParseTreeVisitor):
@@ -543,17 +543,17 @@ class SeeDotParser ( Parser ):
 
     class MaxpoolContext(ExprContext):
 
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a SeeDotParser.ExprContext
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a seedotParser.ExprContext
             super().__init__(parser)
             self.copyFrom(ctx)
 
         def Maxpool(self):
-            return self.getToken(SeeDotParser.Maxpool, 0)
+            return self.getToken(seedotParser.Maxpool, 0)
         def expr(self):
-            return self.getTypedRuleContext(SeeDotParser.ExprContext,0)
+            return self.getTypedRuleContext(seedotParser.ExprContext,0)
 
         def IntConst(self):
-            return self.getToken(SeeDotParser.IntConst, 0)
+            return self.getToken(seedotParser.IntConst, 0)
 
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitMaxpool" ):
@@ -566,7 +566,7 @@ class SeeDotParser ( Parser ):
     def expr(self, _p:int=0):
         _parentctx = self._ctx
         _parentState = self.state
-        localctx = SeeDotParser.ExprContext(self, self._ctx, _parentState)
+        localctx = seedotParser.ExprContext(self, self._ctx, _parentState)
         _prevctx = localctx
         _startState = 0
         self.enterRecursionRule(localctx, 0, self.RULE_expr, _p)
@@ -577,140 +577,140 @@ class SeeDotParser ( Parser ):
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,1,self._ctx)
             if la_ == 1:
-                localctx = SeeDotParser.IntContext(self, localctx)
+                localctx = seedotParser.IntContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
 
                 self.state = 11
-                self.match(SeeDotParser.IntConst)
+                self.match(seedotParser.IntConst)
                 pass
 
             elif la_ == 2:
-                localctx = SeeDotParser.FloatContext(self, localctx)
+                localctx = seedotParser.FloatContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 12
-                self.match(SeeDotParser.FloatConst)
+                self.match(seedotParser.FloatConst)
                 pass
 
             elif la_ == 3:
-                localctx = SeeDotParser.IdContext(self, localctx)
+                localctx = seedotParser.IdContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 13
-                self.match(SeeDotParser.Id)
+                self.match(seedotParser.Id)
                 pass
 
             elif la_ == 4:
-                localctx = SeeDotParser.DeclContext(self, localctx)
+                localctx = seedotParser.DeclContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 14
-                self.match(SeeDotParser.T__0)
+                self.match(seedotParser.T__0)
                 self.state = 15
                 self.intConstList()
                 self.state = 16
-                self.match(SeeDotParser.T__1)
+                self.match(seedotParser.T__1)
                 self.state = 17
-                self.match(SeeDotParser.In)
+                self.match(seedotParser.In)
                 self.state = 18
-                self.match(SeeDotParser.T__2)
+                self.match(seedotParser.T__2)
                 self.state = 19
-                self.match(SeeDotParser.FloatConst)
+                self.match(seedotParser.FloatConst)
                 self.state = 20
-                self.match(SeeDotParser.T__3)
+                self.match(seedotParser.T__3)
                 self.state = 21
-                self.match(SeeDotParser.FloatConst)
+                self.match(seedotParser.FloatConst)
                 self.state = 22
-                self.match(SeeDotParser.T__4)
+                self.match(seedotParser.T__4)
                 pass
 
             elif la_ == 5:
-                localctx = SeeDotParser.InitContext(self, localctx)
+                localctx = seedotParser.InitContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 24
-                self.match(SeeDotParser.T__5)
+                self.match(seedotParser.T__5)
                 self.state = 25
-                self.match(SeeDotParser.T__0)
+                self.match(seedotParser.T__0)
                 self.state = 26
-                self.match(SeeDotParser.T__2)
+                self.match(seedotParser.T__2)
                 self.state = 27
                 self.intConstList()
                 self.state = 28
-                self.match(SeeDotParser.T__4)
+                self.match(seedotParser.T__4)
                 self.state = 29
-                self.match(SeeDotParser.T__3)
+                self.match(seedotParser.T__3)
                 self.state = 30
-                self.match(SeeDotParser.FloatConst)
+                self.match(seedotParser.FloatConst)
                 self.state = 31
-                self.match(SeeDotParser.T__1)
+                self.match(seedotParser.T__1)
                 pass
 
             elif la_ == 6:
-                localctx = SeeDotParser.ReshapeContext(self, localctx)
+                localctx = seedotParser.ReshapeContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 33
-                self.match(SeeDotParser.Reshape)
+                self.match(seedotParser.Reshape)
                 self.state = 34
-                self.match(SeeDotParser.T__0)
+                self.match(seedotParser.T__0)
                 self.state = 35
                 self.expr(0)
                 self.state = 36
-                self.match(SeeDotParser.T__3)
+                self.match(seedotParser.T__3)
                 self.state = 37
-                self.match(SeeDotParser.T__0)
+                self.match(seedotParser.T__0)
                 self.state = 38
                 self.intConstList()
                 self.state = 39
-                self.match(SeeDotParser.T__1)
+                self.match(seedotParser.T__1)
                 self.state = 40
-                self.match(SeeDotParser.T__3)
+                self.match(seedotParser.T__3)
                 self.state = 41
-                self.match(SeeDotParser.T__0)
+                self.match(seedotParser.T__0)
                 self.state = 42
                 self.intConstList()
                 self.state = 43
-                self.match(SeeDotParser.T__1)
+                self.match(seedotParser.T__1)
                 self.state = 44
-                self.match(SeeDotParser.T__1)
+                self.match(seedotParser.T__1)
                 pass
 
             elif la_ == 7:
-                localctx = SeeDotParser.MaxpoolContext(self, localctx)
+                localctx = seedotParser.MaxpoolContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 46
-                self.match(SeeDotParser.Maxpool)
+                self.match(seedotParser.Maxpool)
                 self.state = 47
-                self.match(SeeDotParser.T__0)
+                self.match(seedotParser.T__0)
                 self.state = 48
                 self.expr(0)
                 self.state = 49
-                self.match(SeeDotParser.T__3)
+                self.match(seedotParser.T__3)
                 self.state = 50
-                self.match(SeeDotParser.IntConst)
+                self.match(seedotParser.IntConst)
                 self.state = 51
-                self.match(SeeDotParser.T__1)
+                self.match(seedotParser.T__1)
                 pass
 
             elif la_ == 8:
-                localctx = SeeDotParser.FuncCallContext(self, localctx)
+                localctx = seedotParser.FuncCallContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 53
-                self.match(SeeDotParser.Id)
+                self.match(seedotParser.Id)
                 self.state = 54
-                self.match(SeeDotParser.T__0)
+                self.match(seedotParser.T__0)
                 self.state = 55
                 self.expr(0)
                 self.state = 60
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                while _la==SeeDotParser.T__3:
+                while _la==seedotParser.T__3:
                     self.state = 56
-                    self.match(SeeDotParser.T__3)
+                    self.match(seedotParser.T__3)
                     self.state = 57
                     self.expr(0)
                     self.state = 62
@@ -718,11 +718,11 @@ class SeeDotParser ( Parser ):
                     _la = self._input.LA(1)
 
                 self.state = 63
-                self.match(SeeDotParser.T__1)
+                self.match(seedotParser.T__1)
                 pass
 
             elif la_ == 9:
-                localctx = SeeDotParser.UopContext(self, localctx)
+                localctx = seedotParser.UopContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 65
@@ -732,107 +732,107 @@ class SeeDotParser ( Parser ):
                 pass
 
             elif la_ == 10:
-                localctx = SeeDotParser.FuncContext(self, localctx)
+                localctx = seedotParser.FuncContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 68
                 self.specialFunc()
                 self.state = 69
-                self.match(SeeDotParser.T__0)
+                self.match(seedotParser.T__0)
                 self.state = 70
                 self.expr(0)
                 self.state = 71
-                self.match(SeeDotParser.T__1)
+                self.match(seedotParser.T__1)
                 pass
 
             elif la_ == 11:
-                localctx = SeeDotParser.SumContext(self, localctx)
+                localctx = seedotParser.SumContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 73
-                self.match(SeeDotParser.Sum)
+                self.match(seedotParser.Sum)
                 self.state = 74
-                self.match(SeeDotParser.T__0)
+                self.match(seedotParser.T__0)
                 self.state = 75
-                self.match(SeeDotParser.Id)
+                self.match(seedotParser.Id)
                 self.state = 76
-                self.match(SeeDotParser.T__7)
+                self.match(seedotParser.T__7)
                 self.state = 77
-                self.match(SeeDotParser.T__2)
+                self.match(seedotParser.T__2)
                 self.state = 78
-                self.match(SeeDotParser.IntConst)
+                self.match(seedotParser.IntConst)
                 self.state = 79
-                self.match(SeeDotParser.T__8)
+                self.match(seedotParser.T__8)
                 self.state = 80
-                self.match(SeeDotParser.IntConst)
+                self.match(seedotParser.IntConst)
                 self.state = 81
-                self.match(SeeDotParser.T__4)
+                self.match(seedotParser.T__4)
                 self.state = 82
-                self.match(SeeDotParser.T__1)
+                self.match(seedotParser.T__1)
                 self.state = 83
                 self.expr(5)
                 pass
 
             elif la_ == 12:
-                localctx = SeeDotParser.LoopContext(self, localctx)
+                localctx = seedotParser.LoopContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 84
-                self.match(SeeDotParser.Loop)
+                self.match(seedotParser.Loop)
                 self.state = 85
-                self.match(SeeDotParser.T__0)
+                self.match(seedotParser.T__0)
                 self.state = 86
-                self.match(SeeDotParser.Id)
+                self.match(seedotParser.Id)
                 self.state = 87
-                self.match(SeeDotParser.T__7)
+                self.match(seedotParser.T__7)
                 self.state = 88
-                self.match(SeeDotParser.T__2)
+                self.match(seedotParser.T__2)
                 self.state = 89
-                self.match(SeeDotParser.IntConst)
+                self.match(seedotParser.IntConst)
                 self.state = 90
-                self.match(SeeDotParser.T__8)
+                self.match(seedotParser.T__8)
                 self.state = 91
-                self.match(SeeDotParser.IntConst)
+                self.match(seedotParser.IntConst)
                 self.state = 92
-                self.match(SeeDotParser.T__4)
+                self.match(seedotParser.T__4)
                 self.state = 93
-                self.match(SeeDotParser.T__3)
+                self.match(seedotParser.T__3)
                 self.state = 94
                 self.expr(0)
                 self.state = 95
-                self.match(SeeDotParser.T__1)
+                self.match(seedotParser.T__1)
                 self.state = 96
                 self.expr(4)
                 pass
 
             elif la_ == 13:
-                localctx = SeeDotParser.LetContext(self, localctx)
+                localctx = seedotParser.LetContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 98
-                self.match(SeeDotParser.Let)
+                self.match(seedotParser.Let)
                 self.state = 99
-                self.match(SeeDotParser.Id)
+                self.match(seedotParser.Id)
                 self.state = 100
-                self.match(SeeDotParser.T__7)
+                self.match(seedotParser.T__7)
                 self.state = 101
                 self.expr(0)
                 self.state = 102
-                self.match(SeeDotParser.In)
+                self.match(seedotParser.In)
                 self.state = 103
                 self.expr(2)
                 pass
 
             elif la_ == 14:
-                localctx = SeeDotParser.ParenContext(self, localctx)
+                localctx = seedotParser.ParenContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 105
-                self.match(SeeDotParser.T__0)
+                self.match(seedotParser.T__0)
                 self.state = 106
                 self.expr(0)
                 self.state = 107
-                self.match(SeeDotParser.T__1)
+                self.match(seedotParser.T__1)
                 pass
 
 
@@ -849,7 +849,7 @@ class SeeDotParser ( Parser ):
                     self._errHandler.sync(self)
                     la_ = self._interp.adaptivePredict(self._input,2,self._ctx)
                     if la_ == 1:
-                        localctx = SeeDotParser.Bop1Context(self, SeeDotParser.ExprContext(self, _parentctx, _parentState))
+                        localctx = seedotParser.Bop1Context(self, seedotParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
                         self.state = 111
                         if not self.precpred(self._ctx, 8):
@@ -862,7 +862,7 @@ class SeeDotParser ( Parser ):
                         pass
 
                     elif la_ == 2:
-                        localctx = SeeDotParser.Bop2Context(self, SeeDotParser.ExprContext(self, _parentctx, _parentState))
+                        localctx = seedotParser.Bop2Context(self, seedotParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
                         self.state = 115
                         if not self.precpred(self._ctx, 7):
@@ -875,50 +875,50 @@ class SeeDotParser ( Parser ):
                         pass
 
                     elif la_ == 3:
-                        localctx = SeeDotParser.CondContext(self, SeeDotParser.ExprContext(self, _parentctx, _parentState))
+                        localctx = seedotParser.CondContext(self, seedotParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
                         self.state = 119
                         if not self.precpred(self._ctx, 3):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 3)")
                         self.state = 120
-                        self.match(SeeDotParser.T__9)
+                        self.match(seedotParser.T__9)
                         self.state = 121
-                        self.match(SeeDotParser.IntConst)
+                        self.match(seedotParser.IntConst)
                         self.state = 122
-                        self.match(SeeDotParser.T__10)
+                        self.match(seedotParser.T__10)
                         self.state = 123
                         self.expr(0)
                         self.state = 124
-                        self.match(SeeDotParser.T__8)
+                        self.match(seedotParser.T__8)
                         self.state = 125
                         self.expr(4)
                         pass
 
                     elif la_ == 4:
-                        localctx = SeeDotParser.TranspContext(self, SeeDotParser.ExprContext(self, _parentctx, _parentState))
+                        localctx = seedotParser.TranspContext(self, seedotParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
                         self.state = 127
                         if not self.precpred(self._ctx, 14):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 14)")
                         self.state = 128
-                        self.match(SeeDotParser.T__6)
+                        self.match(seedotParser.T__6)
                         pass
 
                     elif la_ == 5:
-                        localctx = SeeDotParser.IndexContext(self, SeeDotParser.ExprContext(self, _parentctx, _parentState))
+                        localctx = seedotParser.IndexContext(self, seedotParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
                         self.state = 129
                         if not self.precpred(self._ctx, 11):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 11)")
                         self.state = 130
-                        self.match(SeeDotParser.T__2)
+                        self.match(seedotParser.T__2)
                         self.state = 131
                         self.expr(0)
                         self.state = 132
-                        self.match(SeeDotParser.T__4)
+                        self.match(seedotParser.T__4)
                         pass
 
              
@@ -941,13 +941,13 @@ class SeeDotParser ( Parser ):
             self.parser = parser
 
         def ADD(self):
-            return self.getToken(SeeDotParser.ADD, 0)
+            return self.getToken(seedotParser.ADD, 0)
 
         def SUB(self):
-            return self.getToken(SeeDotParser.SUB, 0)
+            return self.getToken(seedotParser.SUB, 0)
 
         def getRuleIndex(self):
-            return SeeDotParser.RULE_addOp
+            return seedotParser.RULE_addOp
 
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitAddOp" ):
@@ -960,14 +960,14 @@ class SeeDotParser ( Parser ):
 
     def addOp(self):
 
-        localctx = SeeDotParser.AddOpContext(self, self._ctx, self.state)
+        localctx = seedotParser.AddOpContext(self, self._ctx, self.state)
         self.enterRule(localctx, 2, self.RULE_addOp)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
             self.state = 139
             _la = self._input.LA(1)
-            if not(_la==SeeDotParser.ADD or _la==SeeDotParser.SUB):
+            if not(_la==seedotParser.ADD or _la==seedotParser.SUB):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -987,25 +987,25 @@ class SeeDotParser ( Parser ):
             self.parser = parser
 
         def MUL(self):
-            return self.getToken(SeeDotParser.MUL, 0)
+            return self.getToken(seedotParser.MUL, 0)
 
         def SPARSEMUL(self):
-            return self.getToken(SeeDotParser.SPARSEMUL, 0)
+            return self.getToken(seedotParser.SPARSEMUL, 0)
 
         def MULCIR(self):
-            return self.getToken(SeeDotParser.MULCIR, 0)
+            return self.getToken(seedotParser.MULCIR, 0)
 
         def CONV(self):
-            return self.getToken(SeeDotParser.CONV, 0)
+            return self.getToken(seedotParser.CONV, 0)
 
         def ADDCIR(self):
-            return self.getToken(SeeDotParser.ADDCIR, 0)
+            return self.getToken(seedotParser.ADDCIR, 0)
 
         def SUBCIR(self):
-            return self.getToken(SeeDotParser.SUBCIR, 0)
+            return self.getToken(seedotParser.SUBCIR, 0)
 
         def getRuleIndex(self):
-            return SeeDotParser.RULE_binOp
+            return seedotParser.RULE_binOp
 
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitBinOp" ):
@@ -1018,14 +1018,14 @@ class SeeDotParser ( Parser ):
 
     def binOp(self):
 
-        localctx = SeeDotParser.BinOpContext(self, self._ctx, self.state)
+        localctx = seedotParser.BinOpContext(self, self._ctx, self.state)
         self.enterRule(localctx, 4, self.RULE_binOp)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
             self.state = 141
             _la = self._input.LA(1)
-            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << SeeDotParser.MUL) | (1 << SeeDotParser.SPARSEMUL) | (1 << SeeDotParser.MULCIR) | (1 << SeeDotParser.CONV) | (1 << SeeDotParser.ADDCIR) | (1 << SeeDotParser.SUBCIR))) != 0)):
+            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << seedotParser.MUL) | (1 << seedotParser.SPARSEMUL) | (1 << seedotParser.MULCIR) | (1 << seedotParser.CONV) | (1 << seedotParser.ADDCIR) | (1 << seedotParser.SUBCIR))) != 0)):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -1045,25 +1045,25 @@ class SeeDotParser ( Parser ):
             self.parser = parser
 
         def RELU(self):
-            return self.getToken(SeeDotParser.RELU, 0)
+            return self.getToken(seedotParser.RELU, 0)
 
         def EXP(self):
-            return self.getToken(SeeDotParser.EXP, 0)
+            return self.getToken(seedotParser.EXP, 0)
 
         def ARGMAX(self):
-            return self.getToken(SeeDotParser.ARGMAX, 0)
+            return self.getToken(seedotParser.ARGMAX, 0)
 
         def SGN(self):
-            return self.getToken(SeeDotParser.SGN, 0)
+            return self.getToken(seedotParser.SGN, 0)
 
         def TANH(self):
-            return self.getToken(SeeDotParser.TANH, 0)
+            return self.getToken(seedotParser.TANH, 0)
 
         def SIGMOID(self):
-            return self.getToken(SeeDotParser.SIGMOID, 0)
+            return self.getToken(seedotParser.SIGMOID, 0)
 
         def getRuleIndex(self):
-            return SeeDotParser.RULE_specialFunc
+            return seedotParser.RULE_specialFunc
 
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitSpecialFunc" ):
@@ -1076,14 +1076,14 @@ class SeeDotParser ( Parser ):
 
     def specialFunc(self):
 
-        localctx = SeeDotParser.SpecialFuncContext(self, self._ctx, self.state)
+        localctx = seedotParser.SpecialFuncContext(self, self._ctx, self.state)
         self.enterRule(localctx, 6, self.RULE_specialFunc)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
             self.state = 143
             _la = self._input.LA(1)
-            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << SeeDotParser.RELU) | (1 << SeeDotParser.EXP) | (1 << SeeDotParser.ARGMAX) | (1 << SeeDotParser.SGN) | (1 << SeeDotParser.TANH) | (1 << SeeDotParser.SIGMOID))) != 0)):
+            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << seedotParser.RELU) | (1 << seedotParser.EXP) | (1 << seedotParser.ARGMAX) | (1 << seedotParser.SGN) | (1 << seedotParser.TANH) | (1 << seedotParser.SIGMOID))) != 0)):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -1104,12 +1104,12 @@ class SeeDotParser ( Parser ):
 
         def IntConst(self, i:int=None):
             if i is None:
-                return self.getTokens(SeeDotParser.IntConst)
+                return self.getTokens(seedotParser.IntConst)
             else:
-                return self.getToken(SeeDotParser.IntConst, i)
+                return self.getToken(seedotParser.IntConst, i)
 
         def getRuleIndex(self):
-            return SeeDotParser.RULE_intConstList
+            return seedotParser.RULE_intConstList
 
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitIntConstList" ):
@@ -1122,21 +1122,21 @@ class SeeDotParser ( Parser ):
 
     def intConstList(self):
 
-        localctx = SeeDotParser.IntConstListContext(self, self._ctx, self.state)
+        localctx = seedotParser.IntConstListContext(self, self._ctx, self.state)
         self.enterRule(localctx, 8, self.RULE_intConstList)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
             self.state = 145
-            self.match(SeeDotParser.IntConst)
+            self.match(seedotParser.IntConst)
             self.state = 150
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            while _la==SeeDotParser.T__3:
+            while _la==seedotParser.T__3:
                 self.state = 146
-                self.match(SeeDotParser.T__3)
+                self.match(seedotParser.T__3)
                 self.state = 147
-                self.match(SeeDotParser.IntConst)
+                self.match(seedotParser.IntConst)
                 self.state = 152
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)

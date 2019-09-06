@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-grammar SeeDot;
+grammar seedot;
 
 expr:	IntConst								# int
 	|	FloatConst								# float

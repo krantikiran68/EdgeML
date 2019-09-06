@@ -12,259 +12,275 @@ import AST.ASTBuilder as ASTBuilder
 import Converter.ParamsBuilder as ParamsBuilder
 from Converter.Util import *
 
+
 class Quantizer:
 
-	def genASTFromFile(self, inputFile):
-		# Parse and generate CST for the input
-		lexer = SeeDotLexer(FileStream(inputFile))
-		tokens = CommonTokenStream(lexer)
-		parser = SeeDotParser(tokens)
-		tree = parser.expr()
+    def genASTFromFile(self, inputFile):
+        # Parse and generate CST for the input
+        lexer = SeeDotLexer(FileStream(inputFile))
+        tokens = CommonTokenStream(lexer)
+        parser = SeeDotParser(tokens)
+        tree = parser.expr()
 
-		# Generate AST
-		ast = ASTBuilder.ASTBuilder().visit(tree)
-		return ast
+        # Generate AST
+        ast = ASTBuilder.ASTBuilder().visit(tree)
+        return ast
 
-	def genAST(self, inputFile):
-		ext = os.path.splitext(inputFile)[1]
+    def genAST(self, inputFile):
+        ext = os.path.splitext(inputFile)[1]
 
-		if ext == ".sd":
-			return self.genASTFromFile(inputFile)
-		elif ext == ".pkl":
-			with open(inputFile, 'rb') as file:
-				ast = pickle.load(file)
-			return ast
+        if ext == ".sd":
+            return self.genASTFromFile(inputFile)
+        elif ext == ".pkl":
+            with open(inputFile, 'rb') as file:
+                ast = pickle.load(file)
+            return ast
 
-	def buildParams(self):
-		ast = self.genAST(getInputFile())
-		
-		# Generate params
-		paramsBuilder = ParamsBuilder.ParamsBuilder()
-		paramsBuilder.visit(ast)
+    def buildParams(self):
+        ast = self.genAST(getInputFile())
 
-		self.params = paramsBuilder.params.values()
-	
-	def readDataset(self):
-		self.X, self.Y = readXandY()
+        # Generate params
+        paramsBuilder = ParamsBuilder.ParamsBuilder()
+        paramsBuilder.visit(ast)
 
-	def writeDataset(self):
-		writeMatAsCSV(self.X, os.path.join(getDatasetOutputDir(), "X.csv"))
-		writeMatAsCSV(self.Y, os.path.join(getDatasetOutputDir(), "Y.csv"))
+        self.params = paramsBuilder.params.values()
 
-	def processDataset(self):
-		self.readDataset()
-		assert len(self.X) == len(self.Y)
-		self.transformDataset()
-		self.writeDataset()
+    def readDataset(self):
+        self.X, self.Y = readXandY()
 
-	def readModel(self):
-		for param in self.params:
-			#param.data = readFileAsMat(os.path.join(getModelDir(), param.name), "\t", float)
-			param.data = np.load(os.path.join(getModelDir(), param.name + ".npy"))
+    def writeDataset(self):
+        writeMatAsCSV(self.X, os.path.join(getDatasetOutputDir(), "X.csv"))
+        writeMatAsCSV(self.Y, os.path.join(getDatasetOutputDir(), "Y.csv"))
 
-			if param.data.ndim == 1:
-				param.data = param.data.reshape(-1, 1)
+    def processDataset(self):
+        self.readDataset()
+        assert len(self.X) == len(self.Y)
+        self.transformDataset()
+        self.writeDataset()
 
-			param.data = param.data.tolist()
+    def readModel(self):
+        for param in self.params:
+            #param.data = readFileAsMat(os.path.join(getModelDir(), param.name), "\t", float)
+            param.data = np.load(os.path.join(
+                getModelDir(), param.name + ".npy"))
 
-	def computeModelSize(self):
-		totalVal = 0
-		totalIndex = 0
-		
-		for param in self.params:
-			if param.sparse:
-				transp = matTranspose(param.data)
-				val, idx = convertToSparse(transp)
-				totalVal += len(val)
-				totalIndex += len(idx)
-			else:
-				totalVal += len(param.data) * len(param.data[0])
+            if param.data.ndim == 1:
+                param.data = param.data.reshape(-1, 1)
 
-		with open(self.infoFile, 'a') as file:
-			file.write("nnz values: %d\n" % (totalVal))
-			file.write("# indexes: %d\n\n" % (totalIndex))
-			file.write("---------------------\n")
-			file.write("Model size comparison\n")
-			file.write("---------------------\n")
-			file.write("32-bit floating-points (in KB): %.3f\n" % (((totalVal * 4) + (totalIndex * 2)) / 1024))
-			file.write("(assuming 4 bytes for values and 2 bytes for indices)\n\n")
-			file.write("16-bit fixed-points (in KB): %.3f\n" % (((totalVal * 2) + (totalIndex * 2)) / 1024))
-			file.write("(assuming 2 bytes for values and 2 bytes for indices)\n\n")
-			file.write("32-bit fixed-points (in KB): %.3f\n" % (((totalVal * 4) + (totalIndex * 2)) / 1024))
-			file.write("(assuming 4 bytes for values and 2 bytes for indices)\n")
-			file.write("--------------------------------------------\n\n")
+            param.data = param.data.tolist()
 
-	# Writing the model as a bunch of variables, arrays and matrices to a file
-	def writeModel(self):
-		self.writeHeader()
+    def computeModelSize(self):
+        totalVal = 0
+        totalIndex = 0
 
-		if forArduino() and dumpDataset():
-			scaleOfX = computeScale(*self.trainDatasetRange)
+        for param in self.params:
+            if param.sparse:
+                transp = matTranspose(param.data)
+                val, idx = convertToSparse(transp)
+                totalVal += len(val)
+                totalIndex += len(idx)
+            else:
+                totalVal += len(param.data) * len(param.data[0])
 
-			writeListAsArray(self.X[0], 'X', self.headerFile)
-			writeVars({'scaleOfX': scaleOfX}, self.headerFile)
-			writeVars({'Y': self.Y[0][0]}, self.headerFile)
+        with open(self.infoFile, 'a') as file:
+            file.write("nnz values: %d\n" % (totalVal))
+            file.write("# indexes: %d\n\n" % (totalIndex))
+            file.write("---------------------\n")
+            file.write("Model size comparison\n")
+            file.write("---------------------\n")
+            file.write("32-bit floating-points (in KB): %.3f\n" %
+                       (((totalVal * 4) + (totalIndex * 2)) / 1024))
+            file.write(
+                "(assuming 4 bytes for values and 2 bytes for indices)\n\n")
+            file.write("16-bit fixed-points (in KB): %.3f\n" %
+                       (((totalVal * 2) + (totalIndex * 2)) / 1024))
+            file.write(
+                "(assuming 2 bytes for values and 2 bytes for indices)\n\n")
+            file.write("32-bit fixed-points (in KB): %.3f\n" %
+                       (((totalVal * 4) + (totalIndex * 2)) / 1024))
+            file.write(
+                "(assuming 4 bytes for values and 2 bytes for indices)\n")
+            file.write("--------------------------------------------\n\n")
 
-		for param in self.params:
-			if param.sparse:
-				transp = matTranspose(param.data)
-				val, idx = convertToSparse(transp)
-				writeListsAsArray({param.name + 'val': val, param.name + 'idx': idx}, self.headerFile)
-			else:
-				writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape))
+    # Writing the model as a bunch of variables, arrays and matrices to a file
+    def writeModel(self):
+        self.writeHeader()
 
-		self.writeFooter()
+        if forArduino() and dumpDataset():
+            scaleOfX = computeScale(*self.trainDatasetRange)
 
-	# Write macros and namespace declarations
-	def writeHeader(self):
-		with open(self.headerFile, 'a') as file:
-			file.write("#pragma once\n\n")
+            writeListAsArray(self.X[0], 'X', self.headerFile)
+            writeVars({'scaleOfX': scaleOfX}, self.headerFile)
+            writeVars({'Y': self.Y[0][0]}, self.headerFile)
 
-			if forArduino():
-				file.write("namespace model {\n\n")
-			else:
-				file.write("namespace seedot_%s {\n\n" % (getVersion()))
+        for param in self.params:
+            if param.sparse:
+                transp = matTranspose(param.data)
+                val, idx = convertToSparse(transp)
+                writeListsAsArray(
+                    {param.name + 'val': val, param.name + 'idx': idx}, self.headerFile)
+            else:
+                writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=(
+                    "[%d]" * len(param.shape)) % tuple(param.shape))
 
-	def writeFooter(self):
-		with open(self.headerFile, 'a') as file:
-			file.write("}\n")
+        self.writeFooter()
 
-	def processModel(self):
-		self.readModel()
-		self.transformModel()
-		self.computeModelSize()
-		self.writeModel()
+    # Write macros and namespace declarations
+    def writeHeader(self):
+        with open(self.headerFile, 'a') as file:
+            file.write("#pragma once\n\n")
 
-	def printDataRange(self):
-		for param in self.params:
-			print("%s = %.6f, %.6f" % (param.name, np.amin(param.data), np.amax(param.data)))
-		print("X = %.6f, %.6f" % self.trainDatasetRange)
+            if forArduino():
+                file.write("namespace model {\n\n")
+            else:
+                file.write("namespace seedot_%s {\n\n" % (getVersion()))
 
-	# Float model is generated for for training dataset to profile the prediction
-	# Hence, X is trimmed down to remove outliers. Prediction profiling is performed on the trimmed X to generate more precise profile data
-	def transformDataset(self):
-		if getVersion() == Common.Version.Fixed:
-			# If X itself is X_train, reuse it. Otherwise, read it from file
-			if usingTrainingDataset():
-				self.X_train = list(self.X)
-			else:
-				self.X_train, _ = readXandY(useTrainingSet=True)
+    def writeFooter(self):
+        with open(self.headerFile, 'a') as file:
+            file.write("}\n")
 
-			# Trim some data points from X_train
-			self.X_train, _ = trimMatrix(self.X_train)
+    def processModel(self):
+        self.readModel()
+        self.transformModel()
+        self.computeModelSize()
+        self.writeModel()
 
-			self.trainDatasetRange = matRange(self.X_train)
-		elif getVersion() == Common.Version.Float:
-			if usingTrainingDataset():
-				self.X, self.Y = trimMatrix(self.X, self.Y)
+    def printDataRange(self):
+        for param in self.params:
+            print("%s = %.6f, %.6f" %
+                  (param.name, np.amin(param.data), np.amax(param.data)))
+        print("X = %.6f, %.6f" % self.trainDatasetRange)
 
-				self.trainDatasetRange = matRange(self.X)
-			else:
-				self.X_train, _ = readXandY(useTrainingSet=True)
+    # Float model is generated for for training dataset to profile the prediction
+    # Hence, X is trimmed down to remove outliers. Prediction profiling is performed on the trimmed X to generate more precise profile data
+    def transformDataset(self):
+        if getVersion() == Common.Version.Fixed:
+            # If X itself is X_train, reuse it. Otherwise, read it from file
+            if usingTrainingDataset():
+                self.X_train = list(self.X)
+            else:
+                self.X_train, _ = readXandY(useTrainingSet=True)
 
-				# Trim some data points from X_train
-				self.X_train, _ = trimMatrix(self.X_train)
+            # Trim some data points from X_train
+            self.X_train, _ = trimMatrix(self.X_train)
 
-				self.trainDatasetRange = matRange(self.X_train)
+            self.trainDatasetRange = matRange(self.X_train)
+        elif getVersion() == Common.Version.Float:
+            if usingTrainingDataset():
+                self.X, self.Y = trimMatrix(self.X, self.Y)
 
-	def run(self):
-		self.buildParams()
+                self.trainDatasetRange = matRange(self.X)
+            else:
+                self.X_train, _ = readXandY(useTrainingSet=True)
 
-		self.headerFile = os.path.join(getOutputDir(), "model_%s.h" % (getVersion()))
-		self.infoFile = os.path.join(getOutputDir(), "info.txt")
+                # Trim some data points from X_train
+                self.X_train, _ = trimMatrix(self.X_train)
 
-		open(self.headerFile, 'w').close()
-		open(self.infoFile, 'w').close()
+                self.trainDatasetRange = matRange(self.X_train)
 
-		if dumpDataset():
-			self.processDataset()
+    def run(self):
+        self.buildParams()
 
-		self.processModel()
+        self.headerFile = os.path.join(
+            getOutputDir(), "model_%s.h" % (getVersion()))
+        self.infoFile = os.path.join(getOutputDir(), "info.txt")
 
-		#self.printDataRange()
+        open(self.headerFile, 'w').close()
+        open(self.infoFile, 'w').close()
+
+        if dumpDataset():
+            self.processDataset()
+
+        self.processModel()
+
+        # self.printDataRange()
+
 
 class QuantizerFixed(Quantizer):
 
-	# The X matrix is quantized using a scale factor computed from the training dataset.
-	# The range of X_train is used to compute the scale factor.
-	# Since the range of X_train depends on its distribution, the scale computed may be imprecise.
-	# To avoid this, any outliers in X_train is trimmed off using a threshold to get a more precise range and a more precise scale.
-	def transformDatasetOld(self):
-		# If X itself is X_train, reuse it. Otherwise, read it from file
-		if usingTrainingDataset():
-			self.X_train = list(self.X)
-		else:
-			self.X_train, _ = readXandY(useTrainingSet=True)
+    # The X matrix is quantized using a scale factor computed from the training dataset.
+    # The range of X_train is used to compute the scale factor.
+    # Since the range of X_train depends on its distribution, the scale computed may be imprecise.
+    # To avoid this, any outliers in X_train is trimmed off using a threshold to get a more precise range and a more precise scale.
+    def transformDatasetOld(self):
+        # If X itself is X_train, reuse it. Otherwise, read it from file
+        if usingTrainingDataset():
+            self.X_train = list(self.X)
+        else:
+            self.X_train, _ = readXandY(useTrainingSet=True)
 
-		# Trim some data points from X_train
-		self.X_train, _ = trimMatrix(self.X_train)
+        # Trim some data points from X_train
+        self.X_train, _ = trimMatrix(self.X_train)
 
-		# Compute range and scale and quantize X
-		testDatasetRange = matRange(self.X)
-		self.trainDatasetRange = matRange(self.X_train)
+        # Compute range and scale and quantize X
+        testDatasetRange = matRange(self.X)
+        self.trainDatasetRange = matRange(self.X_train)
 
-		scale = computeScale(*self.trainDatasetRange)
-		self.X, _ = scaleMat(self.X, scale)
+        scale = computeScale(*self.trainDatasetRange)
+        self.X, _ = scaleMat(self.X, scale)
 
-		with open(self.infoFile, 'a') as file:
-			file.write("Range of test dataset: [%.6f, %.6f]\n" % (testDatasetRange))
-			file.write("Range of training dataset: [%.6f, %.6f]\n" % (self.trainDatasetRange))
-			file.write("Test dataset scaled by: %d\n\n" % (scale))
+        with open(self.infoFile, 'a') as file:
+            file.write("Range of test dataset: [%.6f, %.6f]\n" % (
+                testDatasetRange))
+            file.write("Range of training dataset: [%.6f, %.6f]\n" % (
+                self.trainDatasetRange))
+            file.write("Test dataset scaled by: %d\n\n" % (scale))
 
-	# Quantize the matrices
-	def transformModel(self):
-		for param in self.params:
-			#data = list(param.data)
+    # Quantize the matrices
+    def transformModel(self):
+        for param in self.params:
+            #data = list(param.data)
 
-			#print(param.name)
-			
-			#if data[0] is list:
-			#	beforeRange = matRange(data)
-			#else:
-			#	beforeRange = listRange(data)
-			
-			#scale_old = computeScale(*beforeRange)
-			#data, _ = trimMatrix(data)
-			#if data[0] is list:
-			#	afterRange = matRange(data)
-			#else:
-			#	afterRange = listRange(data)
-			#scale_new = computeScale(*afterRange)
+            # print(param.name)
 
-			#print("Old range = ", beforeRange, "Old scale = ", scale_old)
-			#print("New range = ", afterRange, "New scale = ", scale_new)
-			#print()
+            # if data[0] is list:
+            #	beforeRange = matRange(data)
+            # else:
+            #	beforeRange = listRange(data)
 
+            #scale_old = computeScale(*beforeRange)
+            #data, _ = trimMatrix(data)
+            # if data[0] is list:
+            #	afterRange = matRange(data)
+            # else:
+            #	afterRange = listRange(data)
+            #scale_new = computeScale(*afterRange)
 
-			param.data, _ = scaleMat(param.data)
+            #print("Old range = ", beforeRange, "Old scale = ", scale_old)
+            #print("New range = ", afterRange, "New scale = ", scale_new)
+            # print()
+
+            param.data, _ = scaleMat(param.data)
+
 
 class QuantizerFloat(Quantizer):
-	
-	# Float model is generated for for training dataset to profile the prediction
-	# Hence, X is trimmed down to remove outliers. Prediction profiling is performed on the trimmed X to generate more precise profile data
-	def transformDatasetOld(self):
-		if usingTrainingDataset():
-			beforeLen = len(self.X)
-			beforeRange = matRange(self.X)
 
-			self.X, self.Y = trimMatrix(self.X, self.Y)
+    # Float model is generated for for training dataset to profile the prediction
+    # Hence, X is trimmed down to remove outliers. Prediction profiling is performed on the trimmed X to generate more precise profile data
+    def transformDatasetOld(self):
+        if usingTrainingDataset():
+            beforeLen = len(self.X)
+            beforeRange = matRange(self.X)
 
-			afterLen = len(self.X)
-			afterRange = matRange(self.X)
+            self.X, self.Y = trimMatrix(self.X, self.Y)
 
-			with open(self.infoFile, 'a') as file:
-				file.write("Old range of X: [%.6f, %.6f]\n" % (beforeRange))
-				file.write("Trimmed the dataset from %d to %d data points; %.3f%%\n" % (beforeLen, afterLen, float(beforeLen - afterLen) / beforeLen * 100))
-				file.write("New range of X: [%.6f, %.6f]\n" % (afterRange))
+            afterLen = len(self.X)
+            afterRange = matRange(self.X)
 
-			self.trainDatasetRange = afterRange
-		else:
-			self.X_train, _ = readXandY(useTrainingSet=True)
+            with open(self.infoFile, 'a') as file:
+                file.write("Old range of X: [%.6f, %.6f]\n" % (beforeRange))
+                file.write("Trimmed the dataset from %d to %d data points; %.3f%%\n" % (
+                    beforeLen, afterLen, float(beforeLen - afterLen) / beforeLen * 100))
+                file.write("New range of X: [%.6f, %.6f]\n" % (afterRange))
 
-			# Trim some data points from X_train
-			self.X_train, _ = trimMatrix(self.X_train)
+            self.trainDatasetRange = afterRange
+        else:
+            self.X_train, _ = readXandY(useTrainingSet=True)
 
-			self.trainDatasetRange = matRange(self.X_train)
+            # Trim some data points from X_train
+            self.X_train, _ = trimMatrix(self.X_train)
 
-	def transformModel(self):
-		pass
+            self.trainDatasetRange = matRange(self.X_train)
+
+    def transformModel(self):
+        pass

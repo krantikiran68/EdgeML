@@ -30,105 +30,106 @@ from Type import InferType
 from Util import *
 from Writer import Writer
 
+
 class Compiler:
 
-	def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile, numWorkers):
-		if os.path.isfile(inputFile) == False:
-			raise Exception("Input file doesn't exist")
+    def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile, numWorkers):
+        if os.path.isfile(inputFile) == False:
+            raise Exception("Input file doesn't exist")
 
-		setAlgo(algo)
-		setVersion(version)
-		setTarget(target)
-		setNumWorkers(numWorkers)
-		self.input = inputFile
-		self.outputDir = outputDir
-		setProfileLogFile(profileLogFile)
-		self.outputLogFile = outputLogFile
-		setMaxScale(maxScale)
-	
-	def genASTFromFile(self, inputFile):
-		# Parse and generate CST for the input
-		lexer = SeeDotLexer(FileStream(inputFile))
-		tokens = CommonTokenStream(lexer)
-		parser = SeeDotParser(tokens)
-		tree = parser.expr()
+        setAlgo(algo)
+        setVersion(version)
+        setTarget(target)
+        setNumWorkers(numWorkers)
+        self.input = inputFile
+        self.outputDir = outputDir
+        setProfileLogFile(profileLogFile)
+        self.outputLogFile = outputLogFile
+        setMaxScale(maxScale)
 
-		# Generate AST
-		ast = ASTBuilder.ASTBuilder().visit(tree)
-		return ast
+    def genASTFromFile(self, inputFile):
+        # Parse and generate CST for the input
+        lexer = SeeDotLexer(FileStream(inputFile))
+        tokens = CommonTokenStream(lexer)
+        parser = SeeDotParser(tokens)
+        tree = parser.expr()
 
-	def genAST(self, inputFile):
-		ext = os.path.splitext(inputFile)[1]
+        # Generate AST
+        ast = ASTBuilder.ASTBuilder().visit(tree)
+        return ast
 
-		if ext == ".sd":
-			return self.genASTFromFile(inputFile)
-		elif ext == ".pkl":
-			ast = TFMain()
-			#with open(inputFile, 'rb') as file:
-			#	ast = pickle.load(file)
-			return ast
+    def genAST(self, inputFile):
+        ext = os.path.splitext(inputFile)[1]
 
-	def run(self):
-		ast = self.genAST(self.input)
+        if ext == ".sd":
+            return self.genASTFromFile(inputFile)
+        elif ext == ".pkl":
+            ast = TFMain()
+            # with open(inputFile, 'rb') as file:
+            #	ast = pickle.load(file)
+            return ast
 
-		# Pretty printing AST
-		# PrintAST().visit(ast)
+    def run(self):
+        ast = self.genAST(self.input)
 
-		# Perform type inference
-		InferType().visit(ast)
+        # Pretty printing AST
+        # PrintAST().visit(ast)
 
-		IRUtil.init()
+        # Perform type inference
+        InferType().visit(ast)
 
-		res, state = self.compile(ast)
+        IRUtil.init()
 
-		if forArduino():
-			codegen = ArduinoCodegen(self.outputDir, *state)
-		elif forHls():
-			codegen = HlsCodegen(self.outputDir, *state)
-		elif forVerilog():
-			codegen = VerilogCodegen(self.outputDir, *state)
-		elif forX86():
-			codegen = X86Codegen(self.outputDir, *state)
-		else:
-			assert False
+        res, state = self.compile(ast)
 
-		codegen.printAll(*res)
+        if forArduino():
+            codegen = ArduinoCodegen(self.outputDir, *state)
+        elif forHls():
+            codegen = HlsCodegen(self.outputDir, *state)
+        elif forVerilog():
+            codegen = VerilogCodegen(self.outputDir, *state)
+        elif forX86():
+            codegen = X86Codegen(self.outputDir, *state)
+        else:
+            assert False
 
-	def compile(self, ast):
-		if genFuncCalls():
-			return self.genCodeWithFuncCalls(ast)
-		else:
-			return self.genCodeWithoutFuncCalls(ast)
+        codegen.printAll(*res)
 
-	def genCodeWithFuncCalls(self, ast):
+    def compile(self, ast):
+        if genFuncCalls():
+            return self.genCodeWithFuncCalls(ast)
+        else:
+            return self.genCodeWithoutFuncCalls(ast)
 
-		outputLog = Writer(self.outputLogFile)
+    def genCodeWithFuncCalls(self, ast):
 
-		compiler = IRBuilder(outputLog)
-		res = compiler.visit(ast)
+        outputLog = Writer(self.outputLogFile)
 
-		outputLog.close()
+        compiler = IRBuilder(outputLog)
+        res = compiler.visit(ast)
 
-		state = compiler.varDeclarations, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants
+        outputLog.close()
 
-		self.scaleForX = compiler.varScales['X']
+        state = compiler.varDeclarations, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants
 
-		return res, state
+        self.scaleForX = compiler.varScales['X']
 
-	def genCodeWithoutFuncCalls(self, ast):
-		
-		if forArduino() or forX86():
-			compiler = ArduinoIRGen()
-		elif forHls():
-			compiler = HlsIRGen()
-		else:
-			assert False
+        return res, state
 
-		prog, expr,	decls, scales, intvs, cnsts = compiler.visit(ast)
+    def genCodeWithoutFuncCalls(self, ast):
 
-		res = prog, expr
-		state = decls, scales, intvs, cnsts, compiler.expTables, compiler.VAR_IDF_INIT
+        if forArduino() or forX86():
+            compiler = ArduinoIRGen()
+        elif forHls():
+            compiler = HlsIRGen()
+        else:
+            assert False
 
-		self.scaleForX = scales['X']
+        prog, expr,	decls, scales, intvs, cnsts = compiler.visit(ast)
 
-		return res, state
+        res = prog, expr
+        state = decls, scales, intvs, cnsts, compiler.expTables, compiler.VAR_IDF_INIT
+
+        self.scaleForX = scales['X']
+
+        return res, state

@@ -4,7 +4,7 @@
 # Target word length. Currently set to match the word length of Arduino (2 bytes)
 wordLength = 16
 
-inputFileType = "tsv"
+inputFileType = "npy"
 
 # Range of max scale factor used for exploration
 maxScaleRange = 0, -wordLength
@@ -18,7 +18,9 @@ sigmoid_div = 4.0
 
 # MSBuild location
 # Edit the path if not present at the following location
-msbuildPathOptions = [r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
+msbuildPathOptions = [r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe"
+                      r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
+                      r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\MSBuild\Current\Bin\MSBuild.exe"
                       ]
 
 

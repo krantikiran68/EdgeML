@@ -4,10 +4,10 @@
 from functools import reduce
 import operator
 
-from Antlr.SeeDotParser import SeeDotParser
+from seedot.compiler.antlr.seedotParser import seedotParser as SeeDotParser
 
-import AST.AST as AST
-from AST.ASTVisitor import ASTVisitor
+import seedot.compiler.ast.ast as AST
+from seedot.compiler.ast.astVisitor import ASTVisitor
 
 
 class Type:
@@ -19,6 +19,7 @@ class Int(Type):
 
 
 class Tensor(Type):
+
     def __init__(self, shape: list):
         self.shape = shape
         self.dim = len(shape)
@@ -26,7 +27,8 @@ class Tensor(Type):
     def size(self):
         return reduce(operator.mul, self.shape, 1)
 
-    # Tensor without any dimension (float) or a tensor with all dimensions equal to 1
+    # Tensor without any dimension (float) or a tensor with all dimensions
+    # equal to 1
     def isShapeOne(self):
         return self.dim == 0 or self.size() == 1
 
@@ -95,7 +97,8 @@ class InferType(ASTVisitor):
 
         assert isTensor(exprType) and exprType.dim >= 1
 
-        # Reshape is valid if the total number of elements remain same after reshape
+        # Reshape is valid if the total number of elements remain same after
+        # reshape
         assert reduce(operator.mul, exprType.shape, 1) == reduce(
             operator.mul, node.shape, 1)
         node.type = Tensor(node.shape)
@@ -228,7 +231,8 @@ class InferType(ASTVisitor):
         assert eType.dim == 4 and fType.dim == 4
 
         # Implementation does Conv on 4D input on 4D filter
-        # Input is padded with 0s to ensure that the output dimension of the matrix is same as the input
+        # Input is padded with 0s to ensure that the output dimension of the
+        # matrix is same as the input
         [n, h, w, cin] = eType.shape
         [hf, wf, cin_, cout] = fType.shape
         assert cin == cin_

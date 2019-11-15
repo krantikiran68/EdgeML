@@ -2,6 +2,7 @@
 # Licensed under the MIT license.
 
 import numpy as np
+import platform
 
 import seedot.common as Common
 
@@ -12,6 +13,14 @@ class Config:
     codegen = "funcCall"  # "funcCall" "inline"
     debug = False
     debugCompiler = True
+
+
+def windows():
+    return platform.system() == "Windows"
+
+
+def linux():
+    return platform.system() == "Linux"
 
 
 def getAlgo():

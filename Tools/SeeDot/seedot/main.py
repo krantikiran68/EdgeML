@@ -109,7 +109,7 @@ class Main:
         outputDir = os.path.join("..", "Predictor", "output", version)
 
         curDir = os.getcwd()
-        os.chdir(os.path.join("..", "Predictor"))
+        os.chdir(Common.tempdir)
 
         obj = Predictor(self.algo, version, datasetType,
                         outputDir, self.scaleForX)
@@ -149,12 +149,10 @@ class Main:
                 return False
 
             # The iterator logic is as follows:
-            # Search begins when the first valid scaling factor is found (runOnce
-            # returns True)
-            # Search ends when the execution fails on a particular scaling factor
-            # (runOnce returns False)
-            # This is the window where valid scaling factors exist and we select the one
-            # with the best accuracy
+            # Search begins when the first valid scaling factor is found (runOnce returns True)
+            # Search ends when the execution fails on a particular scaling factor (runOnce returns False)
+            # This is the window where valid scaling factors exist and we
+            # select the one with the best accuracy
             if res == True:
                 searching = True
             elif searching == True:
@@ -173,16 +171,16 @@ class Main:
 
         return True
 
-    # Reverse sort the accuracies, print the top 5 accuracies and return the best
-    # scaling factor
+    # Reverse sort the accuracies, print the top 5 accuracies and return the
+    # best scaling factor
     def getBestScale(self):
         sorted_accuracy = dict(
             sorted(self.accuracy.items(), key=operator.itemgetter(1), reverse=True)[:5])
         print(sorted_accuracy)
         return next(iter(sorted_accuracy))
 
-    # Find the scaling factor which works best on the training dataset and predict
-    # on the testing dataset
+    # Find the scaling factor which works best on the training dataset and
+    # predict on the testing dataset
     def findBestScalingFactor(self):
         print("-------------------------------------------------")
         print("Performing search to find the best scaling factor")

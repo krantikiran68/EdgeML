@@ -6,29 +6,24 @@ import argparse
 import os
 import pickle
 
-from Antlr.SeeDotLexer import SeeDotLexer
-from Antlr.SeeDotParser import SeeDotParser
+from seedot.compiler.antlr.seedotLexer import seedotLexer as SeeDotLexer
+from seedot.compiler.antlr.seedotParser import seedotParser as SeeDotParser
 
-import AST.AST as AST
-import AST.ASTBuilder as ASTBuilder
-from AST.PrintAST import PrintAST
+import seedot.compiler.ast.ast as AST
+import seedot.compiler.ast.astBuilder as ASTBuilder
+from seedot.compiler.ast.printAST import PrintAST
 
-from Codegen.Arduino import Arduino as ArduinoCodegen
-from Codegen.Hls import Hls as HlsCodegen
-from Codegen.Verilog import Verilog as VerilogCodegen
-from Codegen.X86 import X86 as X86Codegen
+from seedot.compiler.codegen.arduino import Arduino as ArduinoCodegen
+from seedot.compiler.codegen.x86 import X86 as X86Codegen
 
-from IR.IRBuilder import IRBuilder
-import IR.IRUtil as IRUtil
-
-from IR.IRGen.Arduino import Arduino as ArduinoIRGen
-from IR.IRGen.Hls import Hls as HlsIRGen
+from seedot.compiler.ir.irBuilder import IRBuilder
+import seedot.compiler.ir.irUtil as IRUtil
 
 from TF.ProcessTFGraph import main as TFMain
 
-from Type import InferType
-from Util import *
-from Writer import Writer
+from seedot.compiler.type import InferType
+from seedot.util import *
+from seedot.writer import Writer
 
 
 class Compiler:

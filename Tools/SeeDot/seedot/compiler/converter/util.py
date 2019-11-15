@@ -15,7 +15,8 @@ import seedot.util as Util
 
 
 class Config:
-    # If False, datasets are not generated again which reduces the processing time
+    # If False, datasets are not generated again which reduces the processing
+    # time
     dumpDataset = True
     # To use sparse matrix representation whenever required
     sparseMat = True
@@ -29,9 +30,8 @@ def getAlgo():
 def setAlgo(algo: str):
     Config.algo = algo
 
+
 # Fixed-point or float-point
-
-
 def getVersion():
     return Config.version
 
@@ -39,9 +39,8 @@ def getVersion():
 def setVersion(version: str):
     Config.version = version
 
+
 # training or testing dataset
-
-
 def getDatasetType():
     return Config.datasetType
 
@@ -53,9 +52,8 @@ def setDatasetType(datasetType: str):
 def usingTrainingDataset():
     return getDatasetType() == Common.DatasetType.Training
 
+
 # Arduino code or desktop code (aka plain C++ code)
-
-
 def getTarget():
     return Config.target
 
@@ -68,26 +66,12 @@ def forArduino():
     return getTarget() == Common.Target.Arduino
 
 
-def forHls():
-    return getTarget() == Common.Target.Hls
-
-# set number of workers for FPGA sparseMUL
-
-
-def setNumWorkers(WorkerThreads):
-    Config.numWorkers = WorkerThreads
-
-
 def setInputFile(inputFile):
     Config.inputFile = inputFile
 
 
 def getInputFile():
     return Config.inputFile
-
-
-def getNumWorkers():
-    return Config.numWorkers
 
 
 def getDatasetOutputDir():
@@ -127,6 +111,14 @@ def usingTSV():
     return Common.inputFileType == "tsv"
 
 
+def usingCSV():
+    return Common.inputFileType == "csv"
+
+
+def usingNPY():
+    return Common.inputFileType == "npy"
+
+
 def dumpDataset():
     return Config.dumpDataset
 
@@ -162,9 +154,8 @@ def meanVarNorm():
 def getMaxInt():
     return (2 ** (Common.wordLength - 1)) - 1
 
+
 # Format specifiers for various datatypes
-
-
 def getDataType(num):
     if isinstance(num, int):
         return 'MYINT', '%d'
@@ -274,18 +265,20 @@ def readXandYasCSV(trainingDataset):
         X = readFileAsMat(os.path.join(
             Config.testingFile, "X.csv"), ", ", float)
         Y = readFileAsMat(os.path.join(Config.testingFile, "Y.csv"), ", ", int)
+
+    Y = zeroIndexLabels(Y)
+
     return X, Y
 
 # Parse the file using the delimited and store it as a matrix
-
-
 def readFileAsMat(fileName: str, delimiter: str, dataType):
     mat = []
     rowLength = -1
 
     with open(fileName, 'r') as f:
         for line in f:
-            # If the delimiter is ' ', use split() without parameters to parse the line even if there are consecutive spaces
+            # If the delimiter is ' ', use split() without parameters to parse
+            # the line even if there are consecutive spaces
             if delimiter == " ":
                 entries = line.strip().split()
             else:
@@ -302,10 +295,9 @@ def readFileAsMat(fileName: str, delimiter: str, dataType):
     return mat
 
 
+# Write the matrix as a CSV file
 def writeMatAsCSV(mat, fileName: str):
     writeMatToFile(mat, fileName, ", ")
-
-# Write the matrix as a CSV file
 
 
 def writeMatToFile(mat, fileName: str, delimiter):
@@ -420,23 +412,12 @@ def writeVars(vars: dict, fileName: str):
                 formatSpecifier += 'f'
                 file.write(("const %s %s = " + formatSpecifier + ";\n") %
                            (dataType, key, vars[key]))
-            # todo: Why is this required when I am already taking care of writing the datatype?
+            # todo: Why is this required when I am already taking care of
+            # writing the datatype?
             else:
                 file.write(("const %s %s = " + formatSpecifier + ";\n") %
                            ("int", key, vars[key]))
         file.write("\n")
-
-
-def writeVarsFpga(vars: dict, fileName: str):
-    file = open(fileName, "w")
-    dpath = '''"../fpga/output/lut/"'''
-    file.write(
-        "`ifndef CUSTOM_TYPES_SV_INCLUDED \n `define CUSTOM_TYPES_SV_INCLUDED \n")
-    file.write("`define dpath %s \n" % (dpath))
-    for key in vars:
-        file.write("localparam " + key + '\t = \t' + str(vars[key]) + ";\n")
-    file.write("`endif\n")
-    file.close()
 
 
 def matMul(X, Y):
@@ -486,16 +467,14 @@ def convertToSparse(mat):
 
     return matVal, matIdx
 
-# Custom function to compute the maximum scaling factor which can fit M into an integer of Common.wordLength length
 
-
+# Custom function to compute the maximum scaling factor which can fit M
+# into an integer of Common.wordLength length
 def computeScale(m, M):
     maxAbs = max(abs(m), abs(M))
     return Util.computeScalingFactor(maxAbs)
 
 # Scaling the matrix using the scaling factor computed
-
-
 def scaleMat(mat, scale=None):
     if scale == None:
         scale = computeScale(*matRange(mat))
@@ -505,9 +484,8 @@ def scaleMat(mat, scale=None):
 
     return scaledMat, scale
 
+
 # Scaling an array using the scaling factor computed
-
-
 def scaleList(list, scale=None):
     if scale == None:
         scale = computeScale(*listRange(list))
@@ -516,9 +494,9 @@ def scaleList(list, scale=None):
 
     return scaledList, scale
 
-# Remove some data points in X whose value is an outlier compared to the distribution of X
 
-
+# Remove some data points in X whose value is an outlier compared to the
+# distribution of X
 def trimMatrix(X, Y=None):
     # The matrix is trimmed only if the range of the matrix is more than this threshold
     # Used to skip trimming when the range is already low
@@ -554,73 +532,3 @@ def trimMatrix(X, Y=None):
                 Y_trim.append(Y[i])
 
     return X_trim, Y_trim
-
-# transpose Zidx and Zval to work with worker threads
-
-
-def transformZ_offsetGen(Zidx, Zval, numJobs, name):
-    numWorkers = getNumWorkers()
-    jobsPerThread = int((numJobs - (numJobs * (0.25))) // numWorkers)
-    extraJobs = numJobs - (jobsPerThread * numWorkers)
-    maxJobSize = jobsPerThread + extraJobs
-    totVal = len(Zidx)
-
-    # find max job length
-    maxJobLen, prev, curr = 0, 0, 0
-    for i in Zidx:
-        if i == 0:
-            if maxJobLen < (curr - prev):
-                maxJobLen = curr - prev
-            prev = curr
-        else:
-            curr += 1
-
-    SpDict = {}
-    offsetDict = {}
-
-    # split arrays for worker threads (NOT THE LAST ONE)
-    listidx, listval, index, indexDict = [], [], [], {}
-    id, i, count, idxId, valId, strId = 0, 0, 0, 0, 0, 0
-    for i in range(0, numWorkers):
-        count, id = 0, 0
-        while(count < jobsPerThread):
-            listidx.append(Zidx[idxId])
-            if Zidx[idxId] == 0:
-                listval.append(0)
-                count += 1
-            else:
-                listval.append(Zval[valId])
-                valId += 1
-            idxId += 1
-            id += 1
-        index.append(id)
-        indexDict.update({"index" + str(strId): id})
-        SpDict.update({name + "idx_t" + str(strId): listidx})
-        SpDict.update({name + "val_t" + str(strId): listval})
-        strId += 1
-        listidx = []
-        listval = []
-
-    # common jobs
-    id = 0
-    offsetList = []
-    # write first job index
-    offsetList.append(0)
-    while(idxId < totVal):
-        listidx.append(Zidx[idxId])
-        if Zidx[idxId] == 0:
-            listval.append(0)
-            offsetList.append(id + 1)
-        else:
-            listval.append(Zval[valId])
-            valId += 1
-        idxId += 1
-        id += 1
-
-    commonIndex = id
-    indexDict.update({"commonindex": commonIndex})
-    SpDict.update({name + "idx_t" + "_common": listidx})
-    SpDict.update({name + "val_t" + "_common": listval})
-    offsetDict.update({"offset": offsetList})
-
-    return SpDict, maxJobSize, maxJobLen, offsetDict, indexDict, max(index + [commonIndex])

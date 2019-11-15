@@ -7,11 +7,16 @@
 
 using namespace model;
 
+void accuracy();
+void predictionTime();
+void syncWithMaster();
+
 void setup() {
 	Serial.begin(115200);
 	return;
 }
 
+// Sketch operates in two modes: accuracy mode and prediction time mode. Refer to config.h for more details.
 void loop() {
 
 #ifdef ACCURACY
@@ -25,9 +30,12 @@ void loop() {
 	return;
 }
 
+// In this mode, first, the sketch synchronizes with the master using a test message.
+// Then, each datapoint is read from the serial port and its class ID is predicted.
+// The class ID and the prediction time is communicated back to the master using the same serial port.
 void accuracy() {
 
-	welcome();
+	syncWithMaster();
 
 	while (true) {
 		unsigned long startTime = micros();
@@ -43,6 +51,10 @@ void accuracy() {
 	return;
 }
 
+// In this mode, a single data point is already available on the device's flash storage.
+// The data point is stored in the variable X and its class ID is stored in the variable Y.
+// Prediction is performed on X and the time per prediction is recorded.
+// The average prediction time for 100 runs is computed and is written to the serial port.
 void predictionTime() {
 	unsigned long totalTime = 0;
 	int iterations = 0;
@@ -57,10 +69,17 @@ void predictionTime() {
 
 		unsigned long elapsedTime = micros() - startTime;
 		
-		if ((classID + 1) == Y)
-			Serial.println("Correct prediction");
-		else
-			Serial.println("WARNING: Incorrect prediction");
+		Serial.print("Predicted label: ");
+		Serial.print(classID);
+		Serial.print("; True label: ");
+		Serial.print(Y);
+
+		if ((classID) == Y){
+			Serial.println("; Correct prediction");
+		}
+		else {
+			Serial.println("; WARNING: Incorrect prediction");
+		}
 
 		totalTime += elapsedTime;
 		iterations++;
@@ -76,6 +95,8 @@ void predictionTime() {
 	return;
 }
 
+// In accuracy mode, this function reads an integer from the serial port.
+// In the prediction time mode, this function reads an integer from the array X stored in device's flash memory.
 MYINT getIntFeature(MYINT i) {
 #ifdef ACCURACY
 	char buff[13];
@@ -121,6 +142,7 @@ MYINT getIntFeatureOld(MYINT i) {
 #endif
 }
 
+// Function reads a float variable either from the serial port or from the array X stored in devices' flash memory.
 float getFloatFeature(MYINT i) {
 #ifdef ACCURACY
 	char buff[13];
@@ -136,7 +158,7 @@ float getFloatFeature(MYINT i) {
 }
 
 // Setup serial communication with the computer
-void welcome() {
+void syncWithMaster() {
 
 	// Wait for input
 	while (!Serial.available())

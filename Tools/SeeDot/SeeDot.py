@@ -28,7 +28,7 @@ class MainDriver:
                             metavar='', help="Testing set file")
         parser.add_argument("--model", required=True, metavar='',
                             help="Directory containing trained model (output from Bonsai/ProtoNN trainer)")
-        #parser.add_argument("-v", "--version", default=Common.Version.Fixed, choices=Common.Version.All, metavar='',
+        # parser.add_argument("-v", "--version", default=Common.Version.Fixed, choices=Common.Version.All, metavar='',
         #                    help="Datatype of the generated code (fixed-point or floating-point)")
         parser.add_argument("--tempdir", metavar='',
                             help="Scratch directory for intermediate files")
@@ -87,6 +87,7 @@ class MainDriver:
         obj = Main(algo, version, Common.Target.Arduino,
                    trainingInput, testingInput, modelDir, None)
         obj.run()
+
 
 if __name__ == "__main__":
     obj = MainDriver()

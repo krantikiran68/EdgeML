@@ -13,7 +13,8 @@ using namespace std;
 float m_all, M_all;
 float m_exp, M_exp;
 
-void initializeProfiling() {
+void initializeProfiling()
+{
 	m_all = numeric_limits<float>::max();
 	M_all = -numeric_limits<float>::max();
 
@@ -23,7 +24,8 @@ void initializeProfiling() {
 	return;
 }
 
-void updateRange(float x) {
+void updateRange(float x)
+{
 	if (x < m_all)
 		m_all = x;
 	if (x > M_all)
@@ -31,7 +33,8 @@ void updateRange(float x) {
 	return;
 }
 
-void updateRangeOfExp(float x) {
+void updateRangeOfExp(float x)
+{
 	if (x < m_exp)
 		m_exp = x;
 	if (x > M_exp)
@@ -39,7 +42,8 @@ void updateRangeOfExp(float x) {
 	return;
 }
 
-void dumpRange(string outputFile) {
+void dumpRange(string outputFile)
+{
 	ofstream fout(outputFile);
 
 	fout.precision(6);
@@ -50,14 +54,17 @@ void dumpRange(string outputFile) {
 	return;
 }
 
-void diff(float* A, MYINT* B, MYINT scale, MYINT I, MYINT J) {
+void diff(float *A, MYINT *B, MYINT scale, MYINT I, MYINT J)
+{
 
 	float min = numeric_limits<float>::max(), max = 0, sum = 0;
 	float min_relative = numeric_limits<float>::max(), max_relative = 0, sum_relative = 0;
 	int count = 0;
 
-	for (MYINT i = 0; i < I; i++) {
-		for (MYINT j = 0; j < J; j++) {
+	for (MYINT i = 0; i < I; i++)
+	{
+		for (MYINT j = 0; j < J; j++)
+		{
 			float a = A[i * J + j];
 
 			MYINT b = B[i * J + j];
@@ -69,7 +76,7 @@ void diff(float* A, MYINT* B, MYINT scale, MYINT I, MYINT J) {
 
 			if (diff < min)
 				min = diff;
-			if (diff > max) 
+			if (diff > max)
 				max = diff;
 
 			if (diff_relative < min_relative)
@@ -92,15 +99,19 @@ void diff(float* A, MYINT* B, MYINT scale, MYINT I, MYINT J) {
 	return;
 }
 
-void diff(float* A, MYINT* B, MYINT scale, MYINT I, MYINT J, MYINT K) {
+void diff(float *A, MYINT *B, MYINT scale, MYINT I, MYINT J, MYINT K)
+{
 
 	float min = numeric_limits<float>::max(), max = 0, sum = 0;
 	float min_relative = numeric_limits<float>::max(), max_relative = 0, sum_relative = 0;
 	int count = 0;
 
-	for (MYINT i = 0; i < I; i++) {
-		for (MYINT j = 0; j < J; j++) {
-			for (MYINT k = 0; k < K; k++) {
+	for (MYINT i = 0; i < I; i++)
+	{
+		for (MYINT j = 0; j < J; j++)
+		{
+			for (MYINT k = 0; k < K; k++)
+			{
 				float a = A[i * J * K + j * K + k];
 
 				MYINT b = B[i * J * K + j * K + k];

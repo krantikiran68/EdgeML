@@ -179,17 +179,17 @@ class Arduino(CodegenBase):
                     x = -1
             else:
                 x = 0
-            
+
             if x != 0:
                 self.out.printf("&")
 
             self.print(arg)
-            
+
             if x != 0 and x != -1:
                 self.out.printf("[0]" * x)
             if i != len(keys) - 1:
                 self.out.printf(", ")
-        
+
         self.out.printf(");\n\n")
 
     def printPrint(self, ir):

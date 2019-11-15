@@ -12,11 +12,20 @@
 
 using namespace std;
 
-enum Version { Fixed, Float };
-enum DatasetType { Training, Testing };
+enum Version
+{
+	Fixed,
+	Float
+};
+enum DatasetType
+{
+	Training,
+	Testing
+};
 
 // Split the CSV row into multiple values
-vector<string> readCSVLine(string line) {
+vector<string> readCSVLine(string line)
+{
 	vector<string> tokens;
 
 	stringstream stream(line);
@@ -28,7 +37,8 @@ vector<string> readCSVLine(string line) {
 	return tokens;
 }
 
-vector<string> getFeatures(string line) {
+vector<string> getFeatures(string line)
+{
 	static int featuresLength = -1;
 
 	vector<string> features = readCSVLine(line);
@@ -42,7 +52,8 @@ vector<string> getFeatures(string line) {
 	return features;
 }
 
-int getLabel(string line) {
+int getLabel(string line)
+{
 	static int labelLength = -1;
 
 	vector<string> labels = readCSVLine(line);
@@ -56,10 +67,12 @@ int getLabel(string line) {
 	return (int)atoi(labels.front().c_str());
 }
 
-void populateFixedVector(MYINT** features_int, vector<string> features, int scale) {
+void populateFixedVector(MYINT **features_int, vector<string> features, int scale)
+{
 	int features_size = (int)features.size();
 
-	for (int i = 0; i < features_size; i++) {
+	for (int i = 0; i < features_size; i++)
+	{
 		double f = (double)(atof(features.at(i).c_str()));
 		double f_int = ldexp(f, -scale);
 		features_int[i][0] = (MYINT)(f_int);
@@ -68,15 +81,18 @@ void populateFixedVector(MYINT** features_int, vector<string> features, int scal
 	return;
 }
 
-void populateFloatVector(float **features_float, vector<string> features) {
+void populateFloatVector(float **features_float, vector<string> features)
+{
 	int features_size = (int)features.size();
 	for (int i = 0; i < features_size; i++)
 		features_float[i][0] = (float)(atof(features.at(i).c_str()));
 	return;
 }
 
-int main(int argc, char *argv[]) {
-	if (argc == 1) {
+int main(int argc, char *argv[])
+{
+	if (argc == 1)
+	{
 		cout << "No arguments supplied" << endl;
 		return 1;
 	}
@@ -86,7 +102,8 @@ int main(int argc, char *argv[]) {
 		version = Fixed;
 	else if (strcmp(argv[1], "float") == 0)
 		version = Float;
-	else {
+	else
+	{
 		cout << "Argument mismatch for version\n";
 		return 1;
 	}
@@ -97,7 +114,8 @@ int main(int argc, char *argv[]) {
 		datasetType = Training;
 	else if (strcmp(argv[2], "testing") == 0)
 		datasetType = Testing;
-	else {
+	else
+	{
 		cout << "Argument mismatch for dataset type\n";
 		return 1;
 	}
@@ -132,20 +150,22 @@ int main(int argc, char *argv[]) {
 	initializeProfiling();
 
 	string line1, line2;
-	while (getline(featuresFile, line1) && getline(lablesFile, line2)) {
+	while (getline(featuresFile, line1) && getline(lablesFile, line2))
+	{
 		// Read the feature vector and class ID
 		vector<string> features = getFeatures(line1);
 		int label = getLabel(line2);
 
 		// Allocate memory to store the feature vector as arrays
-		if (alloc == false) {
+		if (alloc == false)
+		{
 			features_size = (int)features.size();
 
-			features_int = new MYINT*[features_size];
+			features_int = new MYINT *[features_size];
 			for (int i = 0; i < features_size; i++)
 				features_int[i] = new MYINT[1];
 
-			features_float = new float*[features_size];
+			features_float = new float *[features_size];
 			for (int i = 0; i < features_size; i++)
 				features_float[i] = new float[1];
 
@@ -153,7 +173,8 @@ int main(int argc, char *argv[]) {
 		}
 
 		// Populate the array using the feature vector
-		if (debugMode) {
+		if (debugMode)
+		{
 			populateFixedVector(features_int, features, scaleForX);
 			populateFloatVector(features_float, features);
 		}
@@ -164,24 +185,28 @@ int main(int argc, char *argv[]) {
 
 		// Invoke the predictor function
 		int res;
-		
-		if (debugMode) {
+
+		if (debugMode)
+		{
 			int res_float = seedotFloat(features_float);
 			int res_fixed = seedotFixed(features_int);
 			//debug();
 			res = res_fixed;
 		}
-		else {
+		else
+		{
 			if (version == Fixed)
 				res = seedotFixed(features_int);
 			else if (version == Float)
 				res = seedotFloat(features_float);
 		}
 
-		if ((res + 1) == label) {
+		if ((res + 1) == label)
+		{
 			correct++;
 		}
-		else {
+		else
+		{
 			output << "Incorrect prediction for input " << total + 1 << ". Predicted " << res + 1 << " Expected " << label << endl;
 		}
 
@@ -192,7 +217,7 @@ int main(int argc, char *argv[]) {
 	for (int i = 0; i < features_size; i++)
 		delete features_int[i];
 	delete[] features_int;
-	
+
 	for (int i = 0; i < features_size; i++)
 		delete features_float[i];
 	delete[] features_float;

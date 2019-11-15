@@ -210,7 +210,7 @@ class MainDriver:
 
             outputFile = os.path.join(outputDir, algo + "-fixed.cpp")
             obj = Main(algo, version, target, inputFile, outputFile,
-                           profileLogFile, self.args.max_scale_factor, self.args.workers)
+                       profileLogFile, self.args.max_scale_factor, self.args.workers)
             obj.run()
 
     def runConverterDriver(self):

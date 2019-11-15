@@ -189,7 +189,7 @@ class Assn(Cmd):
 
 class If(Cmd):
 
-    def __init__(self, cond: Expr, trueCmds: CmdList, falseCmds: CmdList=[]):
+    def __init__(self, cond: Expr, trueCmds: CmdList, falseCmds: CmdList = []):
         self.cond = cond
         self.trueCmds = trueCmds
         self.falseCmds = falseCmds
@@ -304,7 +304,8 @@ class Prog:
 
 class DataType:
     intType = {Common.Target.Arduino: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
-               Common.Target.X86: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64}
+               Common.Target.X86: {8: np.int8,
+                                   16: np.int16, 32: np.int32, 64: np.int64}
                }
     intStr = {Common.Target.Arduino: 'MYINT',
               Common.Target.X86: 'MYINT'

@@ -6,6 +6,9 @@
 #include "datatypes.h"
 #include "library_fixed.h"
 
+// This file contains implementations of the linear algebra operators supported by SeeDot.
+// Each function takes the scaling factors as arguments along with the pointers to the operands.
+
 // C = A + B
 void MatAddNN(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC)
 {

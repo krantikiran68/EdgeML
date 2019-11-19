@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 	string datasetTypeStr = argv[2];
 
 	// Reading the dataset
-	string inputDir = "input\\";
+	string inputDir = "input/";
 
 	ifstream featuresFile(inputDir + "X.csv");
 	ifstream lablesFile(inputDir + "Y.csv");
@@ -131,10 +131,10 @@ int main(int argc, char *argv[])
 		throw "Input files doesn't exist";
 
 	// Create output directory and files
-	string outputDir = "output\\" + versionStr;
+	string outputDir = "output/" + versionStr;
 
-	string outputFile = outputDir + "\\prediction-info-" + datasetTypeStr + ".txt";
-	string statsFile = outputDir + "\\stats-" + datasetTypeStr + ".txt";
+	string outputFile = outputDir + "/prediction-info-" + datasetTypeStr + ".txt";
+	string statsFile = outputDir + "/stats-" + datasetTypeStr + ".txt";
 
 	ofstream output(outputFile);
 	ofstream stats(statsFile);
@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
 				res = seedotFloat(features_float);
 		}
 
-		if ((res + 1) == label)
+		if ((res) == label)
 		{
 			correct++;
 		}
@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
 	stats.close();
 
 	if (datasetType == Training)
-		dumpRange(outputDir + "\\profile.txt");
+		dumpRange(outputDir + "/profile.txt");
 
 	return 0;
 }

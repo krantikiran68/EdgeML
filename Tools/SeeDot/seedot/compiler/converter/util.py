@@ -187,18 +187,26 @@ def listRange(list):
 
 
 def readXandY(useTrainingSet=False):
-    return readXandYasNPY(useTrainingSet)
+    train_ext = os.path.splitext(Config.trainingFile)[1]
+    test_ext = os.path.splitext(Config.testingFile)[1]
 
-
-def readXandYasNPY(trainingDataset):
-    if trainingDataset == True or usingTrainingDataset() == True:
-        mat = np.load(Config.trainingFile)
-        mat = mat.tolist()
+    if train_ext == test_ext == ".npy":
+        return readXandYasNPY(useTrainingSet)
+    elif train_ext == test_ext == ".tsv":
+        return readXandYasTSV(useTrainingSet)
+    elif train_ext == test_ext == ".csv":
+        return readXandYasCSV(useTrainingSet)
+    elif train_ext == test_ext == ".txt":
+        return readXandYasLibSVM(useTrainingSet)
     else:
-        mat = np.load(Config.testingFile)
-        mat = mat.tolist()
-    X, Y = extractXandYfromMat(mat)
-    return X, Y
+        assert False
+
+
+def zeroIndexLabels(Y):
+    lab = np.array(Y)
+    lab = lab.astype('uint8')
+    lab = np.array(lab) - min(lab)
+    return lab.tolist()
 
 
 def readXandYasLibSVM(trainingDataset):
@@ -215,6 +223,8 @@ def readXandYasLibSVM(trainingDataset):
     Y = list(map(int, Y))
     Y = [[classID] for classID in Y]
 
+    Y = zeroIndexLabels(Y)
+
     return X, Y
 
 
@@ -229,6 +239,9 @@ def readXandYasTSV(trainingDataset):
     else:
         mat = readFileAsMat(Config.testingFile, "\t", float)
     X, Y = extractXandYfromMat(mat)
+
+    Y = zeroIndexLabels(Y)
+
     return X, Y
 
 
@@ -269,6 +282,24 @@ def readXandYasCSV(trainingDataset):
     Y = zeroIndexLabels(Y)
 
     return X, Y
+
+
+def readXandYasNPY(trainingDataset):
+    '''
+    In TSV format, the input is a file containing tab seperated values.
+    In each row of the TSV file, the class ID will be the first entry followed by the feature vector of the data point
+    The file is initially read as a matrix and later X and Y are extracted
+    '''
+    if trainingDataset == True or usingTrainingDataset() == True:
+        mat = np.load(Config.trainingFile).tolist()
+    else:
+        mat = np.load(Config.testingFile).tolist()
+    X, Y = extractXandYfromMat(mat)
+
+    Y = zeroIndexLabels(Y)
+
+    return X, Y
+
 
 # Parse the file using the delimited and store it as a matrix
 def readFileAsMat(fileName: str, delimiter: str, dataType):

@@ -28,14 +28,13 @@ from seedot.writer import Writer
 
 class Compiler:
 
-    def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile, numWorkers):
+    def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile):
         if os.path.isfile(inputFile) == False:
             raise Exception("Input file doesn't exist")
 
         setAlgo(algo)
         setVersion(version)
         setTarget(target)
-        setNumWorkers(numWorkers)
         self.input = inputFile
         self.outputDir = outputDir
         setProfileLogFile(profileLogFile)
@@ -79,10 +78,6 @@ class Compiler:
 
         if forArduino():
             codegen = ArduinoCodegen(self.outputDir, *state)
-        elif forHls():
-            codegen = HlsCodegen(self.outputDir, *state)
-        elif forVerilog():
-            codegen = VerilogCodegen(self.outputDir, *state)
         elif forX86():
             codegen = X86Codegen(self.outputDir, *state)
         else:
@@ -91,10 +86,7 @@ class Compiler:
         codegen.printAll(*res)
 
     def compile(self, ast):
-        if genFuncCalls():
-            return self.genCodeWithFuncCalls(ast)
-        else:
-            return self.genCodeWithoutFuncCalls(ast)
+        return self.genCodeWithFuncCalls(ast)
 
     def genCodeWithFuncCalls(self, ast):
 
@@ -108,23 +100,5 @@ class Compiler:
         state = compiler.varDeclarations, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants
 
         self.scaleForX = compiler.varScales['X']
-
-        return res, state
-
-    def genCodeWithoutFuncCalls(self, ast):
-
-        if forArduino() or forX86():
-            compiler = ArduinoIRGen()
-        elif forHls():
-            compiler = HlsIRGen()
-        else:
-            assert False
-
-        prog, expr,	decls, scales, intvs, cnsts = compiler.visit(ast)
-
-        res = prog, expr
-        state = decls, scales, intvs, cnsts, compiler.expTables, compiler.VAR_IDF_INIT
-
-        self.scaleForX = scales['X']
 
         return res, state

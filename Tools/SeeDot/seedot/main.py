@@ -2,38 +2,52 @@
 # Licensed under the MIT license.
 
 import argparse
+import datetime
+from distutils.dir_util import copy_tree
 import os
 import shutil
 import sys
 import operator
+import tempfile
 import traceback
 
 from seedot.compiler.converter.converter import Converter
-from seedot.compiler.converter.bonsai import Bonsai
-from seedot.compiler.converter.protonn import Protonn
 
 import seedot.common as Common
 from seedot.compiler.compiler import Compiler
 from seedot.predictor import Predictor
+import seedot.util as Util
 
 
 class Main:
 
-    def __init__(self, algo, version, target, trainingFile, testingFile, modelDir, sf, workers):
-        self.algo, self.version, self.target, self.trainingFile, self.testingFile, self.modelDir, self.sf, self.numWorkers = algo, version, target, trainingFile, testingFile, modelDir, sf, workers
+    def __init__(self, algo, version, target, trainingFile, testingFile, modelDir, sf):
+        self.algo, self.version, self.target = algo, version, target
+        self.trainingFile, self.testingFile, self.modelDir = trainingFile, testingFile, modelDir
+        self.sf = sf
         self.accuracy = {}
 
-    # Generate the fixed-point code using the input generated from the Converter
-    # project
+    def setup(self):
+        curr_dir = os.path.dirname(os.path.realpath(__file__))
+        
+        copy_tree(os.path.join(curr_dir, "Predictor"), Common.tempdir)
+
+        for fileName in ["arduino.ino", "config.h", "library.h", "predict.h"]:
+            srcFile = os.path.join(curr_dir, "arduino", fileName)
+            destFile = os.path.join(Common.outdir, fileName)
+            shutil.copyfile(srcFile, destFile)
+
+    # Generate the fixed-point code using the input generated from the
+    # Converter project
     def compile(self, version, target, sf):
         print("Generating code...", end='')
 
         # Set input and output files
-        inputFile = os.path.join(self.modelDir, "input.sd")
+        inputFile = os.path.join(Common.tempdir, "input.sd")
         profileLogFile = os.path.join(
-            "..", "Predictor", "output", "float", "profile.txt")
+            Common.tempdir, "output", self.algo + "-float", "profile.txt")
 
-        logDir = os.path.join("output")
+        logDir = os.path.join(Common.outdir, "output")
         os.makedirs(logDir, exist_ok=True)
         if version == Common.Version.Float:
             outputLogFile = os.path.join(logDir, "log-float.txt")
@@ -42,21 +56,17 @@ class Main:
                 logDir, "log-fixed-" + str(abs(sf)) + ".txt")
 
         if target == Common.Target.Arduino:
-            outputDir = os.path.join("..", "arduino")
-        elif target == Common.Target.Hls:
-            outputDir = os.path.join("..", "hls")
-        elif target == Common.Target.Verilog:
-            outputDir = os.path.join("..", "verilog")
+            outputDir = os.path.join(Common.outdir, "arduino")
         elif target == Common.Target.X86:
-            outputDir = os.path.join("..", "Predictor")
+            outputDir = os.path.join(Common.tempdir, "Predictor")
 
         try:
             obj = Compiler(self.algo, version, target, inputFile, outputDir,
-                           profileLogFile, sf, outputLogFile, self.numWorkers)
+                           profileLogFile, sf, outputLogFile)
             obj.run()
         except:
             print("failed!\n")
-            traceback.print_exc()
+            #traceback.print_exc()
             return False
 
         self.scaleForX = obj.scaleForX
@@ -72,17 +82,11 @@ class Main:
 
         # Create output dirs
         if target == Common.Target.Arduino:
-            outputDir = os.path.join("..", "Streamer", "input")
+            outputDir = os.path.join(Common.outdir, "input")
             datasetOutputDir = outputDir
-        elif target == Common.Target.Hls:
-            outputDir = os.path.join("..", "hls", "input")
-            datasetOutputDir = os.path.join("..", "Streamer", "input")
-        elif target == Common.Target.Verilog:
-            outputDir = os.path.join("..", "verilog", "input")
-            datasetOutputDir = os.path.join("..", "Streamer", "input")
         elif target == Common.Target.X86:
-            outputDir = os.path.join("..", "Predictor")
-            datasetOutputDir = os.path.join("..", "Predictor", "input")
+            outputDir = Common.tempdir
+            datasetOutputDir = os.path.join(Common.tempdir, "input")
         else:
             assert False
 
@@ -93,7 +97,7 @@ class Main:
 
         try:
             obj = Converter(self.algo, version, datasetType, target,
-                            datasetOutputDir, outputDir, self.numWorkers)
+                            datasetOutputDir, outputDir)
             obj.setInput(inputFile, self.modelDir,
                          self.trainingFile, self.testingFile)
             obj.run()
@@ -106,7 +110,7 @@ class Main:
 
     # Build and run the Predictor project
     def predict(self, version, datasetType):
-        outputDir = os.path.join("..", "Predictor", "output", version)
+        outputDir = os.path.join(Common.tempdir, "output", version)
 
         curDir = os.getcwd()
         os.chdir(Common.tempdir)
@@ -254,14 +258,14 @@ class Main:
         if res == False:
             return False
 
-        # Copy model.h file
-        srcFile = os.path.join("..", "Streamer", "input", "model_fixed.h")
-        destFile = os.path.join("..", self.target, "model.h")
+        # Copy file
+        srcFile = os.path.join(Common.outdir, "input", "model_fixed.h")
+        destFile = os.path.join(Common.outdir, "model.h")
         shutil.copyfile(srcFile, destFile)
 
         # Copy library.h file
-        srcFile = os.path.join("..", self.target, "library", "library_fixed.h")
-        destFile = os.path.join("..", self.target, "library.h")
+        srcFile = os.path.join(Common.outdir, self.target, "library", "library_fixed.h")
+        destFile = os.path.join(Common.outdir, self.target, "library.h")
         shutil.copyfile(srcFile, destFile)
 
         res = self.compile(Common.Version.Fixed, self.target, self.sf)
@@ -290,7 +294,9 @@ class Main:
 
         # Generate code for target
         if self.target == Common.Target.Arduino:
-            return self.compileFixedForTarget()
+            self.compileFixedForTarget()
+
+            print("\nArduino sketch dumped in the folder %s\n" % (Common.outdir))
 
         return True
 
@@ -309,13 +315,13 @@ class Main:
             return False
 
         # Copy model.h
-        srcFile = os.path.join("..", "Streamer", "input", "model_float.h")
-        destFile = os.path.join("..", self.target, "model.h")
+        srcFile = os.path.join(Common.outdir, "Streamer", "input", "model_float.h")
+        destFile = os.path.join(Common.outdir, self.target, "model.h")
         shutil.copyfile(srcFile, destFile)
 
         # Copy library.h file
-        srcFile = os.path.join("..", self.target, "library", "library_float.h")
-        destFile = os.path.join("..", self.target, "library.h")
+        srcFile = os.path.join(Common.outdir, self.target, "library", "library_float.h")
+        destFile = os.path.join(Common.outdir, self.target, "library.h")
         shutil.copyfile(srcFile, destFile)
 
         return True
@@ -343,7 +349,8 @@ class Main:
         print("Accuracy is %.3f%%\n" % (acc))
 
         if self.target == Common.Target.Arduino:
-            return self.compileFloatForTarget()
+            self.compileFloatForTarget()
+            print("\nArduino sketch dumped in the folder %s\n" % (Common.outdir))
 
         return True
 
@@ -355,6 +362,7 @@ class Main:
             return self.runForFixed()
         else:
             return self.runForFloat()
+
 
 
 class MainDriver:
@@ -372,16 +380,33 @@ class MainDriver:
                             help="Directory containing trained model")
         parser.add_argument("--convert", action="store_true",
                             help="Standardize the Bonsai/ProtoNN trained models for SeeDot")
+        parser.add_argument("--tempdir", metavar='', help="Scratch directory")
+        parser.add_argument("-o", "--outdir", metavar='',
+                            help="Directory to output the generated Arduino sketch")
 
         self.args = parser.parse_args()
 
         # Verify the input files and directory exists
-        if not os.path.isfile(self.args.train):
-            raise Exception("Training set doesn't exist")
-        if not os.path.isfile(self.args.test):
-            raise Exception("Testing set doesn't exist")
-        if not os.path.isdir(self.args.model):
-            raise Exception("Model directory doesn't exist")
+        assert os.path.isfile(self.args.train), "Training set doesn't exist"
+        assert os.path.isfile(self.args.test), "Testing set doesn't exist"
+        assert os.path.isdir(self.args.model), "Model directory doesn't exist"
+
+        if self.args.tempdir is not None:
+            assert os.path.isdir(
+                self.args.tempdir), "Scratch directory doesn't exist"
+            Common.tempdir = self.args.tempdir
+        else:
+            Common.tempdir = os.path.join(tempfile.gettempdir(
+            ), "SeeDot", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+            os.makedirs(Common.tempdir, exist_ok=True)
+
+        if self.args.outdir is not None:
+            assert os.path.isdir(
+                self.args.outdir), "Output directory doesn't exist"
+            Common.outdir = self.args.outdir
+        else:
+            Common.outdir = os.path.join(Common.tempdir, "arduino")
+            os.makedirs(Common.outdir, exist_ok=True)
 
     def checkMSBuildPath(self):
         found = False
@@ -395,7 +420,8 @@ class MainDriver:
                 Common.msbuildPathOptions))
 
     def run(self):
-        self.checkMSBuildPath()
+        if Util.windows():
+            self.checkMSBuildPath()
 
         algo, trainingInput, testingInput, modelDir = self.args.algo, self.args.train, self.args.test, self.args.model
 

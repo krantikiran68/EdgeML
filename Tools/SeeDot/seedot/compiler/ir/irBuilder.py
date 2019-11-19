@@ -95,6 +95,7 @@ class IRBuilder(ASTVisitor):
         idf = node.name
 
         prog = IR.Prog([])
+
         expr = IR.Var(idf, inputVar=True if idf in self.globalVars else False)
 
         return (prog, expr)
@@ -1058,7 +1059,7 @@ class IRBuilder(ASTVisitor):
             M = 0
         intv_out = (m, M)
 
-        # Temp computation for POC. Remove later.
+        # TODO: Temp computation for POC. Remove later.
         scale_in = self.varScales[expr_in.idf]
         max_val = max(abs(m), abs(M))
         max_val_f = np.ldexp(max_val, scale_in)
@@ -1413,7 +1414,7 @@ class IRBuilder(ASTVisitor):
             scale_in, Common.tanh_limit, Common.tanh_limit)
         intv_out = self.updateTanhIntv(intv_in, tanh_intv)
 
-        # Temp computation for POC. Remove later.
+        # TODO: Temp computation for POC. Remove later.
         scale_new = self.getScale(Common.tanh_limit)
         print("Scale changes in TanH operation: old = %d, new = %d, diff = %d" % (
             scale_in, scale_new, abs(scale_in - scale_new)))
@@ -1474,7 +1475,7 @@ class IRBuilder(ASTVisitor):
         scale_out = self.getScale(1.5)
 
         # Compute new scale
-        # Temp computation for POC. Remove later.
+        # TODO: Temp computation for POC. Remove later.
         max_val = max(abs(m_new), abs(M_new))
         max_val_f = np.ldexp(max_val, scale_in)
         scale_new = self.getScale(max_val_f)
@@ -1652,6 +1653,8 @@ class IRBuilder(ASTVisitor):
 
         # e2, e3 : Int
         if Type.isInt(type_in_A):
+            # TODO: Update the scale and intv of expr_out based on in_A and
+            # in_B
             prog_out = IRUtil.concatPrograms(
                 prog_in_cond, prog_in_A, prog_in_B)
             expr_out = IRUtil.cond_zero(expr_in_cond_idx, expr_in_A, expr_in_B)
@@ -1815,20 +1818,6 @@ class IRBuilder(ASTVisitor):
                 entries = line.strip().split(", ")
                 row = list(map(float, entries))
                 self.mutableVarsProfile.append(row)
-
-        # REMOVE THIS. USED FOR DEBUGGING
-        # -14 =
-        #self.mutableVarsProfile[0] = [-0.000001, 0.6]
-        # -15 = 48.933
-        #self.mutableVarsProfile[0] = [-0.000001, 0.3]
-        # -16 = 50.277
-        #self.mutableVarsProfile[0] = [-0.000001, 0.2]
-        # -17 = 50.198
-        #self.mutableVarsProfile[0] = [-0.000001, 0.12]
-        # -18 = 15.6
-        #self.mutableVarsProfile[0] = [-0.000001, 0.06]
-        # -19 = 9.2
-        #self.mutableVarsProfile[0] = [-0.000001, 0.02]
 
         [minVal, maxVal] = self.mutableVarsProfile[0]
 

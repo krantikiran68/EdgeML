@@ -65,7 +65,23 @@ class Protonn:
             self.normType = None
 
     def readModel(self):
+        if os.path.isfile(os.path.join(getModelDir(), "W")):
+            return self.readModelAsTxt()
+        elif os.path.isfile(os.path.join(getModelDir(), "W.npy")):
+            return self.readModelAsNpy()
+        else:
+            assert False
+
+    def readModelAsNpy(self):
+        self.W = np.load(os.path.join(getModelDir(), "W.npy"))
+        self.W = self.W.transpose().tolist()
+        self.B = np.load(os.path.join(getModelDir(), "B.npy")).tolist()
+        self.Z = np.load(os.path.join(getModelDir(), "Z.npy")).tolist()
+        self.gamma = np.load(os.path.join(getModelDir(), "gamma.npy")).tolist()
+        self.gamma = [[self.gamma]]
         self.readNormFile()
+
+    def readModelAsTxt(self):
 
         self.W = np.loadtxt(os.path.join(
             self.modelDir, "W"), delimiter="\t", ndmin=2)
@@ -75,6 +91,7 @@ class Protonn:
             self.modelDir, "Z"), delimiter="\t", ndmin=2)
         self.gamma = np.loadtxt(os.path.join(
             self.modelDir, "gamma"), delimiter="\t", ndmin=2)
+        self.readNormFile()
 
     def validateNormFile(self):
         if self.normType == "MinMax":
@@ -83,6 +100,8 @@ class Protonn:
 
             assert MinMax_m == 2
             assert MinMax_n == W_n
+        else:
+            assert False
 
     def validateModel(self):
         self.validateNormFile()
@@ -123,6 +142,8 @@ class Protonn:
             assert self.Norm.shape[1] == 1
             #self.Norm = [x[0] for x in self.Norm]
             self.Norm = self.Norm.reshape(1, -1)
+        else:
+            assert False
 
         self.computeVars()
 

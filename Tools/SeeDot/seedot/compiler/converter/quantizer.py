@@ -10,7 +10,7 @@ from seedot.compiler.antlr.seedotParser import seedotParser as SeeDotParser
 import seedot.compiler.ast.astBuilder as ASTBuilder
 
 import seedot.compiler.converter.paramsBuilder as ParamsBuilder
-from seeodt.compiler.converter.util import *
+from seedot.compiler.converter.util import *
 
 
 class Quantizer:

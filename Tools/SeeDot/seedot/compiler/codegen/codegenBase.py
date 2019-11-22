@@ -256,8 +256,6 @@ class CodegenBase:
             return self.printPrint(ir)
         elif isinstance(ir, IR.PrintAsFloat):
             return self.printPrintAsFloat(ir)
-        elif isinstance(ir, IR.Pragmas):
-            return self.printPragmas(ir)
         elif isinstance(ir, IR.Comment):
             return self.printComment(ir)
         elif isinstance(ir, IR.Prog):

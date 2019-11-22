@@ -3,12 +3,12 @@ import os
 import pickle
 import sys
 
-import AST.AST as AST
-from AST.PrintAST import PrintAST
-from AST.MtdAST import MtdAST
+import seedot.compiler.ast.ast as AST
+from seedot.compiler.ast.printAST import PrintAST
+from seedot.compiler.ast.mtdAST import MtdAST
 
-import TF.Graph as Graph
-from TF.TFNodesAST import TFNodesAST
+import seedot.compiler.TF.Graph as Graph
+from seedot.compiler.TF.TFNodesAST import TFNodesAST
 
 
 def checkTFNodeNameForEq(curNodeOp: str, givenOp: str):

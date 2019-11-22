@@ -19,7 +19,7 @@ from seedot.compiler.codegen.x86 import X86 as X86Codegen
 from seedot.compiler.ir.irBuilder import IRBuilder
 import seedot.compiler.ir.irUtil as IRUtil
 
-from TF.ProcessTFGraph import main as TFMain
+from seedot.compiler.TF.ProcessTFGraph import main as TFMain
 
 from seedot.compiler.type import InferType
 from seedot.util import *
@@ -30,6 +30,7 @@ class Compiler:
 
     def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile):
         if os.path.isfile(inputFile) == False:
+            print(inputFile)
             raise Exception("Input file doesn't exist")
 
         setAlgo(algo)

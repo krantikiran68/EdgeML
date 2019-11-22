@@ -5,6 +5,8 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <cstring>
+#include <cmath>
 
 #include "datatypes.h"
 #include "predictors.h"
@@ -46,7 +48,7 @@ vector<string> getFeatures(string line)
 	if (featuresLength == -1)
 		featuresLength = (int)features.size();
 
-	if (features.size() != featuresLength)
+	if ((int)features.size() != featuresLength)
 		throw "Number of row entries in X is inconsistent";
 
 	return features;
@@ -61,7 +63,7 @@ int getLabel(string line)
 	if (labelLength == -1)
 		labelLength = (int)labels.size();
 
-	if (labels.size() != labelLength || labels.size() != 1)
+	if ((int)labels.size() != labelLength || labels.size() != 1)
 		throw "Number of row entries in Y is inconsistent";
 
 	return (int)atoi(labels.front().c_str());

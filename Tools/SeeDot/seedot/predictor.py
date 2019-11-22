@@ -60,7 +60,7 @@ class Predictor:
 
         logFile = os.path.join(self.outputDir, "msbuild.txt")
         with open(logFile, 'w') as file:
-            process = subprocess.call(args, stdout=file)
+            process = subprocess.call(args, stdout=file, stderr=subprocess.STDOUT)
 
         if process == 1:
             print("FAILED!!\n")
@@ -74,9 +74,9 @@ class Predictor:
 
         args = ["make"]
 
-        logFile = os.path.join(self.outputDir, "msbuild.txt")
+        logFile = os.path.join(self.outputDir, "build.txt")
         with open(logFile, 'w') as file:
-            process = subprocess.call(args, stdout=file)
+            process = subprocess.call(args, stdout=file, stderr=subprocess.STDOUT)
 
         if process == 1:
             print("FAILED!!\n")
@@ -102,7 +102,7 @@ class Predictor:
 
         logFile = os.path.join(self.outputDir, "exec.txt")
         with open(logFile, 'w') as file:
-            process = subprocess.call(args, stdout=file)
+            process = subprocess.call(args, stdout=file, stderr=subprocess.STDOUT)
 
         if process == 1:
             print("FAILED!!\n")
@@ -116,11 +116,11 @@ class Predictor:
         print("Execution...", end='')
 
         exeFile = os.path.join("./Predictor")
-        args = [exeFile, self.algo, self.version, self.datasetType]
+        args = [exeFile, self.version, self.datasetType]
 
         logFile = os.path.join(self.outputDir, "exec.txt")
         with open(logFile, 'w') as file:
-            process = subprocess.call(args, stdout=file)
+            process = subprocess.call(args, stdout=file, stderr=subprocess.STDOUT)
 
         if process == 1:
             print("FAILED!!\n")

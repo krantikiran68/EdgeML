@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include <iostream>
+#include <cmath>
 
 #include "datatypes.h"
 #include "library_fixed.h"

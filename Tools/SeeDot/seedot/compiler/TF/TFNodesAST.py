@@ -1,8 +1,8 @@
 from enum import Enum, auto
 
-import AST.AST as AST
+import seedot.compiler.ast.ast as AST
 
-import TF.Graph as Graph
+import seedot.compiler.TF.Graph as Graph
 
 
 # Contains code for each of the TF nodes encountered in the benchmarks.

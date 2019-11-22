@@ -1,4 +1,6 @@
 #include <iostream>
+#include <cstring>
+#include <cmath>
 
 #include "datatypes.h"
 #include "predictors.h"

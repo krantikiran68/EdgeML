@@ -30,9 +30,9 @@ class Main:
     def setup(self):
         curr_dir = os.path.dirname(os.path.realpath(__file__))
         
-        copy_tree(os.path.join(curr_dir, "Predictor"), Common.tempdir)
+        copy_tree(os.path.join(curr_dir, "Predictor"), os.path.join(Common.tempdir, "Predictor"))
 
-        for fileName in ["arduino.ino", "config.h", "library.h", "predict.h"]:
+        for fileName in ["arduino.ino", "config.h", "predict.h"]:
             srcFile = os.path.join(curr_dir, "arduino", fileName)
             destFile = os.path.join(Common.outdir, fileName)
             shutil.copyfile(srcFile, destFile)
@@ -43,7 +43,7 @@ class Main:
         print("Generating code...", end='')
 
         # Set input and output files
-        inputFile = os.path.join(Common.tempdir, "input.sd")
+        inputFile = os.path.join(self.modelDir, "input.sd")
         profileLogFile = os.path.join(
             Common.tempdir, "output", self.algo + "-float", "profile.txt")
 
@@ -66,7 +66,7 @@ class Main:
             obj.run()
         except:
             print("failed!\n")
-            #traceback.print_exc()
+            traceback.print_exc()
             return False
 
         self.scaleForX = obj.scaleForX
@@ -86,7 +86,7 @@ class Main:
             datasetOutputDir = outputDir
         elif target == Common.Target.X86:
             outputDir = Common.tempdir
-            datasetOutputDir = os.path.join(Common.tempdir, "input")
+            datasetOutputDir = os.path.join(Common.tempdir, "Predictor", "input")
         else:
             assert False
 
@@ -110,10 +110,10 @@ class Main:
 
     # Build and run the Predictor project
     def predict(self, version, datasetType):
-        outputDir = os.path.join(Common.tempdir, "output", version)
+        outputDir = os.path.join("output", version)
 
         curDir = os.getcwd()
-        os.chdir(Common.tempdir)
+        os.chdir(os.path.join(Common.tempdir, "Predictor"))
 
         obj = Predictor(self.algo, version, datasetType,
                         outputDir, self.scaleForX)
@@ -358,122 +358,9 @@ class Main:
 
         sys.setrecursionlimit(10000)
 
+        self.setup()
+
         if self.version == Common.Version.Fixed:
             return self.runForFixed()
         else:
             return self.runForFloat()
-
-
-
-class MainDriver:
-
-    def parseArgs(self):
-        parser = argparse.ArgumentParser()
-
-        parser.add_argument("-a", "--algo", choices=Common.Algo.All,
-                            metavar='', help="Algorithm to run")
-        parser.add_argument("--train", required=True,
-                            metavar='', help="Training set file")
-        parser.add_argument("--test", required=True,
-                            metavar='', help="Testing set file")
-        parser.add_argument("--model", required=True, metavar='',
-                            help="Directory containing trained model")
-        parser.add_argument("--convert", action="store_true",
-                            help="Standardize the Bonsai/ProtoNN trained models for SeeDot")
-        parser.add_argument("--tempdir", metavar='', help="Scratch directory")
-        parser.add_argument("-o", "--outdir", metavar='',
-                            help="Directory to output the generated Arduino sketch")
-
-        self.args = parser.parse_args()
-
-        # Verify the input files and directory exists
-        assert os.path.isfile(self.args.train), "Training set doesn't exist"
-        assert os.path.isfile(self.args.test), "Testing set doesn't exist"
-        assert os.path.isdir(self.args.model), "Model directory doesn't exist"
-
-        if self.args.tempdir is not None:
-            assert os.path.isdir(
-                self.args.tempdir), "Scratch directory doesn't exist"
-            Common.tempdir = self.args.tempdir
-        else:
-            Common.tempdir = os.path.join(tempfile.gettempdir(
-            ), "SeeDot", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
-            os.makedirs(Common.tempdir, exist_ok=True)
-
-        if self.args.outdir is not None:
-            assert os.path.isdir(
-                self.args.outdir), "Output directory doesn't exist"
-            Common.outdir = self.args.outdir
-        else:
-            Common.outdir = os.path.join(Common.tempdir, "arduino")
-            os.makedirs(Common.outdir, exist_ok=True)
-
-    def checkMSBuildPath(self):
-        found = False
-        for path in Common.msbuildPathOptions:
-            if os.path.isfile(path):
-                found = True
-                Common.msbuildPath = path
-
-        if not found:
-            raise Exception("Msbuild.exe not found at the following locations:\n%s\nPlease change the path and run again" % (
-                Common.msbuildPathOptions))
-
-    def run(self):
-        if Util.windows():
-            self.checkMSBuildPath()
-
-        algo, trainingInput, testingInput, modelDir = self.args.algo, self.args.train, self.args.test, self.args.model
-
-        print("\n================================")
-        print("Executing on %s for Arduino" % (algo))
-        print("--------------------------------")
-        print("Train file: %s" % (trainingInput))
-        print("Test file: %s" % (testingInput))
-        print("Model directory: %s" % (modelDir))
-        print("================================\n")
-
-        if self.args.convert:
-            datasetDir = os.path.join("..", "datasets", "datasets", dataset)
-            modelDir = os.path.join("..", "model", dataset)
-
-            if algo == Common.Algo.Bonsai:
-                modelDir = os.path.join(modelDir, "BonsaiResults", "Params")
-            elif algo == Common.Algo.Lenet:
-                modelDir = os.path.join(modelDir, "LenetModel")
-            else:
-                modelDir = os.path.join(modelDir, "ProtoNNResults")
-
-            trainingInput = os.path.join(datasetDir, "training-full.tsv")
-            testingInput = os.path.join(datasetDir, "testing.tsv")
-
-            datasetOutputDir = os.path.join(
-                "temp", "dataset-processed", algo, dataset)
-            modelOutputDir = os.path.join(
-                "temp", "model-processed", algo, dataset)
-
-            os.makedirs(datasetOutputDir, exist_ok=True)
-            os.makedirs(modelOutputDir, exist_ok=True)
-
-            if algo == Common.Algo.Bonsai:
-                obj = Bonsai(trainingInput, testingInput, modelDir,
-                             datasetOutputDir, modelOutputDir)
-                obj.run()
-            elif algo == Common.Algo.Protonn:
-                obj = Protonn(trainingInput, testingInput,
-                              modelDir, datasetOutputDir, modelOutputDir)
-                obj.run()
-
-            trainingInput = os.path.join(datasetOutputDir, "train.npy")
-            testingInput = os.path.join(datasetOutputDir, "test.npy")
-            modelDir = modelOutputDir
-
-        obj = Main(algo, Common.Version.Fixed, Common.Target.Arduino,
-                   trainingInput, testingInput, modelDir, None, 1)
-        obj.run()
-
-
-if __name__ == "__main__":
-    obj = MainDriver()
-    obj.parseArgs()
-    obj.run()

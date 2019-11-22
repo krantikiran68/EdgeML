@@ -2,10 +2,15 @@
 # Licensed under the MIT license.
 
 import argparse
+import datetime
+from distutils.dir_util import copy_tree
+import errno
 from itertools import product
 import json
 import numpy as np
 import os
+import shutil
+import tempfile
 
 from seedot.compiler.converter.converter import Converter
 from seedot.compiler.converter.bonsai import Bonsai
@@ -52,8 +57,10 @@ class MainDriver:
                             help="Verify the accuracy of the generated code")
         parser.add_argument("--convert", action="store_true",
                             help="Pass through the converter")
-        parser.add_argument("--workers", type=int, default=1, metavar='',
-                            help="number of worker threads to parallelize SparseMul on FPGAs only")
+        parser.add_argument("--tempdir", metavar='',
+                            help="Scratch directory for intermediate files")
+        parser.add_argument("-o", "--outdir", metavar='',
+                            help="Directory to output the generated Arduino sketch")
 
         self.args = parser.parse_args()
 
@@ -67,6 +74,26 @@ class MainDriver:
             self.args.datasetType = [self.args.datasetType]
         if not isinstance(self.args.target, list):
             self.args.target = [self.args.target]
+
+        if self.args.tempdir is not None:
+            assert os.path.isdir(
+                self.args.tempdir), "Scratch directory doesn't exist"
+            Common.tempdir = self.args.tempdir
+        else:
+            #Common.tempdir = os.path.join(tempfile.gettempdir(
+            #), "SeeDot", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+            Common.tempdir = "temp"
+            if os.path.exists(Common.tempdir):
+                shutil.rmtree(Common.tempdir)
+            os.makedirs(Common.tempdir, exist_ok=True)
+
+        if self.args.outdir is not None:
+            assert os.path.isdir(
+                self.args.outdir), "Output directory doesn't exist"
+            Common.outdir = self.args.outdir
+        else:
+            Common.outdir = os.path.join(Common.tempdir, "arduino")
+            os.makedirs(Common.outdir, exist_ok=True)
 
     def checkMSBuildPath(self):
         found = False
@@ -83,7 +110,8 @@ class MainDriver:
         np.seterr(all='warn')
 
     def run(self):
-        self.checkMSBuildPath()
+        if Util.windows():
+            self.checkMSBuildPath()
 
         self.setGlobalFlags()
 
@@ -146,11 +174,11 @@ class MainDriver:
                 modelDir = modelOutputDir
             else:
                 datasetDir = os.path.join(
-                    "..", "dataset-processed", algo, dataset)
+                    "..", "datasets", algo, dataset)
 
                 trainingInput = os.path.join(datasetDir, "train.npy")
                 testingInput = os.path.join(datasetDir, "test.npy")
-                modelDir = os.path.join("..", "model-processed", algo, dataset)
+                modelDir = os.path.join("..", "model", algo, dataset)
 
             try:
                 if version == Common.Version.Float:
@@ -182,7 +210,7 @@ class MainDriver:
                 sf = self.args.max_scale_factor
 
             obj = Main(algo, version, target, trainingInput,
-                       testingInput, modelDir, sf, self.args.workers)
+                       testingInput, modelDir, sf)
             obj.run()
 
             acc = obj.testingAccuracy
@@ -302,7 +330,7 @@ class MainDriver:
                 print("Accuracy is %.3f" % (acc))
 
     def loadResultsFile(self):
-        with open(os.path.join("..", "Results", "Results.json")) as data:
+        with open(os.path.join("Results", "Results.json")) as data:
             return json.load(data)
 
 

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
+#include <cmath>
 
 #include "datatypes.h"
 #include "profile.h"

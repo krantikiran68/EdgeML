@@ -4,6 +4,8 @@
 from antlr4 import *
 import os
 
+import seedot.config as config
+
 from seedot.compiler.antlr.seedotLexer import seedotLexer as SeeDotLexer
 from seedot.compiler.antlr.seedotParser import seedotParser as SeeDotParser
 
@@ -154,7 +156,7 @@ class Quantizer:
     # Float model is generated for for training dataset to profile the prediction
     # Hence, X is trimmed down to remove outliers. Prediction profiling is performed on the trimmed X to generate more precise profile data
     def transformDataset(self):
-        if getVersion() == Common.Version.fixed:
+        if getVersion() == config.Version.fixed:
             # If X itself is X_train, reuse it. Otherwise, read it from file
             if usingTrainingDataset():
                 self.X_train = list(self.X)
@@ -165,7 +167,7 @@ class Quantizer:
             self.X_train, _ = trimMatrix(self.X_train)
 
             self.trainDatasetRange = matRange(self.X_train)
-        elif getVersion() == Common.Version.floatt:
+        elif getVersion() == config.Version.floatt:
             if usingTrainingDataset():
                 self.X, self.Y = trimMatrix(self.X, self.Y)
 

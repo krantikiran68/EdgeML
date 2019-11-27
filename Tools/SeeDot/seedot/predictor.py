@@ -4,7 +4,7 @@
 import os
 import subprocess
 
-import seedot.common as Common
+import seedot.config as config
 import seedot.util as Util
 
 # Program to build and run the predictor project using msbuild
@@ -27,13 +27,13 @@ class Predictor:
         with open("datatypes.h", 'w') as file:
             file.write("#pragma once\n\n")
 
-            if Common.wordLength == 8:
+            if config.wordLength == 8:
                 file.write("#define INT8\n")
                 file.write("typedef int8_t MYINT;\n\n")
-            elif Common.wordLength == 16:
+            elif config.wordLength == 16:
                 file.write("#define INT16\n")
                 file.write("typedef int16_t MYINT;\n\n")
-            elif Common.wordLength == 32:
+            elif config.wordLength == 32:
                 file.write("#define INT32\n")
                 file.write("typedef int32_t MYINT;\n\n")
 
@@ -55,7 +55,7 @@ class Predictor:
         print("Build...", end='')
 
         projFile = "Predictor.vcxproj"
-        args = [Common.msbuildPath, projFile, r"/t:Build",
+        args = [config.msbuildPath, projFile, r"/t:Build",
                 r"/p:Configuration=Release", r"/p:Platform=x64"]
 
         logFile = os.path.join(self.outputDir, "msbuild.txt")

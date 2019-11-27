@@ -7,8 +7,6 @@ import os
 
 from seedot.compiler.converter.util import *
 
-import seedot.common as Common
-
 # Class to read Bonsai model dumps and generate input files (C header file and the compiler input)
 # The two classes BonsaiFixed and BonsaiFloat are for generating fixed model and float model respectively
 # The baseclass Bonsai collects some of the common functions between them.

@@ -12,7 +12,7 @@ from seedot.compiler.ast.astVisitor import ASTVisitor
 import seedot.compiler.ir.ir as IR
 import seedot.compiler.ir.irUtil as IRUtil
 
-import seedot.common as Common
+import seedot.config as config
 import seedot.compiler.type as Type
 from seedot.util import *
 
@@ -1198,8 +1198,8 @@ class IRBuilder(ASTVisitor):
 		'''
 
         mask = IR.Int(2 ** self.expB - 1)
-        shrI = Common.wordLength - self.expB
-        shrJ = Common.wordLength - self.expB * 2
+        shrI = config.wordLength - self.expB
+        shrJ = config.wordLength - self.expB * 2
         table = self.getExpTable(scale_in)
 
         scale1 = self.getScale(1)
@@ -1249,7 +1249,7 @@ class IRBuilder(ASTVisitor):
         while(n != 0):
             n = n >> 1
             shl += 1
-        return min(Common.wordLength - shl, Common.wordLength - self.expB * 2)
+        return min(config.wordLength - shl, config.wordLength - self.expB * 2)
 
     def getExpTable(self, p):
         table = self.expTables.get(p)
@@ -1277,7 +1277,7 @@ class IRBuilder(ASTVisitor):
         table = [[0 for _ in range(alpha_count)], [
             0 for _ in range(beta_count)]]
 
-        alpha = Common.wordLength - shl - b
+        alpha = config.wordLength - shl - b
         pRes = self.getScale(1)
         for i in range(alpha_count):
             num = i * 2 ** (alpha + p)
@@ -1298,7 +1298,7 @@ class IRBuilder(ASTVisitor):
 
     def getAlphaCount(self, max, shl):
         mask = 2 ** self.expB - 1
-        shr = Common.wordLength - shl - self.expB
+        shr = config.wordLength - shl - self.expB
         return ((max >> shr) & mask) + 1
 
     def readExpProfileFile(self):
@@ -1405,17 +1405,17 @@ class IRBuilder(ASTVisitor):
         intv_in = self.varIntervals[expr_in.idf]
 
         if forFloat():
-            tanh_limit = IR.Float(Common.tanh_limit)
+            tanh_limit = IR.Float(config.tanh_limit)
         else:
             # Scale tanh limit
-            tanh_limit = self.getNumInFixedPoint(Common.tanh_limit, scale_in)
+            tanh_limit = self.getNumInFixedPoint(config.tanh_limit, scale_in)
 
         tanh_intv = self.getInterval(
-            scale_in, Common.tanh_limit, Common.tanh_limit)
+            scale_in, config.tanh_limit, config.tanh_limit)
         intv_out = self.updateTanhIntv(intv_in, tanh_intv)
 
         # TODO: Temp computation for POC. Remove later.
-        scale_new = self.getScale(Common.tanh_limit)
+        scale_new = self.getScale(config.tanh_limit)
         print("Scale changes in TanH operation: old = %d, new = %d, diff = %d" % (
             scale_in, scale_new, abs(scale_in - scale_new)))
 
@@ -1617,7 +1617,7 @@ class IRBuilder(ASTVisitor):
             var, IR.Int(end - start)), prog_in.cmd_l)
 
         # Generate code for profiling
-        if forFloat() and getTarget() == Common.Target.x86:
+        if forFloat() and getTarget() == config.Target.x86:
             mVar = IR.Var(node.mutableVar.name)
             mVar_type = node.mutableVar.type
             profile_iters = self.getTempIterators(mVar_type.dim)
@@ -1947,11 +1947,11 @@ class IRBuilder(ASTVisitor):
         minVal_out = (minVal_A >> shr_all[0]) + (minVal_B >> shr_all[1])
         maxVal_out = (maxVal_A >> shr_all[0]) + (maxVal_B >> shr_all[1])
 
-        # if max(abs(minVal_out), abs(maxVal_out)) >= (1 << (Common.wordLength - 2)) and scale_common < self.MAX_SCALE:
+        # if max(abs(minVal_out), abs(maxVal_out)) >= (1 << (config.wordLength - 2)) and scale_common < self.MAX_SCALE:
         if scale_common < self.MAX_SCALE:
             shr_all[2] = 1
             scale_common += 1
-        max_abs = (1 << Common.wordLength - 2) - 1
+        max_abs = (1 << config.wordLength - 2) - 1
 
         minVal_out = max(minVal_out >> shr_all[2], -max_abs)
         maxVal_out = min(maxVal_out >> shr_all[2],  max_abs)
@@ -1972,11 +1972,11 @@ class IRBuilder(ASTVisitor):
         minVal_out = (minVal_A >> shr_all[0]) - (minVal_B >> shr_all[1])
         maxVal_out = (maxVal_A >> shr_all[0]) - (maxVal_B >> shr_all[1])
 
-        # if max(abs(minVal_out), abs(maxVal_out)) >= (1 << (Common.wordLength - 2)) and scale_common < self.MAX_SCALE:
+        # if max(abs(minVal_out), abs(maxVal_out)) >= (1 << (config.wordLength - 2)) and scale_common < self.MAX_SCALE:
         if scale_common < self.MAX_SCALE:
             shr_all[2] = 1
             scale_common += 1
-        max_abs = (1 << Common.wordLength - 2) - 1
+        max_abs = (1 << config.wordLength - 2) - 1
 
         minVal_out = max(minVal_out >> shr_all[2], -max_abs)
         maxVal_out = min(maxVal_out >> shr_all[2],  max_abs)
@@ -1993,7 +1993,7 @@ class IRBuilder(ASTVisitor):
         return self.getInterval(scale, np.exp(np.ldexp(m, scale)), np.exp(np.ldexp(M, scale)))
 
     def getShrForMulOld(self, scale_A, scale_B):
-        shr = (Common.wordLength - 1) // 2
+        shr = (config.wordLength - 1) // 2
         pRes = (scale_A + shr) + (scale_B + shr)
         if pRes < self.MAX_SCALE:
             return [shr, shr]
@@ -2006,7 +2006,7 @@ class IRBuilder(ASTVisitor):
             return [shr1, shr2]
 
     def getShrForMul(self, scale_A, scale_B):
-        shr1, shr2 = Common.wordLength // 2, (Common.wordLength // 2) - 1
+        shr1, shr2 = config.wordLength // 2, (config.wordLength // 2) - 1
         pRes = (scale_A + shr1) + (scale_B + shr2)
 
         if pRes <= self.MAX_SCALE:
@@ -2071,7 +2071,7 @@ class IRBuilder(ASTVisitor):
         if shrType == "shr" or shrType == "shr+":
             return IR.Int(num)
         elif shrType == "div":
-            if num >= Common.wordLength:
+            if num >= config.wordLength:
                 return IR.Int(IR.Int.max())
             else:
                 intVar = IR.Int(2 ** num)

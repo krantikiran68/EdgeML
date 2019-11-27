@@ -13,7 +13,7 @@ import traceback
 
 from seedot.compiler.converter.converter import Converter
 
-import seedot.common as Common
+import seedot.config as config
 from seedot.compiler.compiler import Compiler
 from seedot.predictor import Predictor
 import seedot.util as Util
@@ -30,11 +30,11 @@ class Main:
     def setup(self):
         curr_dir = os.path.dirname(os.path.realpath(__file__))
         
-        copy_tree(os.path.join(curr_dir, "Predictor"), os.path.join(Common.tempdir, "Predictor"))
+        copy_tree(os.path.join(curr_dir, "Predictor"), os.path.join(config.tempdir, "Predictor"))
 
         for fileName in ["arduino.ino", "config.h", "predict.h"]:
             srcFile = os.path.join(curr_dir, "arduino", fileName)
-            destFile = os.path.join(Common.outdir, fileName)
+            destFile = os.path.join(config.outdir, fileName)
             shutil.copyfile(srcFile, destFile)
 
     # Generate the fixed-point code using the input generated from the
@@ -45,20 +45,20 @@ class Main:
         # Set input and output files
         inputFile = os.path.join(self.modelDir, "input.sd")
         profileLogFile = os.path.join(
-            Common.tempdir, "Predictor", "output", "float", "profile.txt")
+            config.tempdir, "Predictor", "output", "float", "profile.txt")
 
-        logDir = os.path.join(Common.outdir, "output")
+        logDir = os.path.join(config.outdir, "output")
         os.makedirs(logDir, exist_ok=True)
-        if version == Common.Version.floatt:
+        if version == config.Version.floatt:
             outputLogFile = os.path.join(logDir, "log-float.txt")
         else:
             outputLogFile = os.path.join(
                 logDir, "log-fixed-" + str(abs(sf)) + ".txt")
 
-        if target == Common.Target.arduino:
-            outputDir = os.path.join(Common.outdir, "arduino")
-        elif target == Common.Target.x86:
-            outputDir = os.path.join(Common.tempdir, "Predictor")
+        if target == config.Target.arduino:
+            outputDir = os.path.join(config.outdir, "arduino")
+        elif target == config.Target.x86:
+            outputDir = os.path.join(config.tempdir, "Predictor")
 
         try:
             obj = Compiler(self.algo, version, target, inputFile, outputDir,
@@ -81,12 +81,12 @@ class Main:
               (version, datasetType), end='')
 
         # Create output dirs
-        if target == Common.Target.arduino:
-            outputDir = os.path.join(Common.outdir, "input")
+        if target == config.Target.arduino:
+            outputDir = os.path.join(config.outdir, "input")
             datasetOutputDir = outputDir
-        elif target == Common.Target.x86:
-            outputDir = os.path.join(Common.tempdir, "Predictor")
-            datasetOutputDir = os.path.join(Common.tempdir, "Predictor", "input")
+        elif target == config.Target.x86:
+            outputDir = os.path.join(config.tempdir, "Predictor")
+            datasetOutputDir = os.path.join(config.tempdir, "Predictor", "input")
         else:
             assert False
 
@@ -113,7 +113,7 @@ class Main:
         outputDir = os.path.join("output", version)
 
         curDir = os.getcwd()
-        os.chdir(os.path.join(Common.tempdir, "Predictor"))
+        os.chdir(os.path.join(config.tempdir, "Predictor"))
 
         obj = Predictor(self.algo, version, datasetType,
                         outputDir, self.scaleForX)
@@ -140,14 +140,14 @@ class Main:
 
     # Iterate over multiple scaling factors and store their accuracies
     def performSearch(self):
-        start, end = Common.maxScaleRange
+        start, end = config.maxScaleRange
         searching = False
 
         for i in range(start, end, -1):
             print("Testing with max scale factor of " + str(i))
 
             res, exit = self.runOnce(
-                Common.Version.fixed, Common.DatasetType.training, Common.Target.x86, i)
+                config.Version.fixed, config.DatasetType.training, config.Target.x86, i)
 
             if exit == True:
                 return False
@@ -191,8 +191,8 @@ class Main:
         print("-------------------------------------------------\n")
 
         # Generate input files for training dataset
-        res = self.convert(Common.Version.fixed,
-                           Common.DatasetType.training, Common.Target.x86)
+        res = self.convert(config.Version.fixed,
+                           config.DatasetType.training, config.Target.x86)
         if res == False:
             return False
 
@@ -213,14 +213,14 @@ class Main:
         print("Setting max scaling factor to %d\n" % (self.sf))
 
         # Generate files for the testing dataset
-        res = self.convert(Common.Version.fixed,
-                           Common.DatasetType.testing, Common.Target.x86)
+        res = self.convert(config.Version.fixed,
+                           config.DatasetType.testing, config.Target.x86)
         if res == False:
             return False
 
         # Compile and run code using the best scaling factor
         res = self.runOnce(
-            Common.Version.fixed, Common.DatasetType.testing, Common.Target.x86, self.sf)
+            config.Version.fixed, config.DatasetType.testing, config.Target.x86, self.sf)
         if res == False:
             return False
 
@@ -232,16 +232,16 @@ class Main:
         print("Collecting profile data")
         print("-----------------------")
 
-        res = self.convert(Common.Version.floatt,
-                           Common.DatasetType.training, Common.Target.x86)
+        res = self.convert(config.Version.floatt,
+                           config.DatasetType.training, config.Target.x86)
         if res == False:
             return False
 
-        res = self.compile(Common.Version.floatt, Common.Target.x86, self.sf)
+        res = self.compile(config.Version.floatt, config.Target.x86, self.sf)
         if res == False:
             return False
 
-        acc = self.predict(Common.Version.floatt, Common.DatasetType.training)
+        acc = self.predict(config.Version.floatt, config.DatasetType.training)
         if acc == None:
             return False
 
@@ -253,22 +253,22 @@ class Main:
         print("Generating code for %s..." % (self.target))
         print("------------------------------\n")
 
-        res = self.convert(Common.Version.fixed,
-                           Common.DatasetType.testing, self.target)
+        res = self.convert(config.Version.fixed,
+                           config.DatasetType.testing, self.target)
         if res == False:
             return False
 
         # Copy file
-        srcFile = os.path.join(Common.outdir, "input", "model_fixed.h")
-        destFile = os.path.join(Common.outdir, "model.h")
+        srcFile = os.path.join(config.outdir, "input", "model_fixed.h")
+        destFile = os.path.join(config.outdir, "model.h")
         shutil.copyfile(srcFile, destFile)
 
         # Copy library.h file
-        srcFile = os.path.join(Common.outdir, self.target, "library", "library_fixed.h")
-        destFile = os.path.join(Common.outdir, self.target, "library.h")
+        srcFile = os.path.join(config.outdir, self.target, "library", "library_fixed.h")
+        destFile = os.path.join(config.outdir, self.target, "library.h")
         shutil.copyfile(srcFile, destFile)
 
-        res = self.compile(Common.Version.fixed, self.target, self.sf)
+        res = self.compile(config.Version.fixed, self.target, self.sf)
         if res == False:
             return False
 
@@ -293,10 +293,10 @@ class Main:
             self.testingAccuracy = self.accuracy[self.sf]
 
         # Generate code for target
-        if self.target == Common.Target.arduino:
+        if self.target == config.Target.arduino:
             self.compileFixedForTarget()
 
-            print("\nArduino sketch dumped in the folder %s\n" % (Common.outdir))
+            print("\nArduino sketch dumped in the folder %s\n" % (config.outdir))
 
         return True
 
@@ -305,23 +305,23 @@ class Main:
         print("Generating code for %s..." % (self.target))
         print("------------------------------\n")
 
-        res = self.convert(Common.Version.floatt,
-                           Common.DatasetType.testing, self.target)
+        res = self.convert(config.Version.floatt,
+                           config.DatasetType.testing, self.target)
         if res == False:
             return False
 
-        res = self.compile(Common.Version.floatt, self.target, self.sf)
+        res = self.compile(config.Version.floatt, self.target, self.sf)
         if res == False:
             return False
 
         # Copy model.h
-        srcFile = os.path.join(Common.outdir, "Streamer", "input", "model_float.h")
-        destFile = os.path.join(Common.outdir, self.target, "model.h")
+        srcFile = os.path.join(config.outdir, "Streamer", "input", "model_float.h")
+        destFile = os.path.join(config.outdir, self.target, "model.h")
         shutil.copyfile(srcFile, destFile)
 
         # Copy library.h file
-        srcFile = os.path.join(Common.outdir, self.target, "library", "library_float.h")
-        destFile = os.path.join(Common.outdir, self.target, "library.h")
+        srcFile = os.path.join(config.outdir, self.target, "library", "library_float.h")
+        destFile = os.path.join(config.outdir, self.target, "library.h")
         shutil.copyfile(srcFile, destFile)
 
         return True
@@ -331,16 +331,16 @@ class Main:
         print("Executing for X86 target...")
         print("---------------------------\n")
 
-        res = self.convert(Common.Version.floatt,
-                           Common.DatasetType.testing, Common.Target.x86)
+        res = self.convert(config.Version.floatt,
+                           config.DatasetType.testing, config.Target.x86)
         if res == False:
             return False
 
-        res = self.compile(Common.Version.floatt, Common.Target.x86, self.sf)
+        res = self.compile(config.Version.floatt, config.Target.x86, self.sf)
         if res == False:
             return False
 
-        acc = self.predict(Common.Version.floatt, Common.DatasetType.testing)
+        acc = self.predict(config.Version.floatt, config.DatasetType.testing)
         if acc == None:
             return False
         else:
@@ -348,9 +348,9 @@ class Main:
 
         print("Accuracy is %.3f%%\n" % (acc))
 
-        if self.target == Common.Target.arduino:
+        if self.target == config.Target.arduino:
             self.compileFloatForTarget()
-            print("\nArduino sketch dumped in the folder %s\n" % (Common.outdir))
+            print("\nArduino sketch dumped in the folder %s\n" % (config.outdir))
 
         return True
 
@@ -360,7 +360,7 @@ class Main:
 
         self.setup()
 
-        if self.version == Common.Version.fixed:
+        if self.version == config.Version.fixed:
             return self.runForFixed()
         else:
             return self.runForFloat()

@@ -4,7 +4,7 @@
 import numpy as np
 import platform
 
-import seedot.common as Common
+import seedot.config as config
 
 
 class Config:
@@ -40,11 +40,11 @@ def setVersion(version: str):
 
 
 def forFixed():
-    return Config.version == Common.Version.fixed
+    return Config.version == config.Version.fixed
 
 
 def forFloat():
-    return Config.version == Common.Version.floatt
+    return Config.version == config.Version.floatt
 
 
 def getTarget():
@@ -56,19 +56,19 @@ def setTarget(target: str):
 
 
 def forArduino():
-    return Config.target == Common.Target.arduino
+    return Config.target == config.Target.arduino
 
 
 def forHls():
-    return Config.target == Common.Target.Hls
+    return Config.target == config.Target.Hls
 
 
 def forVerilog():
-    return Config.target == Common.Target.Verilog
+    return Config.target == config.Target.Verilog
 
 
 def forX86():
-    return Config.target == Common.Target.x86
+    return Config.target == config.Target.x86
 
 
 def getProfileLogFile():
@@ -156,8 +156,8 @@ def computeScalingFactorForFuncCalls(val):
         c = l + 1
     else:
         c = np.ceil(l)
-    return -int((Common.wordLength - 1) - c)
+    return -int((config.wordLength - 1) - c)
 
 
 def computeScalingFactorForInlineCodegen(val):
-    return int(np.ceil(np.log2(val) - np.log2((1 << (Common.wordLength - 2)) - 1)))
+    return int(np.ceil(np.log2(val) - np.log2((1 << (config.wordLength - 2)) - 1)))

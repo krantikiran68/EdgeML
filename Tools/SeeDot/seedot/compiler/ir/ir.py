@@ -5,7 +5,7 @@ from enum import Enum
 import numpy as np
 import traceback
 
-import seedot.common as Common
+import seedot.config as config
 from seedot.util import *
 
 
@@ -293,11 +293,11 @@ class Prog:
 
 
 class DataType:
-    intType = {Common.Target.arduino: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
-               Common.Target.x86: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64}
+    intType = {config.Target.arduino: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
+               config.Target.x86: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64}
                }
-    intStr = {Common.Target.arduino: 'MYINT',
-              Common.Target.x86: 'MYINT'
+    intStr = {config.Target.arduino: 'MYINT',
+              config.Target.x86: 'MYINT'
               }
     floatStr = "float"
 
@@ -305,12 +305,12 @@ class DataType:
     def getInt(x: int):
         '''
         Function returns the numpy int object for x
-        The datattype of x is determined by Common.wordLength
+        The datattype of x is determined by config.wordLength
         The function tries to handle overflows, by using a higher bitwidth when needed
         But reports a warning if the higher bitwidth also overflows
         '''
         target = getTarget()
-        wordLen = Common.wordLength
+        wordLen = config.wordLength
         x_np = DataType.intType[target][wordLen](x)
         if x_np != x:
             x_np = DataType.intType[target][wordLen * 2](x)
@@ -326,7 +326,7 @@ class DataType:
     @staticmethod
     def getIntClass():
         target = getTarget()
-        wordLen = Common.wordLength
+        wordLen = config.wordLength
         return DataType.intType[target][wordLen]
 
     @staticmethod

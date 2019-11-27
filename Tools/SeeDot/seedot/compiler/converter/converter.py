@@ -6,7 +6,7 @@ import os
 from seedot.compiler.converter.quantizer import *
 from seedot.compiler.converter.util import *
 
-import seedot.common as Common
+import seedot.config as config
 
 # Main file which sets the configurations and creates the corresponding object
 
@@ -34,9 +34,9 @@ class Converter:
         if self.inputSet != True:
             raise Exception("Set input paths before running Converter")
 
-        if getVersion() == Common.Version.fixed:
+        if getVersion() == config.Version.fixed:
             obj = QuantizerFixed()
-        elif getVersion() == Common.Version.floatt:
+        elif getVersion() == config.Version.floatt:
             obj = QuantizerFloat()
 
         obj.run()

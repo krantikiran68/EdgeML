@@ -9,7 +9,7 @@ import numpy as np
 
 import seedot.compiler.ir.ir as IR
 
-import seedot.common as Common
+import seedot.config as Common
 import seedot.compiler.type as Type
 from seedot.util import *
 

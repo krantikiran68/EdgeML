@@ -10,7 +10,7 @@ import operator
 import tempfile
 import traceback
 
-import seedot.common as Common
+import seedot.config as config
 from seedot.main import Main
 import seedot.util as Util
 
@@ -20,7 +20,7 @@ class MainDriver:
     def parseArgs(self):
         parser = argparse.ArgumentParser()
 
-        parser.add_argument("-a", "--algo", choices=Common.Algo.all,
+        parser.add_argument("-a", "--algo", choices=config.Algo.all,
                             metavar='', help="Algorithm to run ('bonsai' or 'protonn')")
         parser.add_argument("--train", required=True,
                             metavar='', help="Training set file")
@@ -28,7 +28,7 @@ class MainDriver:
                             metavar='', help="Testing set file")
         parser.add_argument("--model", required=True, metavar='',
                             help="Directory containing trained model (output from Bonsai/ProtoNN trainer)")
-        # parser.add_argument("-v", "--version", default=Common.Version.Fixed, choices=Common.Version.All, metavar='',
+        # parser.add_argument("-v", "--version", default=config.Version.Fixed, choices=config.Version.All, metavar='',
         #                    help="Datatype of the generated code (fixed-point or floating-point)")
         parser.add_argument("--tempdir", metavar='',
                             help="Scratch directory for intermediate files")
@@ -45,36 +45,36 @@ class MainDriver:
         if self.args.tempdir is not None:
             assert os.path.isdir(
                 self.args.tempdir), "Scratch directory doesn't exist"
-            Common.tempdir = self.args.tempdir
+            config.tempdir = self.args.tempdir
         else:
-            Common.tempdir = os.path.join(tempfile.gettempdir(
+            config.tempdir = os.path.join(tempfile.gettempdir(
             ), "SeeDot", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
-            os.makedirs(Common.tempdir, exist_ok=True)
+            os.makedirs(config.tempdir, exist_ok=True)
 
         if self.args.outdir is not None:
             assert os.path.isdir(
                 self.args.outdir), "Output directory doesn't exist"
-            Common.outdir = self.args.outdir
+            config.outdir = self.args.outdir
         else:
-            Common.outdir = os.path.join(Common.tempdir, "arduino")
-            os.makedirs(Common.outdir, exist_ok=True)
+            config.outdir = os.path.join(config.tempdir, "arduino")
+            os.makedirs(config.outdir, exist_ok=True)
 
     def checkMSBuildPath(self):
         found = False
-        for path in Common.msbuildPathOptions:
+        for path in config.msbuildPathOptions:
             if os.path.isfile(path):
                 found = True
-                Common.msbuildPath = path
+                config.msbuildPath = path
 
         if not found:
             raise Exception("Msbuild.exe not found at the following locations:\n%s\nPlease change the path and run again" % (
-                Common.msbuildPathOptions))
+                config.msbuildPathOptions))
 
     def run(self):
         if Util.windows():
             self.checkMSBuildPath()
 
-        algo, version, trainingInput, testingInput, modelDir = self.args.algo, Common.Version.fixed, self.args.train, self.args.test, self.args.model
+        algo, version, trainingInput, testingInput, modelDir = self.args.algo, config.Version.fixed, self.args.train, self.args.test, self.args.model
 
         print("\n================================")
         print("Executing on %s for Arduino" % (algo))
@@ -84,7 +84,7 @@ class MainDriver:
         print("Model directory: %s" % (modelDir))
         print("================================\n")
 
-        obj = Main(algo, version, Common.Target.arduino,
+        obj = Main(algo, version, config.Target.arduino,
                    trainingInput, testingInput, modelDir, None)
         obj.run()
 

@@ -125,9 +125,9 @@ class Arduino(CodegenBase):
     # Print the variable with pragmas
     def printVar(self, ir):
         if ir.inputVar:
-            if Common.wordLength == 16:
+            if config.wordLength == 16:
                 self.out.printf('((MYINT) pgm_read_word_near(&')
-            elif Common.wordLength == 32:
+            elif config.wordLength == 32:
                 self.out.printf('((MYINT) pgm_read_dword_near(&')
             else:
                 assert False

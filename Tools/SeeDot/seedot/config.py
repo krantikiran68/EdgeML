@@ -34,7 +34,8 @@ class Algo:
 class Version:
     fixed = "fixed"
     floatt = "float"
-    all = [fixed, floatt]
+    default = [fixed, floatt]
+    all = default
 
 
 class DatasetType:

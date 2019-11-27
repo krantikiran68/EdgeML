@@ -10,60 +10,64 @@ import os
 import shutil
 import tempfile
 
-import seedot.common as common
+import seedot.config as config
 import seedot.main as main
+import seedot.predictor as predictor
 import seedot.util as util
 
-import seedot.compiler.converter.converter as Converter
-import seedot.compiler.converter.bonsai as Bonsai
-import seedot.compiler.converter.protonn as Protonn
+import seedot.compiler.converter.bonsai as bonsai
+import seedot.compiler.converter.converter as converter
+import seedot.compiler.converter.protonn as protonn
 
 
 class Dataset:
     common = ["cifar-binary", "cr-binary", "cr-multiclass", "curet-multiclass",
               "letter-multiclass", "mnist-binary", "mnist-multiclass",
               "usps-binary", "usps-multiclass", "ward-binary"]
-    extra = ["cifar-multiclass", "eye-binary", "dsa", "farm-beats",
+    extra = ["cifar-multiclass", "dsa", "eye-binary", "farm-beats",
              "interactive-cane", "spectakom", "usps10", "whale-binary"]
     default = common
     all = common + extra
 
+    datasetDir = os.path.join("..", "datasets", "datasets")
+    modelDir = os.path.join("..", "model")
+
+    datasetProcessedDir = os.path.join("..", "datasets")
+    modelProcessedDir = os.path.join("..", "model")
+
 
 class MainDriver:
-
-    def __init__(self):
-        self.driversAll = ["compiler", "converter", "predictor"]
 
     def parseArgs(self):
         parser = argparse.ArgumentParser()
 
-        parser.add_argument("-a", "--algo", choices=common.Algo.all,
-                            default=common.Algo.default, metavar='', help="Algorithm to run")
-        parser.add_argument("-v", "--version", choices=common.Version.all,
-                            default=common.Version.all, metavar='', help="Floating point code or fixed point code")
+        parser.add_argument("-a", "--algo", choices=config.Algo.all,
+                            default=config.Algo.default, metavar='', help="Algorithm to run")
+        parser.add_argument("-v", "--version", choices=config.Version.all,
+                            default=config.Version.default, metavar='', help="Floating-point or fixed-point")
         parser.add_argument("-d", "--dataset", choices=Dataset.all,
-                            default=Dataset.default, metavar='', help="Dataset to run")
+                            default=Dataset.default, metavar='', help="Dataset to use")
 
-        parser.add_argument("-dt", "--datasetType", choices=common.DatasetType.all, default=[
-                            common.DatasetType.default], metavar='', help="Training dataset or testing dataset")
-        parser.add_argument("-t", "--target", choices=common.Target.all, default=[
-                            common.Target.default], metavar='', help="Desktop code or Arduino code or Fpga HLS code")
+        parser.add_argument("-dt", "--datasetType", choices=config.DatasetType.all,
+                            default=config.DatasetType.default, metavar='', help="Training dataset or testing dataset")
+        parser.add_argument("-t", "--target", choices=config.Target.all,
+                            default=config.Target.default, metavar='', help="X86 code or Arduino sketch")
 
         parser.add_argument("-sf", "--max-scale-factor", type=int,
                             metavar='', help="Max scaling factor for code generation")
         parser.add_argument("--load-sf", action="store_true",
-                            help="Verify the accuracy of the generated code")
+                            help="Use a pre-determined value for max scale factor")
 
         parser.add_argument("--convert", action="store_true",
-                            help="Pass through the converter")
+                            help="Convert raw input and model files to standard numpy format")
 
         parser.add_argument("--tempdir", metavar='',
                             help="Scratch directory for intermediate files")
         parser.add_argument("-o", "--outdir", metavar='',
                             help="Directory to output the generated Arduino sketch")
 
-        parser.add_argument("--driver", choices=self.driversAll,
-                            metavar='', help="Driver to use")
+        parser.add_argument("--driver", choices=["compiler", "converter", "predictor"],
+                            metavar='', help="Invoke specific components of the tool instead of the entire workflow")
 
         self.args = parser.parse_args()
 
@@ -81,33 +85,33 @@ class MainDriver:
         if self.args.tempdir is not None:
             assert os.path.isdir(
                 self.args.tempdir), "Scratch directory doesn't exist"
-            common.tempdir = self.args.tempdir
+            config.tempdir = self.args.tempdir
         else:
-            # common.tempdir = os.path.join(tempfile.gettempdir(
+            # config.tempdir = os.path.join(tempfile.gettempdir(
             # ), "SeeDot", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
-            common.tempdir = "temp"
-            if os.path.exists(common.tempdir):
-                shutil.rmtree(common.tempdir)
-            os.makedirs(common.tempdir, exist_ok=True)
+            config.tempdir = "temp"
+            if os.path.exists(config.tempdir):
+                shutil.rmtree(config.tempdir)
+            os.makedirs(config.tempdir)
 
         if self.args.outdir is not None:
             assert os.path.isdir(
                 self.args.outdir), "Output directory doesn't exist"
-            common.outdir = self.args.outdir
+            config.outdir = self.args.outdir
         else:
-            common.outdir = os.path.join(common.tempdir, "arduino")
-            os.makedirs(common.outdir, exist_ok=True)
+            config.outdir = os.path.join(config.tempdir, "arduino")
+            os.makedirs(config.outdir, exist_ok=True)
 
     def checkMSBuildPath(self):
         found = False
-        for path in common.msbuildPathOptions:
+        for path in config.msbuildPathOptions:
             if os.path.isfile(path):
                 found = True
-                common.msbuildPath = path
+                config.msbuildPath = path
 
         if not found:
             raise Exception("Msbuild.exe not found at the following locations:\n%s\nPlease change the path and run again" % (
-                common.msbuildPathOptions))
+                config.msbuildPathOptions))
 
     def setGlobalFlags(self):
         np.seterr(all='warn')
@@ -140,14 +144,13 @@ class MainDriver:
             print("========================================\n")
 
             if self.args.convert:
-                datasetDir = os.path.join(
-                    "..", "datasets", "datasets", dataset)
-                modelDir = os.path.join("..", "model", dataset)
+                datasetDir = os.path.join(Dataset.datasetDir, dataset)
+                modelDir = os.path.join(Dataset.modelDir, dataset)
 
-                if algo == common.Algo.bonsai:
+                if algo == config.Algo.bonsai:
                     modelDir = os.path.join(
                         modelDir, "BonsaiResults", "Params")
-                elif algo == common.Algo.lenet:
+                elif algo == config.Algo.lenet:
                     modelDir = os.path.join(modelDir, "LenetModel")
                 else:
                     modelDir = os.path.join(modelDir, "ProtoNNResults")
@@ -163,13 +166,13 @@ class MainDriver:
                 os.makedirs(datasetOutputDir, exist_ok=True)
                 os.makedirs(modelOutputDir, exist_ok=True)
 
-                if algo == common.Algo.bonsai:
-                    obj = bonsai(trainingInput, testingInput,
-                                 modelDir, datasetOutputDir, modelOutputDir)
+                if algo == config.Algo.bonsai:
+                    obj = bonsai.Bonsai(trainingInput, testingInput,
+                                        modelDir, datasetOutputDir, modelOutputDir)
                     obj.run()
-                elif algo == common.Algo.protonn:
-                    obj = protonn(trainingInput, testingInput,
-                                  modelDir, datasetOutputDir, modelOutputDir)
+                elif algo == config.Algo.protonn:
+                    obj = protonn.Protonn(trainingInput, testingInput,
+                                          modelDir, datasetOutputDir, modelOutputDir)
                     obj.run()
 
                 trainingInput = os.path.join(datasetOutputDir, "train.npy")
@@ -177,20 +180,21 @@ class MainDriver:
                 modelDir = modelOutputDir
             else:
                 datasetDir = os.path.join(
-                    "..", "datasets", algo, dataset)
+                    Dataset.datasetProcessedDir, algo, dataset)
+                modelDir = os.path.join(
+                    Dataset.modelProcessedDir, algo, dataset)
 
                 trainingInput = os.path.join(datasetDir, "train.npy")
                 testingInput = os.path.join(datasetDir, "test.npy")
-                modelDir = os.path.join("..", "model", algo, dataset)
 
             try:
-                if version == common.Version.floatt:
+                if version == config.Version.floatt:
                     key = 'float32'
-                elif common.wordLength == 8:
+                elif config.wordLength == 8:
                     key = 'int8'
-                elif common.wordLength == 16:
+                elif config.wordLength == 16:
                     key = 'int16'
-                elif common.wordLength == 32:
+                elif config.wordLength == 32:
                     key = 'int32'
                 else:
                     assert False
@@ -198,7 +202,7 @@ class MainDriver:
                 curr = results[algo][key][dataset]
 
                 expectedAcc = curr['accuracy']
-                if version == common.Version.fixed:
+                if version == config.Version.fixed:
                     bestScale = curr['sf']
                 else:
                     bestScale = results[algo]['int16'][dataset]['sf']
@@ -213,16 +217,16 @@ class MainDriver:
                 sf = self.args.max_scale_factor
 
             obj = main.Main(algo, version, target, trainingInput,
-                       testingInput, modelDir, sf)
+                            testingInput, modelDir, sf)
             obj.run()
 
             acc = obj.testingAccuracy
             if acc != expectedAcc:
                 print("FAIL: Expected accuracy %f%%" % (expectedAcc))
-                #return
-            elif version == common.Version.fixed and obj.sf != bestScale:
+                # return
+            elif version == config.Version.fixed and obj.sf != bestScale:
                 print("FAIL: Expected best scale %d" % (bestScale))
-                #return
+                # return
             else:
                 print("PASS")
 
@@ -241,7 +245,7 @@ class MainDriver:
 
             outputFile = os.path.join(outputDir, algo + "-fixed.cpp")
             obj = main.Main(algo, version, target, inputFile, outputFile,
-                       profileLogFile, self.args.max_scale_factor, self.args.workers)
+                            profileLogFile, self.args.max_scale_factor)
             obj.run()
 
     def runConverterDriver(self):
@@ -258,19 +262,21 @@ class MainDriver:
             datasetDir = os.path.join("..", "datasets", "datasets", dataset)
             modelDir = os.path.join("..", "model", dataset)
 
-            if algo == common.Algo.bonsai:
+            if algo == config.Algo.bonsai:
                 modelDir = os.path.join(modelDir, "BonsaiResults", "Params")
-            elif algo == common.Algo.lenet:
+            elif algo == config.Algo.lenet:
                 modelDir = os.path.join(modelDir, "LenetModel")
             else:
                 modelDir = os.path.join(modelDir, "ProtoNNResults")
 
+            inputFile = os.path.join(modelDir, "input.sd")
+
             trainingInput = os.path.join(datasetDir, "training-full.tsv")
             testingInput = os.path.join(datasetDir, "testing.tsv")
 
-            obj = Converter(algo, version, datasetType, target,
-                            outputDir, outputDir, self.args.workers)
-            obj.setInput(modelDir, trainingInput, testingInput)
+            obj = converter.Converter(algo, version, datasetType, target,
+                                      outputDir, outputDir)
+            obj.setInput(inputFile, modelDir, trainingInput, testingInput)
             obj.run()
 
     def runPredictorDriver(self):
@@ -283,16 +289,16 @@ class MainDriver:
             #outputDir = os.path.join("..", "Predictor", algo, version + "-testing")
             #datasetOutputDir = os.path.join("..", "Predictor", algo, version + "-" + datasetType)
 
-            if version == common.Version.fixed:
+            if version == config.Version.fixed:
                 outputDir = os.path.join(
                     "..", "Predictor", "seedot_fixed", "testing")
                 datasetOutputDir = os.path.join(
                     "..", "Predictor", "seedot_fixed", datasetType)
-            elif version == common.Version.floatt:
+            elif version == config.Version.floatt:
                 outputDir = os.path.join(
-                    "..", "Predictor", self.algo + "_float", "testing")
+                    "..", "Predictor", algo + "_float", "testing")
                 datasetOutputDir = os.path.join(
-                    "..", "Predictor", self.algo + "_float", datasetType)
+                    "..", "Predictor", algo + "_float", datasetType)
 
             os.makedirs(datasetOutputDir, exist_ok=True)
             os.makedirs(outputDir, exist_ok=True)
@@ -300,19 +306,21 @@ class MainDriver:
             datasetDir = os.path.join("..", "datasets", "datasets", dataset)
             modelDir = os.path.join("..", "model", dataset)
 
-            if algo == common.Algo.bonsai:
+            if algo == config.Algo.bonsai:
                 modelDir = os.path.join(modelDir, "BonsaiResults", "Params")
-            elif algo == common.Algo.lenet:
+            elif algo == config.Algo.lenet:
                 modelDir = os.path.join(modelDir, "LenetModel")
             else:
                 modelDir = os.path.join(modelDir, "ProtoNNResults")
 
+            inputFile = os.path.join(modelDir, "input.sd")
+
             trainingInput = os.path.join(datasetDir, "training-full.tsv")
             testingInput = os.path.join(datasetDir, "testing.tsv")
 
-            obj = Converter(algo, version, datasetType, common.Target.x86,
-                            datasetOutputDir, outputDir, self.args.workers)
-            obj.setInput(modelDir, trainingInput, testingInput)
+            obj = converter.Converter(algo, version, datasetType, config.Target.x86,
+                                      datasetOutputDir, outputDir)
+            obj.setInput(inputFile, modelDir, trainingInput, testingInput)
             obj.run()
 
             print("Building and executing " + algo + " " +
@@ -324,7 +332,8 @@ class MainDriver:
             curDir = os.getcwd()
             os.chdir(os.path.join("..", "Predictor"))
 
-            obj = Predictor(algo, version, datasetType, outputDir)
+            obj = predictor.Predictor(
+                algo, version, datasetType, outputDir, self.args.max_scale_factor)
             acc = obj.run()
 
             os.chdir(curDir)

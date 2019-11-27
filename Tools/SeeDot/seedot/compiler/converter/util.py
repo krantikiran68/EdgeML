@@ -6,7 +6,7 @@ import numpy as np
 import os
 from sklearn.datasets import load_svmlight_file
 
-import seedot.common as Common
+import seedot.config as config
 import seedot.util as Util
 
 # Utility functions commonly used by both Bonsai and Protonn
@@ -50,7 +50,7 @@ def setDatasetType(datasetType: str):
 
 
 def usingTrainingDataset():
-    return getDatasetType() == Common.DatasetType.training
+    return getDatasetType() == config.DatasetType.training
 
 
 # Arduino code or desktop code (aka plain C++ code)
@@ -63,7 +63,7 @@ def setTarget(target: str):
 
 
 def forArduino():
-    return getTarget() == Common.Target.arduino
+    return getTarget() == config.Target.arduino
 
 
 def setInputFile(inputFile):
@@ -104,19 +104,19 @@ def setDatasetInput(trainingFile, testingFile):
 
 
 def usingLibSVM():
-    return Common.inputFileType == "libsvm"
+    return config.inputFileType == "libsvm"
 
 
 def usingTSV():
-    return Common.inputFileType == "tsv"
+    return config.inputFileType == "tsv"
 
 
 def usingCSV():
-    return Common.inputFileType == "csv"
+    return config.inputFileType == "csv"
 
 
 def usingNPY():
-    return Common.inputFileType == "npy"
+    return config.inputFileType == "npy"
 
 
 def dumpDataset():
@@ -152,7 +152,7 @@ def meanVarNorm():
 
 
 def getMaxInt():
-    return (2 ** (Common.wordLength - 1)) - 1
+    return (2 ** (config.wordLength - 1)) - 1
 
 
 # Format specifiers for various datatypes
@@ -500,7 +500,7 @@ def convertToSparse(mat):
 
 
 # Custom function to compute the maximum scaling factor which can fit M
-# into an integer of Common.wordLength length
+# into an integer of config.wordLength length
 def computeScale(m, M):
     maxAbs = max(abs(m), abs(M))
     return Util.computeScalingFactor(maxAbs)

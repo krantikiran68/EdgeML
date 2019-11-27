@@ -11,7 +11,7 @@ import shutil
 import tempfile
 
 import seedot.common as common
-from seedot.main import Main
+import seedot.main as main
 import seedot.util as util
 
 import seedot.compiler.converter.converter as Converter
@@ -212,7 +212,7 @@ class MainDriver:
             else:
                 sf = self.args.max_scale_factor
 
-            obj = Main(algo, version, target, trainingInput,
+            obj = main.Main(algo, version, target, trainingInput,
                        testingInput, modelDir, sf)
             obj.run()
 
@@ -240,7 +240,7 @@ class MainDriver:
             os.makedirs(outputDir, exist_ok=True)
 
             outputFile = os.path.join(outputDir, algo + "-fixed.cpp")
-            obj = Main(algo, version, target, inputFile, outputFile,
+            obj = main.Main(algo, version, target, inputFile, outputFile,
                        profileLogFile, self.args.max_scale_factor, self.args.workers)
             obj.run()
 

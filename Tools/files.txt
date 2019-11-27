@@ -79,8 +79,6 @@
 -rw-r--r-- 1 sridhar sridhar 20916 Nov 19 17:40 model_fixed.h
 -rw-r--r-- 1 sridhar sridhar 34253 Nov 19 17:40 model_float.h
 -rw-r--r-- 1 sridhar sridhar   167 Nov 19 17:40 predictors.h
--rw-r--r-- 1 sridhar sridhar  6719 Nov 19 17:40 Predictor.vcxproj
--rw-r--r-- 1 sridhar sridhar  2366 Nov 19 17:40 Predictor.vcxproj.filters
 -rw-r--r-- 1 sridhar sridhar  2998 Nov 22 14:15 profile.cpp
 -rw-r--r-- 1 sridhar sridhar   389 Nov 19 17:40 profile.h
 -rw-r--r-- 1 sridhar sridhar  3798 Nov 22 14:21 seedot_fixed.cpp

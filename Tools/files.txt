@@ -1,0 +1,94 @@
+.:
+-rw-r--r-- 1 sridhar sridhar 13969 Nov 22 16:32 SeeDot-dev.py
+-rw-r--r-- 1 sridhar sridhar  3759 Nov 19 17:40 SeeDot.py
+
+./seedot:
+-rw-r--r--  1 sridhar sridhar  1344 Nov 19 17:40 common.py
+-rw-r--r--  1 sridhar sridhar  5646 Nov 19 17:40 .gitignore
+-rw-r--r--  1 sridhar sridhar 12239 Nov 22 16:41 main.py
+-rw-r--r--  1 sridhar sridhar  4692 Nov 22 14:22 predictor.py
+-rw-r--r--  1 sridhar sridhar  2958 Nov 19 17:40 util.py
+-rw-r--r--  1 sridhar sridhar   641 Nov 19 17:40 writer.py
+
+./seedot/arduino:
+-rw-r--r-- 1 sridhar sridhar 3904 Nov 19 17:40 arduino.ino
+-rw-r--r-- 1 sridhar sridhar 1011 Nov 19 17:40 config.h
+-rw-r--r-- 1 sridhar sridhar   29 Nov 19 17:40 .gitignore
+-rw-r--r-- 1 sridhar sridhar  184 Nov 19 17:38 predict.h
+-rw-r--r-- 1 sridhar sridhar   27 Nov 19 17:38 README.md
+
+./seedot/arduino/library:
+-rw-r--r-- 1 sridhar sridhar 17948 Nov 19 17:40 library_fixed.h
+-rw-r--r-- 1 sridhar sridhar 14435 Nov 19 17:40 library_float.h
+
+./seedot/compiler:
+-rw-r--r--  1 sridhar sridhar  3046 Nov 22 12:50 compiler.py
+-rw-r--r--  1 sridhar sridhar     8 Nov 19 17:40 .gitignore
+-rw-r--r--  1 sridhar sridhar 10704 Nov 19 17:40 type.py
+
+./seedot/compiler/antlr:
+-rw-r--r--  1 sridhar sridhar  1984 Nov 19 17:40 seedot.g4
+
+./seedot/compiler/ast:
+-rw-r--r--  1 sridhar sridhar 4559 Nov 19 17:40 astBuilder.py
+-rw-r--r--  1 sridhar sridhar 3261 Nov 19 17:40 ast.py
+-rw-r--r--  1 sridhar sridhar 1764 Nov 19 17:40 astVisitor.py
+-rw-r--r--  1 sridhar sridhar 2218 Nov 19 17:40 mtdAST.py
+-rw-r--r--  1 sridhar sridhar 4244 Nov 19 17:40 printAST.py
+
+./seedot/compiler/codegen:
+-rw-r--r--  1 sridhar sridhar 7246 Nov 19 17:40 arduino.py
+-rw-r--r--  1 sridhar sridhar 9634 Nov 22 13:41 codegenBase.py
+-rw-r--r--  1 sridhar sridhar 6902 Nov 22 14:16 x86.py
+
+./seedot/compiler/converter:
+-rw-r--r--  1 sridhar sridhar  8981 Nov 19 17:40 bonsai.py
+-rw-r--r--  1 sridhar sridhar  1182 Nov 19 17:40 converter.py
+-rw-r--r--  1 sridhar sridhar     8 Nov 19 17:40 .gitignore
+-rw-r--r--  1 sridhar sridhar  2441 Nov 19 17:40 paramsBuilder.py
+-rw-r--r--  1 sridhar sridhar  7532 Nov 19 17:40 protonn.py
+-rw-r--r--  1 sridhar sridhar 10378 Nov 22 12:22 quantizer.py
+-rw-r--r--  1 sridhar sridhar  5491 Nov 19 17:40 test.py
+-rw-r--r--  1 sridhar sridhar 13961 Nov 19 17:40 util.py
+
+./seedot/compiler/input:
+-rw-r--r--  1 sridhar sridhar  795 Nov 19 17:40 bonsai.sd
+-rw-r--r--  1 sridhar sridhar   43 Nov 19 17:40 profile.txt
+-rw-r--r--  1 sridhar sridhar  337 Nov 19 17:40 protonn.sd
+
+./seedot/compiler/ir:
+-rw-r--r--  1 sridhar sridhar 70483 Nov 19 17:40 irBuilder.py
+-rw-r--r--  1 sridhar sridhar  9058 Nov 19 17:40 ir.py
+-rw-r--r--  1 sridhar sridhar  4682 Nov 19 17:38 irUtil.py
+
+./seedot/compiler/TF:
+-rw-r--r--  1 sridhar sridhar 24927 Nov 19 17:40 Graph.py
+-rw-r--r--  1 sridhar sridhar  6802 Nov 22 12:31 ProcessTFGraph.py
+-rw-r--r--  1 sridhar sridhar 36850 Nov 22 12:31 TFNodesAST.py
+
+./seedot/Predictor:
+-rw-r--r-- 1 sridhar sridhar   159 Nov 19 17:40 datatypes.h
+-rw-r--r-- 1 sridhar sridhar   153 Nov 19 17:40 debug.cpp
+-rw-r--r-- 1 sridhar sridhar    34 Nov 19 17:40 .gitignore
+-rw-r--r-- 1 sridhar sridhar 16970 Nov 22 14:04 library_fixed.cpp
+-rw-r--r-- 1 sridhar sridhar  2995 Nov 19 17:40 library_fixed.h
+-rw-r--r-- 1 sridhar sridhar 12948 Nov 22 14:03 library_float.cpp
+-rw-r--r-- 1 sridhar sridhar  2984 Nov 19 17:40 library_float.h
+-rw-r--r-- 1 sridhar sridhar  5482 Nov 22 16:33 main.cpp
+-rw-r--r-- 1 sridhar sridhar  1161 Nov 22 13:58 Makefile
+-rw-r--r-- 1 sridhar sridhar 20916 Nov 19 17:40 model_fixed.h
+-rw-r--r-- 1 sridhar sridhar 34253 Nov 19 17:40 model_float.h
+-rw-r--r-- 1 sridhar sridhar   167 Nov 19 17:40 predictors.h
+-rw-r--r-- 1 sridhar sridhar  6719 Nov 19 17:40 Predictor.vcxproj
+-rw-r--r-- 1 sridhar sridhar  2366 Nov 19 17:40 Predictor.vcxproj.filters
+-rw-r--r-- 1 sridhar sridhar  2998 Nov 22 14:15 profile.cpp
+-rw-r--r-- 1 sridhar sridhar   389 Nov 19 17:40 profile.h
+-rw-r--r-- 1 sridhar sridhar  3798 Nov 22 14:21 seedot_fixed.cpp
+-rw-r--r-- 1 sridhar sridhar  3790 Nov 19 17:40 seedot_float.cpp
+-rw-r--r-- 1 sridhar sridhar   969 Nov 19 17:40 vars_fixed.h
+-rw-r--r-- 1 sridhar sridhar   969 Nov 19 17:40 vars_float.h
+
+./seedot/Streamer:
+-rw-r--r-- 1 sridhar sridhar 5884 Nov 19 17:40 DeviceInterface.cs
+-rw-r--r-- 1 sridhar sridhar   15 Nov 19 17:40 .gitignore
+-rw-r--r-- 1 sridhar sridhar 3444 Nov 19 17:40 Main.cs

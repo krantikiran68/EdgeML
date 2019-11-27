@@ -4,8 +4,6 @@
 # Target word length. Currently set to match the word length of Arduino (2 bytes)
 wordLength = 16
 
-inputFileType = "npy"
-
 # Range of max scale factor used for exploration
 maxScaleRange = 0, -wordLength
 
@@ -25,29 +23,29 @@ msbuildPathOptions = [r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Comm
 
 
 class Algo:
-    Bonsai = "bonsai"
-    Lenet = "lenet"
-    Protonn = "protonn"
-    Rnn = "rnn"
-    Default = [Bonsai, Protonn]
-    All = [Bonsai, Lenet, Protonn, Rnn]
+    bonsai = "bonsai"
+    lenet = "lenet"
+    protonn = "protonn"
+    rnn = "rnn"
+    default = [bonsai, protonn]
+    all = [bonsai, lenet, protonn, rnn]
 
 
 class Version:
-    Fixed = "fixed"
-    Float = "float"
-    All = [Fixed, Float]
+    fixed = "fixed"
+    floatt = "float"
+    all = [fixed, floatt]
 
 
 class DatasetType:
-    Training = "training"
-    Testing = "testing"
-    Default = Testing
-    All = [Training, Testing]
+    training = "training"
+    testing = "testing"
+    default = testing
+    all = [training, testing]
 
 
 class Target:
-    Arduino = "arduino"
-    X86 = "x86"
-    Default = X86
-    All = [Arduino, X86]
+    arduino = "arduino"
+    x86 = "x86"
+    default = x86
+    all = [arduino, x86]

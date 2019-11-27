@@ -1617,7 +1617,7 @@ class IRBuilder(ASTVisitor):
             var, IR.Int(end - start)), prog_in.cmd_l)
 
         # Generate code for profiling
-        if forFloat() and getTarget() == Common.Target.X86:
+        if forFloat() and getTarget() == Common.Target.x86:
             mVar = IR.Var(node.mutableVar.name)
             mVar_type = node.mutableVar.type
             profile_iters = self.getTempIterators(mVar_type.dim)

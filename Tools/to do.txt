@@ -1,4 +1,34 @@
 
+NEW TODOS:
+==========
+
+1. Populate all the datasets in the datasets repo
+	a. Check the existing datasets
+	b. Add missing datasets in to the repository
+	c. Check the existing models
+	d. Add missing models
+2. Redo the entire readme
+3. Create readme for the arduino part
+4. Populate results in a csv instead of json file
+5. temp directory in dev mode should be the current directory so that the updates are in place to help with debugging. Change this.
+6. Create a solution file for development on Windows
+7. Format all the files present in the files.txt file
+8. Add a flag to fail when results do not match with the benchmarked results
+9. Ask Aayan to test all benchmarks on Arduino
+
+
+TEMPLATES:
+==========
+
+1.  For each file, do the following:
+	a. Format document
+	b. Check imports
+	c. Organize imports
+
+
+OLD TODOS:
+==========
+
 11.	Check EXP() in library_fixed.h and arduino/library.h
 
 1.	inputVar in IR.Var is redundant. You can do that check using self.globalVars as well. Remove it.

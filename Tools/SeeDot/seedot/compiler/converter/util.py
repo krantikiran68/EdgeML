@@ -50,7 +50,7 @@ def setDatasetType(datasetType: str):
 
 
 def usingTrainingDataset():
-    return getDatasetType() == Common.DatasetType.Training
+    return getDatasetType() == Common.DatasetType.training
 
 
 # Arduino code or desktop code (aka plain C++ code)
@@ -63,7 +63,7 @@ def setTarget(target: str):
 
 
 def forArduino():
-    return getTarget() == Common.Target.Arduino
+    return getTarget() == Common.Target.arduino
 
 
 def setInputFile(inputFile):

@@ -40,11 +40,11 @@ def setVersion(version: str):
 
 
 def forFixed():
-    return Config.version == Common.Version.Fixed
+    return Config.version == Common.Version.fixed
 
 
 def forFloat():
-    return Config.version == Common.Version.Float
+    return Config.version == Common.Version.floatt
 
 
 def getTarget():
@@ -56,7 +56,7 @@ def setTarget(target: str):
 
 
 def forArduino():
-    return Config.target == Common.Target.Arduino
+    return Config.target == Common.Target.arduino
 
 
 def forHls():
@@ -68,7 +68,7 @@ def forVerilog():
 
 
 def forX86():
-    return Config.target == Common.Target.X86
+    return Config.target == Common.Target.x86
 
 
 def getProfileLogFile():

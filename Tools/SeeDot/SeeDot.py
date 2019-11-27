@@ -20,7 +20,7 @@ class MainDriver:
     def parseArgs(self):
         parser = argparse.ArgumentParser()
 
-        parser.add_argument("-a", "--algo", choices=Common.Algo.All,
+        parser.add_argument("-a", "--algo", choices=Common.Algo.all,
                             metavar='', help="Algorithm to run ('bonsai' or 'protonn')")
         parser.add_argument("--train", required=True,
                             metavar='', help="Training set file")
@@ -74,7 +74,7 @@ class MainDriver:
         if Util.windows():
             self.checkMSBuildPath()
 
-        algo, version, trainingInput, testingInput, modelDir = self.args.algo, Common.Version.Fixed, self.args.train, self.args.test, self.args.model
+        algo, version, trainingInput, testingInput, modelDir = self.args.algo, Common.Version.fixed, self.args.train, self.args.test, self.args.model
 
         print("\n================================")
         print("Executing on %s for Arduino" % (algo))
@@ -84,7 +84,7 @@ class MainDriver:
         print("Model directory: %s" % (modelDir))
         print("================================\n")
 
-        obj = Main(algo, version, Common.Target.Arduino,
+        obj = Main(algo, version, Common.Target.arduino,
                    trainingInput, testingInput, modelDir, None)
         obj.run()
 

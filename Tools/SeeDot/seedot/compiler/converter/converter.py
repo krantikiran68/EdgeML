@@ -34,9 +34,9 @@ class Converter:
         if self.inputSet != True:
             raise Exception("Set input paths before running Converter")
 
-        if getVersion() == Common.Version.Fixed:
+        if getVersion() == Common.Version.fixed:
             obj = QuantizerFixed()
-        elif getVersion() == Common.Version.Float:
+        elif getVersion() == Common.Version.floatt:
             obj = QuantizerFloat()
 
         obj.run()

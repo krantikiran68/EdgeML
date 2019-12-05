@@ -3,7 +3,7 @@
 -rw-r--r-- 1 sridhar sridhar  3759 Nov 19 17:40 SeeDot.py
 
 ./seedot:
--rw-r--r--  1 sridhar sridhar  1344 Nov 19 17:40 common.py
+-rw-r--r--  1 sridhar sridhar  1344 Nov 19 17:40 config.py
 -rw-r--r--  1 sridhar sridhar  5646 Nov 19 17:40 .gitignore
 -rw-r--r--  1 sridhar sridhar 12239 Nov 22 16:41 main.py
 -rw-r--r--  1 sridhar sridhar  4692 Nov 22 14:22 predictor.py

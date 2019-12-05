@@ -2,6 +2,7 @@
 # Licensed under the MIT license.
 
 import argparse
+import csv
 import datetime
 from itertools import product
 import json
@@ -189,23 +190,23 @@ class MainDriver:
 
             try:
                 if version == config.Version.floatt:
-                    key = 'float32'
+                    bitwidth = 'float'
                 elif config.wordLength == 8:
-                    key = 'int8'
+                    bitwidth = 'int8'
                 elif config.wordLength == 16:
-                    key = 'int16'
+                    bitwidth = 'int16'
                 elif config.wordLength == 32:
-                    key = 'int32'
+                    bitwidth = 'int32'
                 else:
                     assert False
 
-                curr = results[algo][key][dataset]
+                curr = results[algo][bitwidth][dataset]
 
                 expectedAcc = curr['accuracy']
                 if version == config.Version.fixed:
-                    bestScale = curr['sf']
+                    bestScale = curr['scaleFactor']
                 else:
-                    bestScale = results[algo]['int16'][dataset]['sf']
+                    bestScale = results[algo]['int16'][dataset]['scaleFactor']
 
             except Exception as _:
                 assert self.args.load_sf == False
@@ -342,8 +343,31 @@ class MainDriver:
                 print("Accuracy is %.3f" % (acc))
 
     def loadResultsFile(self):
-        with open(os.path.join("Results", "Results.json")) as data:
-            return json.load(data)
+        results = {}
+        with open(os.path.join("Results", "Results.csv")) as csvFile:
+            reader = csv.reader(csvFile)
+            for row in reader:
+                algo, bitwidth, dataset = row[0], row[1], row[2]
+
+                if algo not in results:
+                    results[algo] = {}
+
+                if bitwidth not in results[algo]:
+                    results[algo][bitwidth] = {}
+
+                if dataset not in results[algo][bitwidth]:
+                    results[algo][bitwidth][dataset] = {}
+
+                accuracy, scaleFactor = row[3], row[4]
+
+                if not accuracy:
+                    accuracy = 100
+                if not scaleFactor:
+                    scaleFactor = 9999
+
+                results[algo][bitwidth][dataset] = {"accuracy": float(accuracy), "scaleFactor": int(scaleFactor)}
+                
+        return results
 
 
 if __name__ == "__main__":

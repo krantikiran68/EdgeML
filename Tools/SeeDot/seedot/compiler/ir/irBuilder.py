@@ -624,7 +624,7 @@ class IRBuilder(ASTVisitor):
 
         (prog_in_B, expr_in_B) = self.visit(node.expr2)
 
-        [P, Q] = node.expr1.type.shape
+        [_, Q] = node.expr1.type.shape
         [Q, R] = node.expr2.type.shape
 
         assert R == 1, "Sparse matrix multiplication currently only support multiplication with a vector"
@@ -709,7 +709,6 @@ class IRBuilder(ASTVisitor):
 
         (prog_in_B, expr_in_B) = self.visit(node.expr2)
 
-        type_in_A, type_in_B = node.expr1.type, node.expr2.type
         type_out = node.type
 
         expr_out = self.getTempVar()
@@ -850,9 +849,6 @@ class IRBuilder(ASTVisitor):
         (prog_in_A, expr_in_A) = self.visit(node.expr1)
 
         (prog_in_B, expr_in_B) = self.visit(node.expr2)
-
-        type_in_A, type_in_B = node.expr1.type, node.expr2.type
-        type_out = node.type
 
         if node.op == SeeDotParser.ADDCIR:
             (op_ir, op_fn) = (IR.Op.Op['+'], operator.add)
@@ -1050,8 +1046,6 @@ class IRBuilder(ASTVisitor):
 
         (prog_in, expr_in) = self.visit(node.expr)
 
-        type_out = node.expr.type
-
         (m, M) = self.varIntervals[expr_in.idf]
         if m < 0:
             m = 0
@@ -1120,7 +1114,6 @@ class IRBuilder(ASTVisitor):
         type_in = node.expr.type
 
         scale_in = self.varScales[expr_in.idf]
-        intv_in = self.varIntervals[expr_in.idf]
 
         '''
 		1.  y = ((int) (exp(((float)e) / shr1) * shr2))
@@ -1171,7 +1164,6 @@ class IRBuilder(ASTVisitor):
         type_in = node.expr.type
 
         scale_in = self.varScales[expr_in.idf]
-        intv_in = self.varIntervals[expr_in.idf]
 
         [m, M] = self.expRange
         [m_scale, M_scale] = [
@@ -1405,17 +1397,17 @@ class IRBuilder(ASTVisitor):
         intv_in = self.varIntervals[expr_in.idf]
 
         if forFloat():
-            tanh_limit = IR.Float(config.tanh_limit)
+            tanh_limit = IR.Float(config.tanhLimit)
         else:
             # Scale tanh limit
-            tanh_limit = self.getNumInFixedPoint(config.tanh_limit, scale_in)
+            tanh_limit = self.getNumInFixedPoint(config.tanhLimit, scale_in)
 
         tanh_intv = self.getInterval(
-            scale_in, config.tanh_limit, config.tanh_limit)
+            scale_in, config.tanhLimit, config.tanhLimit)
         intv_out = self.updateTanhIntv(intv_in, tanh_intv)
 
         # TODO: Temp computation for POC. Remove later.
-        scale_new = self.getScale(config.tanh_limit)
+        scale_new = self.getScale(config.tanhLimit)
         print("Scale changes in TanH operation: old = %d, new = %d, diff = %d" % (
             scale_in, scale_new, abs(scale_in - scale_new)))
 
@@ -1812,7 +1804,6 @@ class IRBuilder(ASTVisitor):
         # data-driven parameters
         inputFile = getProfileLogFile()
 
-        data = []
         with open(inputFile, 'r') as f:
             for line in f:
                 entries = line.strip().split(", ")

@@ -12,7 +12,7 @@ import traceback
 
 import seedot.config as config
 from seedot.main import Main
-import seedot.util as Util
+import seedot.util as util
 
 
 class MainDriver:
@@ -71,7 +71,7 @@ class MainDriver:
                 config.msbuildPathOptions))
 
     def run(self):
-        if Util.windows():
+        if util.windows():
             self.checkMSBuildPath()
 
         algo, version, trainingInput, testingInput, modelDir = self.args.algo, config.Version.fixed, self.args.train, self.args.test, self.args.model

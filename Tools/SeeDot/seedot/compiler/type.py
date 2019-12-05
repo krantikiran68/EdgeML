@@ -4,10 +4,10 @@
 from functools import reduce
 import operator
 
-from seedot.compiler.antlr.seedotParser import seedotParser as SeeDotParser
+import seedot.compiler.antlr.seedotParser as seedotParser
 
-import seedot.compiler.ast.ast as AST
-from seedot.compiler.ast.astVisitor import ASTVisitor
+import seedot.compiler.ast.ast as ast
+import seedot.compiler.ast.astVisitor as astVisitor
 
 
 class Type:
@@ -52,34 +52,34 @@ def isEqual(type1: Type, type2: Type):
         assert False
 
 
-class InferType(ASTVisitor):
+class InferType(astVisitor.ASTVisitor):
 
     def __init__(self):
         self.mutableVars = []
 
-    def visitInt(self, node: AST.Int):
+    def visitInt(self, node: ast.Int):
         node.type = Int()
         return node.type
 
     # Float is represented as a tensor with 0 dimension
-    def visitFloat(self, node: AST.Float):
+    def visitFloat(self, node: ast.Float):
         node.type = Tensor([])
         return node.type
 
-    def visitId(self, node: AST.ID):
+    def visitId(self, node: ast.ID):
         node.type = node.gamma[node.name]
         return node.type
 
-    def visitDecl(self, node: AST.Decl):
+    def visitDecl(self, node: ast.Decl):
         node.type = Tensor(node.shape)
         return node.type
 
-    def visitInit(self, node: AST.Init):
+    def visitInit(self, node: ast.Init):
         node.type = Tensor(node.shape)
         return node.type
 
     # Matrix transpose
-    def visitTransp(self, node: AST.Transp):
+    def visitTransp(self, node: ast.Transp):
         node.expr.gamma = dict(node.gamma)
         exprType = self.visit(node.expr)
 
@@ -91,7 +91,7 @@ class InferType(ASTVisitor):
         return node.type
 
     # Reshape the tensor with custom dimensions
-    def visitReshape(self, node: AST.Reshape):
+    def visitReshape(self, node: ast.Reshape):
         node.expr.gamma = dict(node.gamma)
         exprType = self.visit(node.expr)
 
@@ -106,7 +106,7 @@ class InferType(ASTVisitor):
         return node.type
 
     # Reduces the shape of a tensor by choosing the maximum from a filter
-    def visitMaxpool(self, node: AST.Maxpool):
+    def visitMaxpool(self, node: ast.Maxpool):
         node.expr.gamma = dict(node.gamma)
         exprType = self.visit(node.expr)
 
@@ -124,7 +124,7 @@ class InferType(ASTVisitor):
         return node.type
 
     # Indexing a tensor
-    def visitIndex(self, node: AST.Index):
+    def visitIndex(self, node: ast.Index):
         node.expr.gamma = dict(node.gamma)
         exprType = self.visit(node.expr)
 
@@ -141,7 +141,7 @@ class InferType(ASTVisitor):
         return node.type
 
     # Currently assuming that the type of each expr is same
-    def visitFuncCall(self, node: AST.FuncCall):
+    def visitFuncCall(self, node: ast.FuncCall):
         type = None
         for expr in node.exprList:
             expr.gamma = dict(node.gamma)
@@ -156,32 +156,32 @@ class InferType(ASTVisitor):
 
         return node.type
 
-    def visitUop(self, node: AST.Uop):
+    def visitUop(self, node: ast.Uop):
         node.expr.gamma = dict(node.gamma)
         node.type = self.visit(node.expr)
         return node.type
 
     # e BINOP f
-    def visitBop1(self, node: AST.Bop1):
+    def visitBop1(self, node: ast.Bop1):
         node.expr1.gamma = dict(node.gamma)
         eType = self.visit(node.expr1)
 
         node.expr2.gamma = dict(node.gamma)
         fType = self.visit(node.expr2)
 
-        if node.op == SeeDotParser.MUL or node.op == SeeDotParser.SPARSEMUL:
+        if node.op == seedotParser.seedotParser.MUL or node.op == seedotParser.seedotParser.SPARSEMUL:
             return self.visitBopMul(node, eType, fType)
-        elif node.op == SeeDotParser.ADDCIR or node.op == SeeDotParser.SUBCIR:
+        elif node.op == seedotParser.seedotParser.ADDCIR or node.op == seedotParser.seedotParser.SUBCIR:
             return self.visitBopAddOrSubCir(node, eType, fType)
-        elif node.op == SeeDotParser.MULCIR:
+        elif node.op == seedotParser.seedotParser.MULCIR:
             return self.visitBopMulCir(node, eType, fType)
-        elif node.op == SeeDotParser.CONV:
+        elif node.op == seedotParser.seedotParser.CONV:
             return self.visitBopConv(node, eType, fType)
         else:
             assert False
 
     # e * f OR e |*| f
-    def visitBopMul(self, node: AST.Bop1, eType: Type, fType: Type):
+    def visitBopMul(self, node: ast.Bop1, eType: Type, fType: Type):
         if isInt(eType) and isInt(fType):
             node.type = Int()
         elif isTensor(eType) and isTensor(fType):
@@ -206,7 +206,7 @@ class InferType(ASTVisitor):
         return node.type
 
     # e <+> f OR e <-> f
-    def visitBopAddOrSubCir(self, node: AST.Bop1, eType: Type, fType: Type):
+    def visitBopAddOrSubCir(self, node: ast.Bop1, eType: Type, fType: Type):
         assert isTensor(eType) and isTensor(fType)
         assert eType.dim >= fType.dim
         assert fType.dim == 1
@@ -217,7 +217,7 @@ class InferType(ASTVisitor):
         return node.type
 
     # e <*> f - Point-wise multiplication
-    def visitBopMulCir(self, node: AST.Bop1, eType: Type, fType: Type):
+    def visitBopMulCir(self, node: ast.Bop1, eType: Type, fType: Type):
         assert isTensor(eType) and isTensor(fType)
         assert eType.dim >= 1
         assert eType.shape == fType.shape
@@ -226,7 +226,7 @@ class InferType(ASTVisitor):
         return node.type
 
     # e # f
-    def visitBopConv(self, node: AST.Bop1, eType: Type, fType: Type):
+    def visitBopConv(self, node: ast.Bop1, eType: Type, fType: Type):
         assert isTensor(eType) and isTensor(fType)
         assert eType.dim == 4 and fType.dim == 4
 
@@ -234,7 +234,7 @@ class InferType(ASTVisitor):
         # Input is padded with 0s to ensure that the output dimension of the
         # matrix is same as the input
         [n, h, w, cin] = eType.shape
-        [hf, wf, cin_, cout] = fType.shape
+        [_, _, cin_, cout] = fType.shape
         assert cin == cin_
 
         shape = [n, h, w, cout]
@@ -242,7 +242,7 @@ class InferType(ASTVisitor):
         return node.type
 
     # e + f OR e - f
-    def visitBop2(self, node: AST.Bop2):
+    def visitBop2(self, node: ast.Bop2):
         node.expr1.gamma = dict(node.gamma)
         eType = self.visit(node.expr1)
 
@@ -264,38 +264,38 @@ class InferType(ASTVisitor):
 
         return node.type
 
-    def visitFunc(self, node: AST.Func):
+    def visitFunc(self, node: ast.Func):
         node.expr.gamma = dict(node.gamma)
         eType = self.visit(node.expr)
 
         # relu(e)
-        if node.op == SeeDotParser.RELU:
+        if node.op == seedotParser.seedotParser.RELU:
             assert isTensor(eType) and eType.dim >= 1
             node.type = eType
 
         # exp(e)
-        elif node.op == SeeDotParser.EXP:
+        elif node.op == seedotParser.seedotParser.EXP:
             # Currently supports exp() on a tensor with single element
             assert isTensor(eType) and eType.isShapeOne()
             node.type = eType
 
         # argmax(e)
-        elif node.op == SeeDotParser.ARGMAX:
+        elif node.op == seedotParser.seedotParser.ARGMAX:
             assert isTensor(eType) and eType.dim >= 1
             node.type = Int()
 
         # sgn(e)
-        elif node.op == SeeDotParser.SGN:
+        elif node.op == seedotParser.seedotParser.SGN:
             assert isTensor(eType) and eType.isShapeOne()
             node.type = Int()
 
         # tanh(e)
-        elif node.op == SeeDotParser.TANH:
+        elif node.op == seedotParser.seedotParser.TANH:
             assert isTensor(eType) and eType.dim == 2
             node.type = eType
 
         # sigmoid(e)
-        elif node.op == SeeDotParser.SIGMOID:
+        elif node.op == seedotParser.seedotParser.SIGMOID:
             assert isTensor(eType) and eType.dim == 2
             node.type = eType
 
@@ -305,7 +305,7 @@ class InferType(ASTVisitor):
         return node.type
 
     # $(x=[1:5]) e
-    def visitSum(self, node: AST.Sum):
+    def visitSum(self, node: ast.Sum):
         assert node.name not in node.gamma, "%s defined more than once" % (
             node.name)
 
@@ -319,7 +319,7 @@ class InferType(ASTVisitor):
         return node.type
 
     # loop(x=[1:5]) e
-    def visitLoop(self, node: AST.Loop):
+    def visitLoop(self, node: ast.Loop):
         assert node.name not in node.gamma, "%s defined more than once" % (
             node.name)
 
@@ -327,7 +327,7 @@ class InferType(ASTVisitor):
         self.visit(node.mutableVar)
 
         self.mutableVars.append(node.mutableVar.name)
-        assert isinstance(node.mutableVar, AST.ID)
+        assert isinstance(node.mutableVar, ast.ID)
 
         node.expr.gamma = dict(node.gamma)
         node.expr.gamma[node.name] = Int()
@@ -339,7 +339,7 @@ class InferType(ASTVisitor):
         return node.type
 
     # e >= 0?  f : g
-    def visitCond(self, node: AST.Cond):
+    def visitCond(self, node: ast.Cond):
         node.expr.gamma = dict(node.gamma)
         eType = self.visit(node.expr)
 
@@ -357,7 +357,7 @@ class InferType(ASTVisitor):
         return node.type
 
     # Let x = e in f
-    def visitLet(self, node: AST.Let):
+    def visitLet(self, node: ast.Let):
         node.decl.gamma = dict(node.gamma)
         eType = self.visit(node.decl)
 

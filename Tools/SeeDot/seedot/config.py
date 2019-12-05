@@ -8,11 +8,7 @@ wordLength = 16
 maxScaleRange = 0, -wordLength
 
 # tanh approximation limit
-tanh_limit = 1.0
-
-# sigmoid approximation values
-sigmoid_add = 2.0
-sigmoid_div = 4.0
+tanhLimit = 1.0
 
 # MSBuild location
 # Edit the path if not present at the following location

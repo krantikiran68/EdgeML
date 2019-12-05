@@ -1,29 +1,29 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT license.
 
-from antlr4 import *
+import antlr4 as antlr
 import argparse
 import os
 import pickle
 
-from seedot.compiler.antlr.seedotLexer import seedotLexer as SeeDotLexer
-from seedot.compiler.antlr.seedotParser import seedotParser as SeeDotParser
+import seedot.compiler.antlr.seedotLexer as seedotLexer
+import seedot.compiler.antlr.seedotParser as seedotParser
 
 import seedot.compiler.ast.ast as AST
-import seedot.compiler.ast.astBuilder as ASTBuilder
-from seedot.compiler.ast.printAST import PrintAST
+import seedot.compiler.ast.astBuilder as astBuilder
+import seedot.compiler.ast.printAST as printAST
 
-from seedot.compiler.codegen.arduino import Arduino as ArduinoCodegen
-from seedot.compiler.codegen.x86 import X86 as X86Codegen
+import seedot.compiler.codegen.arduino as arduino
+import seedot.compiler.codegen.x86 as x86
 
-from seedot.compiler.ir.irBuilder import IRBuilder
-import seedot.compiler.ir.irUtil as IRUtil
+import seedot.compiler.ir.irBuilder as irBuilder
+import seedot.compiler.ir.irUtil as irUtil
 
-from seedot.compiler.TF.ProcessTFGraph import main as TFMain
+import seedot.compiler.TF.ProcessTFGraph as TFMain
 
-from seedot.compiler.type import InferType
-from seedot.util import *
-from seedot.writer import Writer
+import seedot.compiler.type as type
+import seedot.util as util
+import seedot.writer as writer
 
 
 class Compiler:
@@ -33,24 +33,24 @@ class Compiler:
             print(inputFile)
             raise Exception("Input file doesn't exist")
 
-        setAlgo(algo)
-        setVersion(version)
-        setTarget(target)
+        util.setAlgo(algo)
+        util.setVersion(version)
+        util.setTarget(target)
         self.input = inputFile
         self.outputDir = outputDir
-        setProfileLogFile(profileLogFile)
+        util.setProfileLogFile(profileLogFile)
         self.outputLogFile = outputLogFile
-        setMaxScale(maxScale)
+        util.setMaxScale(maxScale)
 
     def genASTFromFile(self, inputFile):
         # Parse and generate CST for the input
-        lexer = SeeDotLexer(FileStream(inputFile))
-        tokens = CommonTokenStream(lexer)
-        parser = SeeDotParser(tokens)
+        lexer = seedotLexer.seedotLexer(antlr.FileStream(inputFile))
+        tokens = antlr.CommonTokenStream(lexer)
+        parser = seedotParser.seedotParser(tokens)
         tree = parser.expr()
 
         # Generate AST
-        ast = ASTBuilder.ASTBuilder().visit(tree)
+        ast = astBuilder.ASTBuilder().visit(tree)
         return ast
 
     def genAST(self, inputFile):
@@ -59,7 +59,7 @@ class Compiler:
         if ext == ".sd":
             return self.genASTFromFile(inputFile)
         elif ext == ".pkl":
-            ast = TFMain()
+            ast = TFMain.main()
             # with open(inputFile, 'rb') as file:
             #	ast = pickle.load(file)
             return ast
@@ -68,19 +68,19 @@ class Compiler:
         ast = self.genAST(self.input)
 
         # Pretty printing AST
-        # PrintAST().visit(ast)
+        # printAST.PrintAST().visit(ast)
 
         # Perform type inference
-        InferType().visit(ast)
+        type.InferType().visit(ast)
 
-        IRUtil.init()
+        irUtil.init()
 
         res, state = self.compile(ast)
 
-        if forArduino():
-            codegen = ArduinoCodegen(self.outputDir, *state)
-        elif forX86():
-            codegen = X86Codegen(self.outputDir, *state)
+        if util.forArduino():
+            codegen = arduino.Arduino(self.outputDir, *state)
+        elif util.forX86():
+            codegen = x86.X86(self.outputDir, *state)
         else:
             assert False
 
@@ -91,9 +91,9 @@ class Compiler:
 
     def genCodeWithFuncCalls(self, ast):
 
-        outputLog = Writer(self.outputLogFile)
+        outputLog = writer.Writer(self.outputLogFile)
 
-        compiler = IRBuilder(outputLog)
+        compiler = irBuilder.IRBuilder(outputLog)
         res = compiler.visit(ast)
 
         outputLog.close()

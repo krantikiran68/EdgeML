@@ -4,8 +4,8 @@
 
 class Writer:
 
-    def __init__(self, fileName):
-        self.file = open(fileName, 'w')
+    def __init__(self, fileName,  mode = 'w'):
+        self.file = open(fileName, mode)
         self.indentLevel = 0
 
     def printf(self, str, *args, indent=False):

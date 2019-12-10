@@ -109,8 +109,8 @@ class Predictor:
             return None
         else:
             print("success")
-            acc = self.readStatsFile()
-            return acc
+            execMap = self.readStatsFile()
+            return execMap
 
     def executeForLinux(self):
         print("Execution...", end='')
@@ -127,8 +127,8 @@ class Predictor:
             return None
         else:
             print("success")
-            acc = self.readStatsFile()
-            return acc
+            execMap = self.readStatsFile()
+            return execMap
 
     def execute(self):
         if Util.windows():
@@ -146,13 +146,20 @@ class Predictor:
 
         stats = [x.strip() for x in content]
 
-        return float(stats[0])
+        executionOutput = {}
+        
+        for i in range(len(stats) // 4):
+            key = stats[4*i]
+            value = (float(stats[4*i + 1]), int(stats[4*i + 2]), int(stats[4*i + 3]))
+            executionOutput[key] = value
+
+        return executionOutput
 
     def run(self):
         res = self.build()
         if res == False:
             return None
 
-        acc = self.execute()
+        execMap = self.execute()
 
-        return acc
+        return execMap

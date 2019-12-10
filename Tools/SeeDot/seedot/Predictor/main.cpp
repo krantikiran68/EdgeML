@@ -142,6 +142,10 @@ int main(int argc, char *argv[])
 	ofstream stats(statsFile);
 
 	int correct = 0, total = 0;
+	int disagreements = 0, reduced_disagreements = 0;
+
+	vector<int> correctV(switches, 0), totalV(switches, 0);
+	vector<int> disagreementsV(switches, 0), reduced_disagreementsV(switches, 0);
 
 	bool alloc = false;
 	int features_size = -1;
@@ -175,18 +179,17 @@ int main(int argc, char *argv[])
 		}
 
 		// Populate the array using the feature vector
-		if (debugMode)
+		if (debugMode || version == Fixed)
 		{
 			populateFixedVector(features_int, features, scaleForX);
 			populateFloatVector(features_float, features);
 		}
-		else if (version == Fixed)
-			populateFixedVector(features_int, features, scaleForX);
 		else
 			populateFloatVector(features_float, features);
 
 		// Invoke the predictor function
-		int res;
+		int res, float_res;
+		vector <int> resV(switches, -1);
 
 		if (debugMode)
 		{
@@ -197,22 +200,52 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-			if (version == Fixed)
+			if (version == Fixed) {
 				res = seedotFixed(features_int);
+				float_res = seedotFloat(features_float);
+
+				if (res != float_res) {
+					if (float_res == label) {
+						reduced_disagreements++;
+					}
+					disagreements++;
+				}
+
+				for (int i = 0; i < switches; i++) {
+					resV[i] = seedotFixedSwitch(features_int, i);
+					if (resV[i] != float_res) {
+						if (float_res == label) {
+							reduced_disagreementsV[i]++;
+						}
+						disagreementsV[i]++;
+					}
+				}
+			}
 			else if (version == Float)
 				res = seedotFloat(features_float);
 		}
 
-		if ((res) == label)
+		if (res == label)
 		{
 			correct++;
 		}
 		else
 		{
-			output << "Incorrect prediction for input " << total + 1 << ". Predicted " << res + 1 << " Expected " << label << endl;
+			output << "Incorrect prediction for input " << total + 1 << ". Predicted " << res << " Expected " << label << endl;
 		}
-
 		total++;
+
+		for (int i = 0; i < switches; i++) {
+			if (resV[i] == label)
+			{
+				correctV[i]++;
+			}
+			else
+			{
+				output << "Incorrect prediction for input " << totalV[i] + 1 << ". Predicted " << resV[i] << " Expected " << label << endl;
+			}
+			totalV[i]++;
+		}
 	}
 
 	// Deallocate memory
@@ -241,7 +274,22 @@ int main(int argc, char *argv[])
 
 	stats.precision(3);
 	stats << fixed;
+	stats << "default" << "\n";
 	stats << accuracy << "\n";
+	stats << disagreements << "\n";
+	stats << reduced_disagreements << "\n";
+
+	if (version == Fixed) 
+	{
+		for (int i = 0; i < switches; i++) 
+		{
+			stats << i+1 << "\n";
+			stats << (float)correctV[i] / totalV[i] * 100.0f << "\n";
+			stats << disagreementsV[i] << "\n";
+			stats << reduced_disagreementsV[i] << "\n";
+		}
+	}
+
 	stats.close();
 
 	if (datasetType == Training)

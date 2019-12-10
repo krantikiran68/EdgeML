@@ -39,7 +39,7 @@ class Main:
 
     # Generate the fixed-point code using the input generated from the
     # Converter project
-    def compile(self, version, target, sf):
+    def compile(self, version, target, sf, generateAllFiles=True, id=None, printSwitch=-1):
         print("Generating code...", end='')
 
         # Set input and output files
@@ -62,7 +62,7 @@ class Main:
 
         try:
             obj = Compiler(self.algo, version, target, inputFile, outputDir,
-                           profileLogFile, sf, outputLogFile)
+                           profileLogFile, sf, outputLogFile, generateAllFiles, id, printSwitch)
             obj.run()
         except:
             print("failed!\n")
@@ -117,54 +117,77 @@ class Main:
 
         obj = Predictor(self.algo, version, datasetType,
                         outputDir, self.scaleForX)
-        acc = obj.run()
+        execMap = obj.run()
 
         os.chdir(curDir)
 
-        return acc
+        return execMap
 
     # Compile and run the generated code once for a given scaling factor
-    def runOnce(self, version, datasetType, target, sf):
-        res = self.compile(version, target, sf)
+    def partialCompile(self, version, target, sf, generateAllFiles, id, printSwitch):
+        res = self.compile(version, target, sf, generateAllFiles, id, printSwitch)
         if res == False:
-            return False, False
+            return False
+        else:
+            return True
 
-        acc = self.predict(version, datasetType)
-        if acc == None:
+    def runAll(self, version, datasetType, codeIdToScaleFactorMap):
+        execMap = self.predict(version, datasetType)
+        if execMap == None:
             return False, True
 
-        self.accuracy[sf] = acc
-        print("Accuracy is %.3f%%\n" % (acc))
+        for codeId, sf in codeIdToScaleFactorMap.items():
+            self.accuracy[sf] = execMap[str(codeId)]
+            print("Accuracy at scale factor %d is %.3f%%, Disagreement Count is %d, Reduced Disagreement Count is %d\n" % (sf, execMap[str(codeId)][0], execMap[str(codeId)][1], execMap[str(codeId)][2]))
 
         return True, False
 
     # Iterate over multiple scaling factors and store their accuracies
     def performSearch(self):
         start, end = config.maxScaleRange
-        searching = False
 
-        for i in range(start, end, -1):
+        highestValidScale = start
+        firstCompileSuccess = False
+        while firstCompileSuccess == False:
+            if highestValidScale == end:
+                assert False, "Compilation not possible for any Scale Factor. Abort"
+            firstCompileSuccess = self.partialCompile(config.Version.fixed, config.Target.x86, highestValidScale, True, None, 0)
+            if firstCompileSuccess:
+                break
+            highestValidScale -= 1
+            
+        lowestValidScale = end + 1
+        firstCompileSuccess = False
+        while firstCompileSuccess == False:
+            firstCompileSuccess = self.partialCompile(config.Version.fixed, config.Target.x86, lowestValidScale, True, None, 0)
+            if firstCompileSuccess:
+                break
+            lowestValidScale += 1
+            
+        #Ignored
+        self.partialCompile(config.Version.fixed, config.Target.x86, lowestValidScale, True, None, -1)
+
+        # The iterator logic is as follows:
+        # Search begins when the first valid scaling factor is found (runOnce returns True)
+        # Search ends when the execution fails on a particular scaling factor (runOnce returns False)
+        # This is the window where valid scaling factors exist and we
+        # select the one with the best accuracy
+        numCodes = highestValidScale - lowestValidScale + 1
+        codeId = 0
+        codeIdToScaleFactorMap = {}
+        for i in range(highestValidScale, lowestValidScale - 1, -1):
             print("Testing with max scale factor of " + str(i))
 
-            res, exit = self.runOnce(
-                config.Version.fixed, config.DatasetType.training, config.Target.x86, i)
-
-            if exit == True:
+            codeId += 1
+            compiled = self.partialCompile(
+                config.Version.fixed, config.Target.x86, i, False, codeId, -1 if codeId != numCodes else codeId)
+            if compiled == False:
                 return False
+            codeIdToScaleFactorMap[codeId] = i
 
-            # The iterator logic is as follows:
-            # Search begins when the first valid scaling factor is found (runOnce returns True)
-            # Search ends when the execution fails on a particular scaling factor (runOnce returns False)
-            # This is the window where valid scaling factors exist and we
-            # select the one with the best accuracy
-            if res == True:
-                searching = True
-            elif searching == True:
-                # break
-                pass
+        res, exit = self.runAll(config.Version.fixed, config.DatasetType.training, codeIdToScaleFactorMap)
 
-        # If search didn't begin at all, something went wrong
-        if searching == False:
+        if exit == True or res == False:
             return False
 
         print("\nSearch completed\n")
@@ -179,7 +202,7 @@ class Main:
     # best scaling factor
     def getBestScale(self):
         sorted_accuracy = dict(
-            sorted(self.accuracy.items(), key=operator.itemgetter(1), reverse=True)[:5])
+            sorted([(i, self.accuracy[i][1]) for i in self.accuracy], key=operator.itemgetter(1), reverse=True)[:5])
         print(sorted_accuracy)
         return next(iter(sorted_accuracy))
 
@@ -219,8 +242,12 @@ class Main:
             return False
 
         # Compile and run code using the best scaling factor
-        res = self.runOnce(
-            config.Version.fixed, config.DatasetType.testing, config.Target.x86, self.sf)
+        compiled = self.partialCompile(
+            config.Version.fixed, config.Target.x86, self.sf, True, None, 0)
+        if compiled == False:
+            return False
+            
+        res, exit = self.runAll(config.Version.fixed, config.DatasetType.testing, {"default" : self.sf})
         if res == False:
             return False
 
@@ -241,11 +268,11 @@ class Main:
         if res == False:
             return False
 
-        acc = self.predict(config.Version.floatt, config.DatasetType.training)
-        if acc == None:
+        execMap = self.predict(config.Version.floatt, config.DatasetType.training)
+        if execMap == None:
             return False
 
-        print("Accuracy is %.3f%%\n" % (acc))
+        print("Accuracy is %.3f%%\n" % (execMap["default"][0]))
 
     # Generate code for Arduino
     def compileFixedForTarget(self):
@@ -340,11 +367,11 @@ class Main:
         if res == False:
             return False
 
-        acc = self.predict(config.Version.floatt, config.DatasetType.testing)
-        if acc == None:
+        execMap = self.predict(config.Version.floatt, config.DatasetType.testing)
+        if execMap == None:
             return False
         else:
-            self.testingAccuracy = acc
+            self.testingAccuracy = execMap["default"][0]
 
         print("Accuracy is %.3f%%\n" % (acc))
 

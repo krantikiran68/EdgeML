@@ -13,14 +13,28 @@ import seedot.compiler.type as Type
 from seedot.util import *
 from seedot.writer import Writer
 
+import time
 
 class X86(CodegenBase):
 
-    def __init__(self, outputDir, decls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants):
+    def __init__(self, outputDir, generateAllFiles, printSwitch, idStr, decls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants):
         self.outputDir = outputDir
         cppFile = os.path.join(
             self.outputDir, "seedot_" + getVersion() + ".cpp")
-        self.out = Writer(cppFile)
+        if generateAllFiles:
+            self.out = Writer(cppFile)
+        else:
+            print("Opening file to output cpp code: ID" + idStr)
+            for i in range(3):
+                print("Try %d" % (i+1))
+                try:
+                    self.out = Writer(cppFile, "a")
+                except:
+                    print("OS prevented file from opening. Sleeping for %d seconds" % (i+1))
+                    time.sleep(i+1)
+                else:
+                    print("Opened")
+                    break
 
         self.decls = decls
         self.scales = scales
@@ -31,14 +45,22 @@ class X86(CodegenBase):
         self.internalVars = internalVars
         self.floatConstants = floatConstants
 
+        self.generateAllFiles = generateAllFiles
+        self.idStr = idStr
+        self.printSwitch = printSwitch
+
     def printPrefix(self):
-        self.printCincludes()
 
-        self.printExpTables()
+        if self.generateAllFiles:
+            self.printCincludes()
 
-        self.printVarDecls()
+            self.printExpTables()
+
+            self.printVarDecls()
 
         self.printCHeader()
+
+        #self.printModelParamsWithBitwidth()
 
         self.printConstDecls()
 
@@ -86,19 +108,22 @@ class X86(CodegenBase):
         else:
             func = "Fixed"
             type = "MYINT"
-        self.out.printf('int seedot%s(%s **X) {\n' % (func, type), indent=True)
+        if forFloat():
+            self.out.printf('int seedot%s(%s **X) {\n' % (func, type), indent=True)
+        else: #TODO: X_temp
+            self.out.printf('int seedot%s%s(%s **X) {\n' % (func, self.idStr if not self.generateAllFiles else "", type), indent=True)
         self.out.increaseIndent()
 
     def printVarDecls(self):
+        if self.generateAllFiles:
+            varsFilePath = os.path.join(
+                self.outputDir, "vars_" + getVersion() + ".h")
+            varsFile = Writer(varsFilePath)
 
-        varsFilePath = os.path.join(
-            self.outputDir, "vars_" + getVersion() + ".h")
-        varsFile = Writer(varsFilePath)
-
-        varsFile.printf("#pragma once\n\n")
-        varsFile.printf("#include \"datatypes.h\"\n\n")
-        varsFile.printf("namespace vars_%s {\n" % (getVersion()))
-        varsFile.increaseIndent()
+            varsFile.printf("#pragma once\n\n")
+            varsFile.printf("#include \"datatypes.h\"\n\n")
+            varsFile.printf("namespace vars_%s {\n" % (getVersion()))
+            varsFile.increaseIndent()
 
         for decl in self.decls:
             if decl in self.globalVars:
@@ -118,18 +143,55 @@ class X86(CodegenBase):
 
             self.out.printf('%s vars_%s::%s%s;\n', typ_str,
                             getVersion(), idf_str, shape_str, indent=True)
-            varsFile.printf('extern %s %s%s;\n', typ_str,
+            if self.generateAllFiles:
+                varsFile.printf('extern %s %s%s;\n', typ_str,
                             idf_str, shape_str, indent=True)
 
         self.out.printf('\n')
-
-        varsFile.decreaseIndent()
-        varsFile.printf("}\n")
-        varsFile.close()
+        if self.generateAllFiles:
+            varsFile.decreaseIndent()
+            varsFile.printf("}\n")
+            varsFile.close()
 
         self.generateDebugProgram()
 
+    def printModelParamsWithBitwidth(self):
+        if forFixed():
+            for var in self.globalVars:
+                if var + "idx" in self.globalVars and var + "val" in self.globalVars:
+                    continue
+                bw = self.varsForBitwidth[var]
+                typ_str = "int" + str(bw) + "_t"
+                size = self.decls[var].shape
+                sizestr = ''.join(["[" + str(i) + "]" for i in size])
+
+                Xindexstr = ''
+                Xintstar =  ''.join(["*" for i in size])
+
+                if var != 'X':
+                    self.out.printf(typ_str + " " + var + sizestr +";\n" , indent = True)
+                else:
+                    self.out.printf(typ_str + Xintstar + " " + var +";\n" , indent = True)
+
+                for i in range(len(size)):
+                    Xindexstr += ("[i" + str(i-1) + "]" if i > 0 else "")
+                    if var == 'X':
+                        Xintstar = Xintstar[:-1]
+                        self.out.printf("X%s = new %s%s[%d];\n" %(Xindexstr, typ_str, Xintstar, size[i]), indent=True)
+                    self.out.printf("for (int i%d = 0; i%d < %d; i%d ++) {\n" %(i, i, size[i], i) , indent = True)
+                    self.out.increaseIndent()
+
+                indexstr = ''.join("[i" + str(i) + "]" for i in range(len(size)))
+                divide = int(round(np.ldexp(1, Common.wordLength - self.varsForBitwidth[var] + (self.demotedVarsOffsets.get(var,0) if self.varsForBitwidth[var] != Common.wordLength else 0) ))) if var[-3:] != "idx" else 1
+                self.out.printf(var + indexstr + " = " + var + "_temp" + indexstr + " / " + str(divide) + ";\n", indent = True)
+
+                for i in range(len(size)):
+                    self.out.decreaseIndent()
+                    self.out.printf("}\n" , indent = True)
+
     def generateDebugProgram(self):
+        if not self.generateAllFiles:
+            return
         debugFilePath = os.path.join(self.outputDir, "debug.cpp")
         debugFile = Writer(debugFilePath)
 
@@ -201,4 +263,27 @@ class X86(CodegenBase):
         self.out.decreaseIndent()
         self.out.printf('}\n', indent=True)
 
+        def isInt(a):
+            try:
+                int(a)
+                return True
+            except:
+                return False
+
+        if forFixed():
+            if (int(self.printSwitch) if isInt(self.printSwitch) else -2) > -1:
+                self.out.printf("const int switches = %d;\n" % (int(self.printSwitch)), indent = True)
+                self.out.printf('int seedotFixedSwitch(MYINT **X_temp, int i) {\n', indent=True)
+                self.out.increaseIndent()
+                self.out.printf('switch(i) {\n', indent = True)
+                self.out.increaseIndent()
+                for i in range(int(self.printSwitch)):
+                    self.out.printf('case %d: return seedotFixed%d(X_temp);\n' % (i,i+1), indent = True)
+                self.out.printf('default: return -1;\n', indent = True)
+                self.out.decreaseIndent()
+                self.out.printf('}\n', indent=True)
+                self.out.decreaseIndent()
+                self.out.printf('}\n', indent=True)
+
+        print("Closing File after outputting cpp code: ID " + self.idStr)
         self.out.close()

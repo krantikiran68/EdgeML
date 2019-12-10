@@ -16,7 +16,7 @@
                 "-v",
                 "fixed",
                 "-d",
-                "cr-binary"
+                "curet-multiclass"
             ]
         }
     ]

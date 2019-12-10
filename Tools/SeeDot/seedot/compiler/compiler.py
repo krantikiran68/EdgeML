@@ -28,7 +28,7 @@ import seedot.writer as writer
 
 class Compiler:
 
-    def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile):
+    def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile, generateAllFiles=True, id=None, printSwitch=-1):
         if os.path.isfile(inputFile) == False:
             print(inputFile)
             raise Exception("Input file doesn't exist")
@@ -41,6 +41,10 @@ class Compiler:
         util.setProfileLogFile(profileLogFile)
         self.outputLogFile = outputLogFile
         util.setMaxScale(maxScale)
+
+        self.generateAllFiles = generateAllFiles
+        self.id = str(id) if id is not None else ""
+        self.printSwitch = printSwitch
 
     def genASTFromFile(self, inputFile):
         # Parse and generate CST for the input
@@ -80,7 +84,7 @@ class Compiler:
         if util.forArduino():
             codegen = arduino.Arduino(self.outputDir, *state)
         elif util.forX86():
-            codegen = x86.X86(self.outputDir, *state)
+            codegen = x86.X86(self.outputDir, self.generateAllFiles, self.printSwitch, self.id, *state)
         else:
             assert False
 

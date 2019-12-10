@@ -139,3 +139,9 @@ int seedotFixed(MYINT **X)
 
 	return tmp37;
 }
+const int switches = 0;
+int seedotFixedSwitch(MYINT **X_temp, int i) {
+	switch(i) {
+		default: return -1;
+	}
+}

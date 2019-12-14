@@ -5,6 +5,7 @@
 #include <fstream>
 #include <limits>
 #include <cmath>
+#include <unordered_map>
 
 #include "datatypes.h"
 #include "profile.h"
@@ -53,6 +54,72 @@ void dumpRange(string outputFile)
 	fout << m_exp << ", " << M_exp << endl;
 
 	return;
+}
+
+unordered_map<string, float> min_all;
+unordered_map<string, float> max_all;
+
+unordered_map<string, float> min_temp;
+unordered_map<string, float> max_temp;
+
+bool range_exceeded = false;
+
+void dumpProfile() {
+	if (min_all.size() == 0)
+		return;
+	ofstream outfile("dump.profile");
+	auto min_i = min_all.begin();
+	while (min_i != min_all.end()) {
+		string key = min_i->first;
+		outfile << key << "," << min_all[key] << "," << max_all[key] << endl;
+		min_i++;
+	}
+	outfile.close();
+}
+
+void flushProfile() {
+	if (range_exceeded == false) {
+		for(auto it = min_temp.begin(); it != min_temp.end(); it ++) {
+			string name = it->first;
+			if(min_all.find(name) == min_all.end()) {
+				min_all[name] = min_temp[name];
+				max_all[name] = max_temp[name];
+			} else {
+				min_all[name] = min_all[name] < min_temp[name] ? min_all[name] : min_temp[name];
+				max_all[name] = max_all[name] > max_temp[name] ? max_all[name] : max_temp[name];
+			}
+			min_temp[name] = FLT_MAX;
+			max_temp[name] = -FLT_MAX;
+		}
+	}
+	range_exceeded = false;
+}
+
+void checkRange2(float* A, int I, int J) {
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+			if (fabs(A[i * J + j]) >= 32) {
+				range_exceeded = true;
+			}
+		}
+	}
+}
+
+void Profile4(float* A, int I, int J, int K, int L, string name) {
+	return;
+}
+
+void Profile2(float* A, int I, int J, string name) {
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+			min_temp[name] = min_temp[name] < A[i * J + j] ? min_temp[name] : A[i * J + j];
+			max_temp[name] = max_temp[name] > A[i * J + j] ? max_temp[name] : A[i * J + j];
+		}
+	}
 }
 
 void diff(float *A, MYINT *B, MYINT scale, MYINT I, MYINT J)

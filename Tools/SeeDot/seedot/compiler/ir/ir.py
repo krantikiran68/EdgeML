@@ -26,6 +26,14 @@ class IntExpr(Expr):
 class BoolExpr(Expr):
     pass
 
+class String(Expr):
+	def __init__(self, s):
+		self.s = s
+	def subst(self, from_idf:str, to_e:Expr):
+		if self.s.idf == from_idf:
+			return String(Var(to_e.idf))
+		else:
+			return String(self.s)
 
 class Int(IntExpr):
 

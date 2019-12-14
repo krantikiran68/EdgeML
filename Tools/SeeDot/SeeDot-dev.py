@@ -48,7 +48,8 @@ class MainDriver:
                             default=config.Version.default, metavar='', help="Floating-point or fixed-point")
         parser.add_argument("-d", "--dataset", choices=Dataset.all,
                             default=Dataset.default, metavar='', help="Dataset to use")
-
+        parser.add_argument("-m", "--maximisingMetric", choices=config.MaximisingMetric.all, metavar='', 
+                            help="What metric to maximise during exploration",default=config.MaximisingMetric.default)
         parser.add_argument("-dt", "--datasetType", choices=config.DatasetType.all,
                             default=config.DatasetType.default, metavar='', help="Training dataset or testing dataset")
         parser.add_argument("-t", "--target", choices=config.Target.all,
@@ -136,8 +137,8 @@ class MainDriver:
 
         results = self.loadResultsFile()
 
-        for iter in product(self.args.algo, self.args.version, self.args.dataset, self.args.target):
-            algo, version, dataset, target = iter
+        for iter in product(self.args.algo, self.args.version, self.args.dataset, self.args.target, self.args.maximisingMetric):
+            algo, version, dataset, target, maximisingMetric = iter
 
             print("\n========================================")
             print("Executing on %s %s %s %s" %
@@ -218,7 +219,7 @@ class MainDriver:
                 sf = self.args.max_scale_factor
 
             obj = main.Main(algo, version, target, trainingInput,
-                            testingInput, modelDir, sf)
+                            testingInput, modelDir, sf, maximisingMetric)
             obj.run()
 
             acc = obj.testingAccuracy

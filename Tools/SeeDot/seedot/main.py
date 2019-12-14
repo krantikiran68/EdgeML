@@ -21,11 +21,12 @@ import seedot.util as Util
 
 class Main:
 
-    def __init__(self, algo, version, target, trainingFile, testingFile, modelDir, sf):
+    def __init__(self, algo, version, target, trainingFile, testingFile, modelDir, sf, maximisingMetric):
         self.algo, self.version, self.target = algo, version, target
         self.trainingFile, self.testingFile, self.modelDir = trainingFile, testingFile, modelDir
         self.sf = sf
         self.accuracy = {}
+        self.maximisingMetric = maximisingMetric
 
     def setup(self):
         curr_dir = os.path.dirname(os.path.realpath(__file__))
@@ -192,7 +193,7 @@ class Main:
 
         print("\nSearch completed\n")
         print("----------------------------------------------")
-        print("Best performing scaling factors with accuracy:")
+        print("Best performing scaling factors with accuracy, disagreement, reduced disagreement:")
 
         self.sf = self.getBestScale()
 
@@ -201,10 +202,18 @@ class Main:
     # Reverse sort the accuracies, print the top 5 accuracies and return the
     # best scaling factor
     def getBestScale(self):
-        sorted_accuracy = dict(
-            sorted([(i, self.accuracy[i][1]) for i in self.accuracy], key=operator.itemgetter(1), reverse=True)[:5])
+        def getMaximisingMetricValue(a):
+            if self.maximisingMetric == config.MaximisingMetric.accuracy:
+                return a[1][0]
+            elif self.maximisingMetric == config.MaximisingMetric.disagreements:
+                return -a[1][1]
+            elif self.maximisingMetric == config.MaximisingMetric.reducedDisagreements:
+                return -a[1][2]
+        x = [(i, self.accuracy[i]) for i in self.accuracy]
+        x.sort(key=getMaximisingMetricValue, reverse=True)
+        sorted_accuracy = x[:5]
         print(sorted_accuracy)
-        return next(iter(sorted_accuracy))
+        return sorted_accuracy[0][0]
 
     # Find the scaling factor which works best on the training dataset and
     # predict on the testing dataset

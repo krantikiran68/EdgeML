@@ -54,11 +54,11 @@ class X86(CodegenBase):
         if self.generateAllFiles:
             self.printCincludes()
 
-            self.printExpTables()
-
             self.printVarDecls()
 
         self.printCHeader()
+
+        self.printExpTables()
 
         #self.printModelParamsWithBitwidth()
 

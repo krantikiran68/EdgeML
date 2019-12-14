@@ -22,6 +22,8 @@ class IRBuilder(ASTVisitor):
     def __init__(self, outputLog):
 
         self.log = outputLog
+        self.ddsEnabled = True
+        self.functionReducedProfiling = True
 
         # MAX_SCALE is used at each operation to compute scale parameters
         # It is not used for floating-poing code generation
@@ -194,18 +196,18 @@ class IRBuilder(ASTVisitor):
         (prog_in, expr_in) = self.visit(node.expr)
 
         '''
-		reshape(A, (T1, T2), (N, H, W))
+        reshape(A, (T1, T2), (N, H, W))
 
-		cmd1:  t1 = t2 = 0;
-		loop: for n in 0:N:
-		         for h in 0:H:
-		           for w in 0:W:
-		cmd3:        B[t1][t2] = A[n][h][w]
-		cmd5:        t2++;
-			         if (t2 == T2)
-		               t2 = 0;
-		cmd5_:         t1++;
-		'''
+        cmd1:  t1 = t2 = 0;
+        loop: for n in 0:N:
+                 for h in 0:H:
+                   for w in 0:W:
+        cmd3:        B[t1][t2] = A[n][h][w]
+        cmd5:        t2++;
+                     if (t2 == T2)
+                       t2 = 0;
+        cmd5_:         t1++;
+        '''
 
         type_in = node.expr.type
         type_out = node.type
@@ -512,7 +514,15 @@ class IRBuilder(ASTVisitor):
             shr_b: "shr2"
         })
 
-        prog_mul = IR.Prog([comment, funcCall])
+        profile = IR.FuncCall("Profile2", {
+            expr_out: "Var",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            IR.String(expr_out): "VarName"
+        })
+
+
+        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -597,7 +607,14 @@ class IRBuilder(ASTVisitor):
             IR.Int(height_noshr): "H2"
         })
 
-        prog_mul = IR.Prog([comment, funcCall])
+        profile = IR.FuncCall("Profile2", {
+            expr_out: "Var",
+            IR.Int(I): "I",
+            IR.Int(K): "J",
+            IR.String(expr_out): "VarName"
+        })
+
+        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -624,7 +641,7 @@ class IRBuilder(ASTVisitor):
 
         (prog_in_B, expr_in_B) = self.visit(node.expr2)
 
-        [_, Q] = node.expr1.type.shape
+        [P, Q] = node.expr1.type.shape
         [Q, R] = node.expr2.type.shape
 
         assert R == 1, "Sparse matrix multiplication currently only support multiplication with a vector"
@@ -676,7 +693,14 @@ class IRBuilder(ASTVisitor):
             height_shr: "shrC"
         })
 
-        prog_mul = IR.Prog([comment, cmd1, funcCall])
+        profile = IR.FuncCall("Profile2", {
+                                expr_out: "Var",
+                                IR.Int(P): "I",
+                                IR.Int(R): "J",
+                                IR.String(expr_out): "VarName"
+                                })
+
+        prog_mul = IR.Prog([comment, cmd1, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, cmd1, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -744,7 +768,14 @@ class IRBuilder(ASTVisitor):
             shr_B: "shrB"
         })
 
-        prog_mul = IR.Prog([comment, funcCall])
+        profile = IR.FuncCall("Profile2", {
+            expr_out: "Var",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            IR.String(expr_out): "VarName"
+        })
+
+        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -821,6 +852,8 @@ class IRBuilder(ASTVisitor):
             IR.Int(height_noshr): "H2"
         })
 
+        assert False, "Conv ke liye no DDP and variable bitwidth support for temp variable not added"
+
         prog_conv = IR.Prog([comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_conv)
@@ -889,6 +922,14 @@ class IRBuilder(ASTVisitor):
                 shr_out: "shrC",
                 IR.Bool(add): "add"
             })
+            profile = IR.FuncCall("Profile4", {
+                expr_out: "Var",
+                IR.Int(N): "I",
+                IR.Int(H): "J",
+                IR.Int(W): "K",
+                IR.Int(C): "L",
+                IR.String(expr_out): "VarName"
+            })
         elif node.type.dim == 2:
             [H, W] = node.type.shape
             funcCall = IR.FuncCall("AddOrSubCir2D", {
@@ -901,10 +942,16 @@ class IRBuilder(ASTVisitor):
                 shr_out: "shrC",
                 IR.Bool(add): "add"
             })
+            profile = IR.FuncCall("Profile2", {
+                expr_out: "Var",
+                IR.Int(H): "I",
+                IR.Int(W): "J",
+                IR.String(expr_out): "VarName"
+            })
         else:
             assert False, "AddCir only supports 2D and 4D tensors."
 
-        prog_cir = IR.Prog([comment, funcCall])
+        prog_cir = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_cir)
 
@@ -1006,7 +1053,14 @@ class IRBuilder(ASTVisitor):
                 shr_out: "shrC"
             })
 
-            prog_bop = IR.Prog([comment, funcCall])
+            profile = IR.FuncCall("Profile2", {
+                                expr_out: "Var",
+                                IR.Int(I): "I",
+                                IR.Int(J): "J",
+                                IR.String(expr_out): "VarName"
+                                })
+
+            prog_bop = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
             prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_bop)
 
@@ -1116,10 +1170,10 @@ class IRBuilder(ASTVisitor):
         scale_in = self.varScales[expr_in.idf]
 
         '''
-		1.  y = ((int) (exp(((float)e) / shr1) * shr2))
-		'''
+        1.  y = ((int) (exp(((float)e) / shr1) * shr2))
+        '''
 
-        maxExp = np.exp(-MIN)
+        maxExp = np.exp(MIN)
 
         expr_out = self.getTempVar()
 
@@ -1131,8 +1185,8 @@ class IRBuilder(ASTVisitor):
         shr1 = 2 ** -scale_in
         shr2 = 2 ** -scale_out
 
-        shr1 = self.formatShr(shr1)
-        shr2 = self.formatShr(shr2)
+        shr1 = self.formatShr(shr1, "shr")
+        shr2 = self.formatShr(shr2, "shr")
 
         cmd0 = IR.Comment('exp(' + expr_in.idf + ')')
 
@@ -1145,7 +1199,20 @@ class IRBuilder(ASTVisitor):
             expr_out: "B"
         })
 
-        prog_exp = IR.Prog([cmd0, funcCall])
+        rangeCheck = IR.FuncCall("checkRange2", {
+            expr_in: "A",
+            IR.Int(I): "I",
+            IR.Int(J): "J"
+        })  if self.functionReducedProfiling else IR.Comment("Recommend switching on Function Reduced Profiling for sound output")
+
+        profile = IR.FuncCall("Profile2", {
+            expr_out: "Var",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            IR.String(expr_out): "VarName"
+        })
+
+        prog_exp = IR.Prog([cmd0, rangeCheck, funcCall, profile] if forFloat() and self.ddsEnabled else [cmd0, rangeCheck, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_exp)
 
@@ -1177,17 +1244,17 @@ class IRBuilder(ASTVisitor):
         expr_out = self.getTempVar()
 
         '''
-		1.  if ((-x) < min) {
-		2.  	i = 0;
-		3.  	j = 0;
-		4.  }
-		5.  else {
-		6.  	y = ((-x) - min) << shl
-		7.  	i = (y >> shrI) & (2^b-1)
-		8.  	j = (y >> shrJ) & (2^b-1)
-		9.  }
-		10. ans = T[i] * U[j]
-		'''
+        1.  if ((-x) < min) {
+        2.  	i = 0;
+        3.  	j = 0;
+        4.  }
+        5.  else {
+        6.  	y = ((-x) - min) << shl
+        7.  	i = (y >> shrI) & (2^b-1)
+        8.  	j = (y >> shrJ) & (2^b-1)
+        9.  }
+        10. ans = T[i] * U[j]
+        '''
 
         mask = IR.Int(2 ** self.expB - 1)
         shrI = config.wordLength - self.expB
@@ -1564,11 +1631,20 @@ class IRBuilder(ASTVisitor):
             expr_out_idx, IRUtil.shr(expr_in_idx, height_shr)))
         treeSum = IRUtil.loop(type_out.shape, iters, [cmd2])
 
+        assert type_out.dim == 2, "Only 2 dim Summation supported for now due to laziness of programmer"
+        if forFloat():
+            profile = [IR.FuncCall("Profile2", {
+                expr_out: "Var",
+                IR.Int(type_out.shape[0]): "I",
+                IR.Int(type_out.shape[1]): "J",
+                IR.String(expr_out): "VarName"
+            })]
+
         # Final program to sum output of each iteration
         prog_sum = [cmd1,
                     IR.Assn(var, IR.Int(start)),
                     IR.For(var_iter, 0, IRUtil.lt(var_iter, IR.Int(end - start)),
-                           prog_in.cmd_l + treeSum + [IR.Assn(var, IRUtil.inc(var))])
+                           prog_in.cmd_l + treeSum + (profile if forFloat() and self.ddsEnabled else []) + [IR.Assn(var, IRUtil.inc(var))])
                     ]
 
         prog_out = IR.Prog([comment] + prog_sum)
@@ -2054,15 +2130,14 @@ class IRBuilder(ASTVisitor):
         self.counter_iter += 1
         return var
 
-    def formatShr(self, num):
+    def formatShr(self, num, shrt=getShrType()):
         assert num >= 0
-
-        shrType = getShrType()
-
+    
+        shrType = shrt #getShrType()
         if shrType == "shr" or shrType == "shr+":
             return IR.Int(num)
         elif shrType == "div":
-            if num >= config.wordLength:
+            if num >= config.wordLength - 1:
                 return IR.Int(IR.Int.max())
             else:
                 intVar = IR.Int(2 ** num)

@@ -17,6 +17,12 @@ msbuildPathOptions = [r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Comm
                       r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\MSBuild\Current\Bin\MSBuild.exe"
                       ]
 
+class MaximisingMetric:
+    accuracy = "acc"
+    disagreements = "disagree"
+    reducedDisagreements = "red_disagree"
+    default = [accuracy]
+    all = [accuracy, disagreements, reducedDisagreements]
 
 class Algo:
     bonsai = "bonsai"

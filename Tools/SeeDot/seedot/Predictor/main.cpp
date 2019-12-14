@@ -246,6 +246,8 @@ int main(int argc, char *argv[])
 			}
 			totalV[i]++;
 		}
+
+		flushProfile();
 	}
 
 	// Deallocate memory
@@ -291,6 +293,8 @@ int main(int argc, char *argv[])
 	}
 
 	stats.close();
+
+	dumpProfile();
 
 	if (datasetType == Training)
 		dumpRange(outputDir + "/profile.txt");

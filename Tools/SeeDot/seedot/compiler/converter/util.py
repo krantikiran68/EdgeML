@@ -20,6 +20,8 @@ class Config:
     dumpDataset = True
     # To use sparse matrix representation whenever required
     sparseMat = True
+    
+    trimHighestDecile = False
 
 
 # Bonsai or Protonn
@@ -557,7 +559,7 @@ def trimMatrix(X, Y=None):
     X_trim = []
     Y_trim = []
     for i in range(len(rowMax)):
-        if rowMax[i] < trimThreshold:
+        if not Config.trimHighestDecile or rowMax[i] < trimThreshold:
             X_trim.append(X[i])
             if Y != None:
                 Y_trim.append(Y[i])

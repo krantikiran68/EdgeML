@@ -262,6 +262,8 @@ class CodegenBase:
             return self.printProg(ir)
         elif isinstance(ir, IR.Op.Op):
             return self.printOp(ir)
+        elif isinstance(ir, IR.String):
+            return self.out.printf('\"%s\"', ir.s.idf)
         else:
             assert False
 

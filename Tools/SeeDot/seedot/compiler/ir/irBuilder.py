@@ -1359,7 +1359,7 @@ class IRBuilder(ASTVisitor):
             IR.String(expr_out): "VarName"
         })
 
-        prog_exp = IR.Prog([cmd0, rangeCheck, funcCall, profile] if forFloat() and self.ddsEnabled else [cmd0, rangeCheck, funcCall])
+        prog_exp = IR.Prog([cmd0, rangeCheck, funcCall, profile] if forFloat() and self.ddsEnabled else [cmd0, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_exp)
 
@@ -1781,8 +1781,8 @@ class IRBuilder(ASTVisitor):
         else:
             (scale_out, height_shr, height_noshr) = self.getScaleForTreeSum(
             scale_in, end - start)
-        intv_out = self.getIntervalForTreeSum(
-            intv_in, end - start, height_shr, height_noshr)
+        intv_out = (0,0) #self.getIntervalForTreeSum(
+        #    intv_in, end - start, height_shr, height_noshr)
 
         # Tree sum to sum output of each iteration
         expr_in_idx = IRUtil.addIndex(expr_in, iters)
@@ -2346,9 +2346,9 @@ class IRBuilder(ASTVisitor):
         bitsAfterMulOp = bitwidth_in_A + bitwidth_in_B - 1
         # saving raw multiplication result into a variable
         bitsAfterMulStore = bitwidth_mul
-        scaleAfterMulStore = scaleAfterMulOp + max(bitsAfterMulOp - bitsAfterMulStore, 0)
+        scaleAfterMulStore = min(scaleAfterMulOp + max(bitsAfterMulOp - bitsAfterMulStore, 0), self.MAX_SCALE - max(bitsAfterMulStore - config.wordLength, 0))
         totalShr += (scaleAfterMulStore - scaleAfterMulOp)
-        shr_A, shr_B = totalShr // 2, totalShr - totalShr // 2
+        shr_B, shr_A = totalShr // 2, totalShr - totalShr // 2
         assert totalShr <= 15, "Values wont fit in Stage 2 of MatMul"
         # after addition
         bitsAfterAddOp = bitwidth_temp

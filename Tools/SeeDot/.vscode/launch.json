@@ -14,7 +14,7 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "bonsai",
+                "protonn",
                 "-v",
                 "fixed",
                 "-d",

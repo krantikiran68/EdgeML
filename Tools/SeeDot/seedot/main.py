@@ -152,7 +152,10 @@ class Main:
         while firstCompileSuccess == False:
             if highestValidScale == end:
                 assert False, "Compilation not possible for any Scale Factor. Abort"
-            firstCompileSuccess = self.partialCompile(config.Version.fixed, config.Target.x86, highestValidScale, True, None, 0)
+            try:
+                firstCompileSuccess = self.partialCompile(config.Version.fixed, config.Target.x86, highestValidScale, True, None, 0)
+            except:
+                firstCompileSuccess = False
             if firstCompileSuccess:
                 break
             highestValidScale -= 1
@@ -160,7 +163,10 @@ class Main:
         lowestValidScale = end + 1
         firstCompileSuccess = False
         while firstCompileSuccess == False:
-            firstCompileSuccess = self.partialCompile(config.Version.fixed, config.Target.x86, lowestValidScale, True, None, 0)
+            try:
+                firstCompileSuccess = self.partialCompile(config.Version.fixed, config.Target.x86, lowestValidScale, True, None, 0)
+            except:
+                firstCompileSuccess = False
             if firstCompileSuccess:
                 break
             lowestValidScale += 1
@@ -180,8 +186,12 @@ class Main:
             print("Testing with max scale factor of " + str(i))
 
             codeId += 1
-            compiled = self.partialCompile(
-                config.Version.fixed, config.Target.x86, i, False, codeId, -1 if codeId != numCodes else codeId)
+            try:
+                compiled = self.partialCompile(
+                    config.Version.fixed, config.Target.x86, i, False, codeId, -1 if codeId != numCodes else codeId)
+            except: #If some code in the middle fails to compile
+                codeId -=1
+                continue
             if compiled == False:
                 return False
             codeIdToScaleFactorMap[codeId] = i

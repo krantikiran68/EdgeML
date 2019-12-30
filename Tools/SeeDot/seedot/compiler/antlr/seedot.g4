@@ -26,10 +26,15 @@ expr:	IntConst								# int
 	|	specialFunc '(' expr ')'				# func
 	|	Sum '(' Id '='
 		'[' IntConst ':' IntConst ']' ')' expr  # sum
+	|	Sum '(' Id '='
+		'[' IntConst ':' IntConst ']' 
+		'@' IntConst ')' expr					# sumUnroll
 	|	Loop '(' Id '='
 		'[' IntConst ':' IntConst ']'
 		',' expr ')' expr						# loop
-
+	|	Loop '(' Id '='
+		'[' IntConst ':' IntConst ']' 
+		'@' IntConst ',' expr ')' expr			# loopUnroll
 	|	expr '>=' IntConst '?' expr ':' expr	# cond
 	|	Let Id '=' expr In expr					# let
 	|	'(' expr ')'							# paren

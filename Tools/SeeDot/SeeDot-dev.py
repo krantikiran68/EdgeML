@@ -26,15 +26,16 @@ class Dataset:
               "letter-multiclass", "mnist-binary", "mnist-multiclass",
               "usps-binary", "usps-multiclass", "ward-binary"]
     extra = ["cifar-multiclass", "dsa", "eye-binary", "farm-beats",
-             "interactive-cane", "spectakom", "usps10", "whale-binary"]
+             "interactive-cane", "spectakom", "usps10", "whale-binary",
+             "spectakoms"]
     default = common
     all = common + extra
 
     datasetDir = os.path.join("..", "datasets", "datasets")
     modelDir = os.path.join("..", "model")
 
-    datasetProcessedDir = os.path.join("..", "datasets")
-    modelProcessedDir = os.path.join("..", "model")
+    datasetProcessedDir = os.path.join("datasets")
+    modelProcessedDir = os.path.join("model")
 
 
 class MainDriver:
@@ -344,7 +345,7 @@ class MainDriver:
 
     def loadResultsFile(self):
         results = {}
-        with open(os.path.join("Results", "Results.csv")) as csvFile:
+        with open(os.path.join("Results.csv")) as csvFile:
             reader = csv.reader(csvFile)
             for row in reader:
                 algo, bitwidth, dataset = row[0], row[1], row[2]

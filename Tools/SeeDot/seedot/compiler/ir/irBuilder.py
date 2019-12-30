@@ -1516,6 +1516,11 @@ class IRBuilder(ASTVisitor):
 
         return (prog_out, expr_out)
 
+    # out = $x[start:end@unrollFactor] in
+    def visitSumUnroll(self, node:AST.SumUnroll):
+        return self.visitSum(node)
+        #Unroll factor is meant to be handled at preprocessing stage only
+
     # out = $x[start:end] in
     def visitSum(self, node: AST.Sum):
         '''
@@ -1578,6 +1583,11 @@ class IRBuilder(ASTVisitor):
         self.varIntervals[expr_out.idf] = intv_out
 
         return (prog_out, expr_out)
+
+    #out = loop(x[start:end@unrollFactor]) (expr) in
+    def visitLoopUnroll(self, node: AST.LoopUnroll):
+        return self.visitLoop(node)
+        #Unroll factor is meant to be handled at preprocessing stage only
 
     # out = loop(x[start:end]) (expr) in
     def visitLoop(self, node: AST.Loop):

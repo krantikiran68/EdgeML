@@ -41,8 +41,12 @@ class ASTVisitor:
             return self.visitFunc(node)
         elif isinstance(node, AST.Sum):
             return self.visitSum(node)
+        elif isinstance(node, AST.SumUnroll):
+            return self.visitSumUnroll(node)
         elif isinstance(node, AST.Loop):
             return self.visitLoop(node)
+        elif isinstance(node, AST.LoopUnroll):
+            return self.visitLoopUnroll(node)
         elif isinstance(node, AST.Cond):
             return self.visitCond(node)
         elif isinstance(node, AST.Let):

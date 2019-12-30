@@ -94,6 +94,14 @@ class ASTBuilder(SeeDotVisitor):
         expr = self.visit(ctx.expr())
         return AST.Sum(name, start, end, expr)
 
+    def visitSumUnroll(self, ctx: SeeDotParser.SumUnrollContext):
+        name = ctx.Id().getText()
+        start = int(ctx.IntConst(0).getText())
+        end = int(ctx.IntConst(1).getText())
+        unrollFactor = int(ctx.IntConst(2).getText())
+        expr = self.visit(ctx.expr())
+        return AST.SumUnroll(name, start, end, unrollFactor, expr)
+
     def visitLoop(self, ctx: SeeDotParser.LoopContext):
         name = ctx.Id().getText()
         start = int(ctx.IntConst(0).getText())
@@ -101,6 +109,15 @@ class ASTBuilder(SeeDotVisitor):
         mutableVar = self.visit(ctx.expr(0))
         expr = self.visit(ctx.expr(1))
         return AST.Loop(name, start, end, mutableVar, expr)
+
+    def visitLoopUnroll(self, ctx: SeeDotParser.SumUnrollContext):
+        name = ctx.Id().getText()
+        start = int(ctx.IntConst(0).getText())
+        end = int(ctx.IntConst(1).getText())
+        mutableVar = self.visit(ctx.expr(0))
+        unrollFactor = int(ctx.IntConst(2).getText())
+        expr = self.visit(ctx.expr(1))
+        return AST.LoopUnroll(name, start, end, mutableVar, unrollFactor, expr)
 
     def visitCond(self, ctx: SeeDotParser.CondContext):
         expr = self.visit(ctx.expr(0))

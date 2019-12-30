@@ -53,6 +53,10 @@ class MtdAST(ASTVisitor):
         node.metadata.update(mtd)
         self.visit(node.expr, mtd)
 
+    def visitSumUnroll(self, node: AST.SumUnroll, mtd: dict):
+        node.metadata.update(mtd)
+        self.visit(node.expr, mtd)
+
     def visitCond(self, node: AST.Cond, mtd: dict):
         node.metadata.update(mtd)
         self.visit(node.expr, mtd)

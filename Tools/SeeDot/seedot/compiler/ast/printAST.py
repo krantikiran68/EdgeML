@@ -91,9 +91,22 @@ class PrintAST(ASTVisitor):
         node.expr.printLevel = node.printLevel + 1
         self.visit(node.expr)
 
+    def visitSumUnroll(self, node: AST.SumUnroll):
+        print(indent * node.printLevel, "sum-unroll",
+              node.name, str(node.start), str(node.end), str(node.unrollFactor))
+        node.expr.printLevel = node.printLevel + 1
+        self.visit(node.expr)    
+
     def visitLoop(self, node: AST.Loop):
         print(indent * node.printLevel, "loop",
               node.name, str(node.start), str(node.end))
+        node.expr.printLevel = node.mutableVar.printLevel = node.printLevel + 1
+        self.visit(node.mutableVar)
+        self.visit(node.expr)
+
+    def visitLoopUnroll(self, node: AST.LoopUnroll):
+        print(indent * node.printLevel, "loop-unroll",
+              node.name, str(node.start), str(node.end), str(node.unrollFactor))
         node.expr.printLevel = node.mutableVar.printLevel = node.printLevel + 1
         self.visit(node.mutableVar)
         self.visit(node.expr)

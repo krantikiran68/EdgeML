@@ -25,6 +25,8 @@ import seedot.compiler.type as type
 import seedot.util as util
 import seedot.writer as writer
 
+import seedot.compiler.preprocess.unroller as preprocessorUnroll
+
 
 class Compiler:
 
@@ -92,6 +94,9 @@ class Compiler:
     def genCodeWithFuncCalls(self, ast):
 
         outputLog = writer.Writer(self.outputLogFile)
+
+        loopUnroller = preprocessorUnroll.Unroller("input-unrolled")
+        unrolled = loopUnroller.visit(ast)
 
         compiler = irBuilder.IRBuilder(outputLog)
         res = compiler.visit(ast)

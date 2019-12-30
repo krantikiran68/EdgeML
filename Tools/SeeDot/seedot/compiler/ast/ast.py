@@ -136,6 +136,16 @@ class Sum(ASTNode):
         self.expr = expr
 
 
+class SumUnroll(ASTNode):
+
+    def __init__(self, name, start, end, unrollFactor, expr):
+        self.name = name
+        self.start = start
+        self.end = end
+        self.unrollFactor = unrollFactor
+        self.expr = expr
+
+
 class Loop(ASTNode):
 
     def __init__(self, name, start, end, mutableVar, expr):
@@ -144,6 +154,18 @@ class Loop(ASTNode):
         self.start = start
         self.end = end
         self.mutableVar = mutableVar
+        self.expr = expr
+
+
+class LoopUnroll(ASTNode):
+
+    def __init__(self, name, start, end, mutableVar, unrollFactor, expr):
+        super().__init__()
+        self.name = name
+        self.start = start
+        self.end = end
+        self.mutableVar = mutableVar
+        self.unrollFactor = unrollFactor
         self.expr = expr
 
 

@@ -1,4 +1,4 @@
-# Generated from seedot.g4 by ANTLR 4.7
+# Generated from ..\compiler\antlr\seedot.g4 by ANTLR 4.7
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .seedotParser import seedotParser
@@ -26,6 +26,11 @@ class seedotVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by seedotParser#decl.
     def visitDecl(self, ctx:seedotParser.DeclContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by seedotParser#loopUnroll.
+    def visitLoopUnroll(self, ctx:seedotParser.LoopUnrollContext):
         return self.visitChildren(ctx)
 
 
@@ -101,6 +106,11 @@ class seedotVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by seedotParser#maxpool.
     def visitMaxpool(self, ctx:seedotParser.MaxpoolContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by seedotParser#sumUnroll.
+    def visitSumUnroll(self, ctx:seedotParser.SumUnrollContext):
         return self.visitChildren(ctx)
 
 

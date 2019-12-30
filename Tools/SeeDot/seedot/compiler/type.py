@@ -318,8 +318,42 @@ class InferType(astVisitor.ASTVisitor):
 
         return node.type
 
+    # $(x=[1:5]@2) e
+    def visitSumUnroll(self, node: ast.SumUnroll):
+        assert node.name not in node.gamma, "%s defined more than once" % (
+            node.name)
+
+        node.expr.gamma = dict(node.gamma)
+        node.expr.gamma[node.name] = Int()
+        eType = self.visit(node.expr)
+
+        assert isTensor(eType)
+        node.type = eType
+
+        return node.type
+
     # loop(x=[1:5]) e
     def visitLoop(self, node: ast.Loop):
+        assert node.name not in node.gamma, "%s defined more than once" % (
+            node.name)
+
+        node.mutableVar.gamma = dict(node.gamma)
+        self.visit(node.mutableVar)
+
+        self.mutableVars.append(node.mutableVar.name)
+        assert isinstance(node.mutableVar, ast.ID)
+
+        node.expr.gamma = dict(node.gamma)
+        node.expr.gamma[node.name] = Int()
+        eType = self.visit(node.expr)
+
+        assert isTensor(eType)
+        node.type = eType
+
+        return node.type
+
+    # loop(x=[1:5]@2) e
+    def visitLoopUnroll(self, node: ast.LoopUnroll):
         assert node.name not in node.gamma, "%s defined more than once" % (
             node.name)
 

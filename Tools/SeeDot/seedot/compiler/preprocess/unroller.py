@@ -15,7 +15,7 @@ import os
 
 indent = "  "
 
-
+#TODO: Variable rename for multiple occurences so as to use different scales
 class Unroller(ASTVisitor):
 
     def __init__(self, outputFile):
@@ -186,6 +186,18 @@ class Unroller(ASTVisitor):
         self.outputFile.printf("\n)", indent=self.isNewLine())
         self.setNewLine()  
 
+    def unrollLoop(self, resultVar:AST.ID, node:AST.Let):
+        unrollNode = node.decl
+        toExpr = node.expr
+        unrollNode.unrollFactor = min (unrollNode.end - unrollNode.start, unrollNode.unrollFactor)
+        for i in reversed(range(unrollNode.unrollFactor)):
+            start = unrollNode.start + int(((i) * (unrollNode.end - unrollNode.start))/(unrollNode.unrollFactor))
+            end = unrollNode.start + int(((i+1) * (unrollNode.end - unrollNode.start))/(unrollNode.unrollFactor))
+            subNode = AST.Loop(unrollNode.name, start, end, unrollNode.mutableVar, unrollNode.expr)
+            letNode = AST.Let(node.name + (str(i) if i+1 < unrollNode.unrollFactor else ""), subNode, toExpr)
+            toExpr = letNode
+        self.visitLet(toExpr)
+
     def visitLoopUnroll(self, node: AST.LoopUnroll):
         self.outputFile.printf("loop(%s = [%d:%d]@%d," % (node.name, node.start, node.end, node.unrollFactor), indent=self.isNewLine())
         self.visit(node.mutableVar)
@@ -209,6 +221,8 @@ class Unroller(ASTVisitor):
     def visitLet(self, node: AST.Let):
         if isinstance(node.decl, AST.SumUnroll):
             self.unrollSum(node.name, node)
+        elif isinstance(node.decl, AST.LoopUnroll):
+            self.unrollLoop(node.name, node)
         else:
             self.outputFile.printf("let " + node.name + " = ", indent=self.isNewLine())
             self.visit(node.decl)

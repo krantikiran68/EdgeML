@@ -12,11 +12,11 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "protonn",
+                "rnn",
                 "-v",
                 "fixed",
                 "-d",
-                "cr-binary"
+                "usps10"
             ]
         }
     ]

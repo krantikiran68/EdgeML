@@ -11,11 +11,12 @@ import seedot.compiler.ast.ast as AST
 from seedot.compiler.ast.astVisitor import ASTVisitor
 from seedot.writer import Writer
 
+import seedot.compiler.preprocess.substituteAST as subs
+
 import os
 
 indent = "  "
 
-#TODO: Variable rename for multiple occurences so as to use different scales
 class Unroller(ASTVisitor):
 
     def __init__(self, outputFile):
@@ -159,7 +160,9 @@ class Unroller(ASTVisitor):
         for i in reversed(range(unrollNode.unrollFactor)):
             start = unrollNode.start + int(((i) * (unrollNode.end - unrollNode.start))/(unrollNode.unrollFactor))
             end = unrollNode.start + int(((i+1) * (unrollNode.end - unrollNode.start))/(unrollNode.unrollFactor))
-            subNode = AST.Sum(unrollNode.name, start, end, unrollNode.expr)
+            substituter = subs.SubstituteAST(i)
+            renamedExpr = substituter.visit(unrollNode.expr)
+            subNode = AST.Sum(unrollNode.name, start, end, renamedExpr)
             letNode = AST.Let(node.name + str(i), subNode, toExpr)
             toExpr = letNode
         self.visitLet(toExpr)
@@ -193,7 +196,9 @@ class Unroller(ASTVisitor):
         for i in reversed(range(unrollNode.unrollFactor)):
             start = unrollNode.start + int(((i) * (unrollNode.end - unrollNode.start))/(unrollNode.unrollFactor))
             end = unrollNode.start + int(((i+1) * (unrollNode.end - unrollNode.start))/(unrollNode.unrollFactor))
-            subNode = AST.Loop(unrollNode.name, start, end, unrollNode.mutableVar, unrollNode.expr)
+            substituter = subs.SubstituteAST(i, unrollNode.mutableVar.name)
+            renamedExpr = substituter.visit(unrollNode.expr)
+            subNode = AST.Loop(unrollNode.name, start, end, unrollNode.mutableVar, renamedExpr)
             letNode = AST.Let(node.name + (str(i) if i+1 < unrollNode.unrollFactor else ""), subNode, toExpr)
             toExpr = letNode
         self.visitLet(toExpr)

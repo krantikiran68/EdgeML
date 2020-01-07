@@ -264,8 +264,10 @@ class Main:
         shutil.copyfile(srcFile, destFile)
 
         # Copy library.h file
-        srcFile = os.path.join(config.outdir, self.target, "library", "library_fixed.h")
-        destFile = os.path.join(config.outdir, self.target, "library.h")
+        curr_dir = os.path.dirname(os.path.realpath(__file__))
+
+        srcFile = os.path.join(curr_dir, self.target, "library", "library_fixed.h")
+        destFile = os.path.join(config.outdir, "library.h")
         shutil.copyfile(srcFile, destFile)
 
         res = self.compile(config.Version.fixed, self.target, self.sf)

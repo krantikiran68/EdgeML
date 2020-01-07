@@ -20,16 +20,16 @@ class MainDriver:
     def parseArgs(self):
         parser = argparse.ArgumentParser()
 
-        parser.add_argument("-a", "--algo", choices=config.Algo.all,
-                            metavar='', help="Algorithm to run ('bonsai' or 'protonn')")
         parser.add_argument("--train", required=True,
                             metavar='', help="Training set file")
         parser.add_argument("--test", required=True,
                             metavar='', help="Testing set file")
         parser.add_argument("--model", required=True, metavar='',
                             help="Directory containing trained model (output from Bonsai/ProtoNN trainer)")
-        # parser.add_argument("-v", "--version", default=config.Version.Fixed, choices=config.Version.All, metavar='',
-        #                    help="Datatype of the generated code (fixed-point or floating-point)")
+        
+        parser.add_argument("-v", "--version", default=config.Version.fixed, choices=config.Version.all, metavar='',
+                            help="Datatype of the generated code (fixed-point or floating-point)")
+        
         parser.add_argument("--tempdir", metavar='',
                             help="Scratch directory for intermediate files")
         parser.add_argument("-o", "--outdir", metavar='',
@@ -74,10 +74,11 @@ class MainDriver:
         if util.windows():
             self.checkMSBuildPath()
 
-        algo, version, trainingInput, testingInput, modelDir = self.args.algo, config.Version.fixed, self.args.train, self.args.test, self.args.model
+        trainingInput, testingInput, modelDir = self.args.train, self.args.test, self.args.model
+        algo, version = config.Algo.bonsai, self.args.version
 
         print("\n================================")
-        print("Executing on %s for Arduino" % (algo))
+        print("Compiling for Arduino")
         print("--------------------------------")
         print("Train file: %s" % (trainingInput))
         print("Test file: %s" % (testingInput))

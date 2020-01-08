@@ -527,29 +527,33 @@ void MulCir(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT sh
 }
 
 // A = tanh(A)
-void TanH(MYINT *A, MYINT I, MYINT J, MYINT tanh_limit)
+void TanH(MYINT *A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out)
 {
 	for (MYITE i = 0; i < I; i++)
 	{
 		for (MYITE j = 0; j < J; j++)
 		{
 #ifdef FLOATEXP
-			float x = float(A[i * J + j]) / tanh_limit;
+			float x = float(A[i * J + j]) / scale_in;
 
 			float y = tanh(x);
 
-			MYINT z = MYINT(y * tanh_limit);
+			MYINT z = MYINT(y * scale_out);
 
 			A[i * J + j] = z;
 #else
 			MYINT x = A[i * J + j], y;
 
-			if (x >= tanh_limit)
-				y = tanh_limit;
-			else if (x <= -tanh_limit)
-				y = -tanh_limit;
+			if (x >= scale_in)
+				y = scale_in;
+			else if (x <= -scale_in)
+				y = -scale_in;
 			else
 				y = x;
+
+			MYINT scale_diff = scale_out / scale_in;
+
+			y *= scale_diff;
 
 			A[i * J + j] = y;
 #endif

@@ -144,7 +144,7 @@ class IRBuilder(ASTVisitor):
 
         expr = self.getTempVar()
 
-        if forFixed() and self.ddsEnabled():
+        if forFixed() and self.ddsEnabled:
             _, scale = self.getBitwidthAndScale(expr.idf)
         else:
             scale = self.getScale(max(abs(minVal), abs(maxVal)))
@@ -234,15 +234,15 @@ class IRBuilder(ASTVisitor):
         type_out = node.type
 
         # Compute scaling factors
-        scale_out = self.varScales[expr_in.idf]
+        bw_out, scale_out = self.getBitwidthAndScale(expr_in.idf)
         intv_out = self.varIntervals[expr_in.idf]
 
         # Declare variables
         expr_out = self.getTempVar()
 
         if forFixed():
-            self.varsForBitwidth[expr_out.idf] = self.varsForBitwidth[expr_in.idf]
-            if seld.varsForBitwidth[expr_out.idf] != config.wordLength:
+            self.varsForBitwidth[expr_out.idf] = bw_out
+            if self.varsForBitwidth[expr_out.idf] != config.wordLength:
                 self.demotedVarsList.append(expr_out.idf)
                 self.demotedVarsOffsets[expr_out.idf] = self.getOffsetForDemotedVariable(expr_in.idf)
 
@@ -1636,11 +1636,15 @@ class IRBuilder(ASTVisitor):
 
         comment = IR.Comment("tanh(" + expr_in.idf + ")")
 
+        scale_out = scale_in #self.getScale(1.5)
+        tanh_limit_out = 2 ** -scale_out
+
         funcCall = IR.FuncCall("TanH", {
             expr_in: "A",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            tanh_limit: "threshold"
+            tanh_limit: "scale_in",
+            IR.Int(tanh_limit_out): "scale_out"
         })
 
         prog_tanh = IR.Prog([comment, funcCall])
@@ -1648,6 +1652,7 @@ class IRBuilder(ASTVisitor):
         prog_out = IRUtil.concatPrograms(prog_in, prog_tanh)
 
         self.varIntervals[expr_in.idf] = intv_out
+        self.varScales[expr_in.idf] = scale_out
         expr_out = expr_in
 
         return (prog_out, expr_out)
@@ -1692,9 +1697,10 @@ class IRBuilder(ASTVisitor):
         # TODO: Temp computation for POC. Remove later.
         max_val = max(abs(m_new), abs(M_new))
         max_val_f = np.ldexp(max_val, scale_in)
-        scale_new = self.getScale(max_val_f)
-        print("Scale changes in Sigmoid operation: old = %d, new = %d, diff = %d" % (
-            scale_in, scale_new, abs(scale_in - scale_new)))
+        # useless
+        # scale_new = self.getScale(max_val_f) 
+        # print("Scale changes in Sigmoid operation: old = %d, new = %d, diff = %d" % (
+        #     scale_in, scale_new, abs(scale_in - scale_new)))
 
         if forFloat():
             addition_ir = IR.Float(addition)
@@ -1834,7 +1840,7 @@ class IRBuilder(ASTVisitor):
         # Update the scale and interval of the mutable variable only during fixed-point code generation
         if forFixed():
             scale, intv = self.readProfileForMutableVars(idf)
-            bitwidth, scale = self.getBitwidthAndScale(idf)
+            bitwidth, _ = self.getBitwidthAndScale(idf) #(init 0 default scale currently storedin varScales which has to be overwritten)
             self.varScales[idf] = scale
             self.varIntervals[idf] = intv
 
@@ -2001,13 +2007,30 @@ class IRBuilder(ASTVisitor):
                 new_scale = self.getScale(max(abs(minVal), abs(maxVal)))
                 new_intv = self.getInterval(new_scale, minVal, maxVal)
 
-                diff_scale = curr_scale - new_scale
+                diff_scale = 2 ** (curr_scale - new_scale) if curr_scale > new_scale else 2 ** (new_scale - curr_scale)
 
-                assert diff_scale == 0, "I did NOT see this coming"
+                #assert diff_scale == 0, "I did NOT see this coming"
 
                 [I, J] = type_decl.shape
 
-                prog_for_mutable = IR.Prog([])
+                adjust = []
+                if curr_scale != new_scale:
+                    if curr_scale > new_scale:
+                        adjust = [IR.FuncCall("AdjustScaleShl", {
+                                            IR.Var(idf): "A",
+                                            IR.Int(I): "I",
+                                            IR.Int(J): "J",
+                                            IR.Int(diff_scale): "scale"
+                                            })]
+                    elif curr_scale < new_scale:
+                        adjust = [IR.FuncCall("AdjustScaleShr", {
+                                            IR.Var(idf): "A",
+                                            IR.Int(I): "I",
+                                            IR.Int(J): "J",
+                                            IR.Int(diff_scale): "scale"
+                                            })]
+
+                prog_for_mutable = IR.Prog(adjust)
 
                 # reset the self.scale value to the profile generated one
                 self.varScales[idf] = new_scale
@@ -2077,6 +2100,7 @@ class IRBuilder(ASTVisitor):
 
     # int^2 * int^2 -> int^2
     def getIntvervalForMul(self, intv_A, shr_A: int, intv_B, shr_B: int):
+        return (0, 0)
         (minVal_A, maxVal_A) = intv_A
         (minVal_A, maxVal_A) = (minVal_A >> shr_A, maxVal_A >> shr_A)
 
@@ -2348,8 +2372,11 @@ class IRBuilder(ASTVisitor):
         bitsAfterMulStore = bitwidth_mul
         scaleAfterMulStore = min(scaleAfterMulOp + max(bitsAfterMulOp - bitsAfterMulStore, 0), self.MAX_SCALE - max(bitsAfterMulStore - config.wordLength, 0))
         totalShr += (scaleAfterMulStore - scaleAfterMulOp)
-        shr_B, shr_A = totalShr // 2, totalShr - totalShr // 2
-        assert totalShr <= 15, "Values wont fit in Stage 2 of MatMul"
+        if scale_in_A <= scale_in_B:
+            shr_B, shr_A = totalShr // 2, totalShr - totalShr // 2
+        else:
+            shr_A, shr_B = totalShr // 2, totalShr - totalShr // 2
+        assert totalShr <= config.wordLength - 1, "Values wont fit in Stage 2 of MatMul"
         # after addition
         bitsAfterAddOp = bitwidth_temp
         scaleAfterAddOp = max(scale_temp, scaleAfterMulStore)

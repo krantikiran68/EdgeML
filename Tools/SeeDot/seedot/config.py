@@ -2,7 +2,7 @@
 # Licensed under the MIT license.
 
 # Target word length. Currently set to match the word length of Arduino (2 bytes)
-wordLength = 16
+wordLength = 8
 
 # Range of max scale factor used for exploration
 maxScaleRange = 0, -wordLength

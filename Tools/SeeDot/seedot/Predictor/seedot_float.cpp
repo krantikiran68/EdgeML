@@ -67,7 +67,7 @@ int seedotFloat(float **X)
 	MatMulCN(&V[node0][0][0], &tmp7[0][0], &tmp11[0][0], &tmp10[0], 1, 20, 1, 128, 128, 3, 2);
 
 	// tanh(V0)
-	TanH(&tmp11[0][0], 1, 1, 1.000000f);
+	TanH(&tmp11[0][0], 1, 1, 1.000000f, 1.000f);
 
 	// W0 <*> V0_tanh
 	MulCir(&tmp9[0][0], &tmp11[0][0], &tmp12[0][0], 1, 1, 1, 1);
@@ -84,7 +84,7 @@ int seedotFloat(float **X)
 	MatMulCN(&V[node1][0][0], &tmp7[0][0], &tmp18[0][0], &tmp17[0], 1, 20, 1, 128, 128, 3, 2);
 
 	// tanh(V1)
-	TanH(&tmp18[0][0], 1, 1, 1.000000f);
+	TanH(&tmp18[0][0], 1, 1, 1.000000f, 1.000f);
 
 	// W1 <*> V1_tanh
 	MulCir(&tmp16[0][0], &tmp18[0][0], &tmp19[0][0], 1, 1, 1, 1);
@@ -104,7 +104,7 @@ int seedotFloat(float **X)
 	MatMulCN(&V[node2][0][0], &tmp7[0][0], &tmp26[0][0], &tmp25[0], 1, 20, 1, 128, 128, 3, 2);
 
 	// tanh(V2)
-	TanH(&tmp26[0][0], 1, 1, 1.000000f);
+	TanH(&tmp26[0][0], 1, 1, 1.000000f, 1.000f);
 
 	// W2 <*> V2_tanh
 	MulCir(&tmp24[0][0], &tmp26[0][0], &tmp27[0][0], 1, 1, 1, 1);
@@ -124,7 +124,7 @@ int seedotFloat(float **X)
 	MatMulCN(&V[node3][0][0], &tmp7[0][0], &tmp34[0][0], &tmp33[0], 1, 20, 1, 128, 128, 3, 2);
 
 	// tanh(V3)
-	TanH(&tmp34[0][0], 1, 1, 1.000000f);
+	TanH(&tmp34[0][0], 1, 1, 1.000000f, 1.000f);
 
 	// W3 <*> V3_tanh
 	MulCir(&tmp32[0][0], &tmp34[0][0], &tmp35[0][0], 1, 1, 1, 1);

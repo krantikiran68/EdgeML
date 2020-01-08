@@ -56,7 +56,7 @@ class Predictor:
 
         projFile = "Predictor.vcxproj"
         args = [config.msbuildPath, projFile, r"/t:Build",
-                r"/p:Configuration=Release", r"/p:Platform=x64"]
+                r"/p:Configuration=Debug", r"/p:Platform=x64"]
 
         logFile = os.path.join(self.outputDir, "msbuild.txt")
         with open(logFile, 'w') as file:
@@ -97,7 +97,7 @@ class Predictor:
         '''
         print("Execution...", end='')
 
-        exeFile = os.path.join("x64", "Release", "Predictor.exe")
+        exeFile = os.path.join("x64", "Debug", "Predictor.exe")
         args = [exeFile, self.version, self.datasetType]
 
         logFile = os.path.join(self.outputDir, "exec.txt")

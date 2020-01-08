@@ -143,7 +143,7 @@ class CodegenBase:
         self.out.printf('}\n', indent=True)
 
     def printForHeader(self, ir):
-        self.out.printf('for (%s ', IR.DataType.getIntStr(), indent=True)
+        self.out.printf('for (%s ', "int", indent=True) #Loop counter must be int16 else indices can overflow
         self.print(ir.var)
         self.out.printf(' = %d; ', ir.st)
         self.print(ir.cond)

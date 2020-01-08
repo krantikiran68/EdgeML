@@ -69,7 +69,7 @@ int seedotFixed(MYINT **X)
 	MatMulCN(&V[node0][0][0], &tmp7[0][0], &tmp11[0][0], &tmp10[0], 1, 20, 1, 128, 64, 0, 5);
 
 	// tanh(V0)
-	TanH(&tmp11[0][0], 1, 1, 2048);
+	TanH(&tmp11[0][0], 1, 1, 2048, 2048);
 
 	// W0 <*> V0_tanh
 	MulCir(&tmp9[0][0], &tmp11[0][0], &tmp12[0][0], 1, 1, 64, 32);
@@ -86,7 +86,7 @@ int seedotFixed(MYINT **X)
 	MatMulCN(&V[node1][0][0], &tmp7[0][0], &tmp18[0][0], &tmp17[0], 1, 20, 1, 128, 64, 0, 5);
 
 	// tanh(V1)
-	TanH(&tmp18[0][0], 1, 1, 2048);
+	TanH(&tmp18[0][0], 1, 1, 2048, 2048);
 
 	// W1 <*> V1_tanh
 	MulCir(&tmp16[0][0], &tmp18[0][0], &tmp19[0][0], 1, 1, 64, 32);
@@ -106,7 +106,7 @@ int seedotFixed(MYINT **X)
 	MatMulCN(&V[node2][0][0], &tmp7[0][0], &tmp26[0][0], &tmp25[0], 1, 20, 1, 128, 64, 0, 5);
 
 	// tanh(V2)
-	TanH(&tmp26[0][0], 1, 1, 2048);
+	TanH(&tmp26[0][0], 1, 1, 2048, 2048);
 
 	// W2 <*> V2_tanh
 	MulCir(&tmp24[0][0], &tmp26[0][0], &tmp27[0][0], 1, 1, 64, 32);
@@ -126,16 +126,7 @@ int seedotFixed(MYINT **X)
 	MatMulCN(&V[node3][0][0], &tmp7[0][0], &tmp34[0][0], &tmp33[0], 1, 20, 1, 128, 64, 0, 5);
 
 	// tanh(V3)
-	TanH(&tmp34[0][0], 1, 1, 2048);
-
-	// W3 <*> V3_tanh
-	MulCir(&tmp32[0][0], &tmp34[0][0], &tmp35[0][0], 1, 1, 64, 32);
-
-	// score2 + tmp35
-	MatAddNN(&tmp28[0][0], &tmp35[0][0], &tmp36[0][0], 1, 1, 1, 1, 1);
-
-	// sgn(score3)
-	tmp37 = ((tmp36[0][0] > 0) ? 1 : 0);
+	TanH(&tmp34[0][0], 1, 1, 2048, 2048);
 
 	return tmp37;
 }

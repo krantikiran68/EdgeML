@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
 			populateFloatVector(features_float, features);
 
 		// Invoke the predictor function
-		int res, float_res;
+		int res = -1, float_res = -1;
 		vector <int> resV(switches, -1);
 
 		if (debugMode)

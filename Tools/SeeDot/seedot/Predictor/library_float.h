@@ -20,11 +20,11 @@ void MatMulCN(const float *A, float *B, float *C, float *tmp, MYINT I, MYINT K, 
 void MatMulNC(float *A, const float *B, float *C, float *tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
 void MatMulCC(const float *A, const float *B, float *C, float *tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
 
-void SparseMatMul(const MYINT *Aidx, const float *Aval, float **B, float *C, MYINT K, MYINT shrA, MYINT shrB, MYINT shrC);
+void SparseMatMul(const MYINT *Aidx, const float *Aval, float **B, float *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC);
 
 void MulCir(float *A, float *B, float *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB);
 
-void TanH(float *A, MYINT I, MYINT J, float tanh_limit);
+void TanH(float *A, MYINT I, MYINT J, float scale_in, float scale_out);
 
 void ArgMax(float *A, MYINT I, MYINT J, MYINT *index);
 

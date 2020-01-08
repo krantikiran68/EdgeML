@@ -31,7 +31,7 @@ void SparseMatMul(const MYINT *Aidx, const MYINT *Aval, MYINT **B, MYINT *C, int
 
 void MulCir(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB);
 
-void TanH(MYINT *A, MYINT I, MYINT J, MYINT tanh_limit);
+void TanH(MYINT *A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out);
 
 void ArgMax(MYINT *A, MYINT I, MYINT J, MYINT *index);
 

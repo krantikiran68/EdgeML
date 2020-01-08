@@ -14,11 +14,11 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "protonn",
+                "rnn",
                 "-v",
                 "fixed",
                 "-d",
-                "curet-multiclass"
+                "usps10"
             ]
         }
     ]

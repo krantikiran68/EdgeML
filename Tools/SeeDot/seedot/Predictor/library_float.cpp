@@ -371,7 +371,7 @@ void MatMulCC(const float *A, const float *B, float *C, float *tmp, MYINT I, MYI
 }
 
 // C = A |*| B
-void SparseMatMul(const MYINT *Aidx, const float *Aval, float **B, float *C, MYINT K, MYINT shrA, MYINT shrB, MYINT shrC)
+void SparseMatMul(const MYINT *Aidx, const float *Aval, float **B, float *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC)
 {
 
 	MYITE ite_idx = 0, ite_val = 0;
@@ -417,7 +417,7 @@ void MulCir(float *A, float *B, float *C, MYINT I, MYINT J, MYINT shrA, MYINT sh
 }
 
 // A = tanh(A)
-void TanH(float *A, MYINT I, MYINT J, float tanh_limit)
+void TanH(float *A, MYINT I, MYINT J, float scale_in, float scale_out)
 {
 	for (MYITE i = 0; i < I; i++)
 	{

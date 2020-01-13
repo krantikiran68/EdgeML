@@ -4,8 +4,8 @@
 #pragma once
 
 //#define SATURATE
-#define FASTAPPROX
-//#define FLOATEXP
+//#define FASTAPPROX
+#define FLOATEXP
 
 void MatAddNN(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
 void MatAddCN(const MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);

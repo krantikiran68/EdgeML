@@ -150,6 +150,7 @@ int main(int argc, char *argv[])
 	bool alloc = false;
 	int features_size = -1;
 	MYINT **features_int = NULL;
+	vector<MYINT **> features_intV(switches, NULL);
 	float **features_float = NULL;
 
 	// Initialize variables used for profiling
@@ -171,6 +172,12 @@ int main(int argc, char *argv[])
 			for (int i = 0; i < features_size; i++)
 				features_int[i] = new MYINT[1];
 
+			for (int i = 0; i < switches; i++) {
+				features_intV[i] = new MYINT *[features_size];
+				for (int j = 0; j < features_size; j++)
+					features_intV[i][j] = new MYINT[1];
+			}
+
 			features_float = new float *[features_size];
 			for (int i = 0; i < features_size; i++)
 				features_float[i] = new float[1];
@@ -182,6 +189,9 @@ int main(int argc, char *argv[])
 		if (debugMode || version == Fixed)
 		{
 			populateFixedVector(features_int, features, scaleForX);
+			for (int i = 0; i < switches; i++) {
+				populateFixedVector(features_intV[i], features, scalesForX[i]);
+			}
 			populateFloatVector(features_float, features);
 		}
 		else
@@ -212,7 +222,7 @@ int main(int argc, char *argv[])
 				}
 
 				for (int i = 0; i < switches; i++) {
-					resV[i] = seedotFixedSwitch(features_int, i);
+					resV[i] = seedotFixedSwitch(features_intV[i], i);
 					if (resV[i] != float_res) {
 						if (float_res == label) {
 							reduced_disagreementsV[i]++;

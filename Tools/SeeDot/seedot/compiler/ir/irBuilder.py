@@ -19,27 +19,31 @@ from seedot.util import *
 
 class IRBuilder(ASTVisitor):
 
-    def __init__(self, outputLog, ddsScaleInfo = {}):
+    def __init__(self, outputLog, ddsScaleInfo = {}, substitutions = {}, scaleForX = None):
 
         self.log = outputLog
 
         self.intermediateVarScales = ddsScaleInfo #populated when ddsEnabled
+        self.substitutions = substitutions #for storing variable rename info
 
         self.varsForBitwidth = {} #maps all modifiable variables to 16 in beginning, may be modified in this code
-        self.substitutions = {} #for storing variable rename info
 
         self.demotedVarsList = [] #list of all variables to be given config.wordlength // 2 bitwidth
         self.demotedVarsOffsets = {} #demotedVarsList variables offset while conversion from config.wordLength to config.wordlength // 2
 
         self.independentBitwidthVars = self.varsForBitwidth.keys()
 
-        self.ddsEnabled = False
-        self.vbwEnabled = False
-        self.functionReducedProfiling = True
+        self.ddsEnabled = config.ddsEnabled
+        self.vbwEnabled = config.vbwEnabled
+        self.functionReducedProfiling = config.functionReducedProfiling
+
+        self.scaleForX = scaleForX
 
         # MAX_SCALE is used at each operation to compute scale parameters
         # It is not used for floating-poing code generation
-        if getMaxScale() == None:
+        if self.ddsEnabled:
+            self.MAX_SCALE = 1000 #Large value which makes MAX_SCALE ineffective
+        elif getMaxScale() == None:
             if forFloat():
                 print(
                     "Setting MAX_SCALE = 0. This value will not affect the generated code.")
@@ -1984,8 +1988,8 @@ class IRBuilder(ASTVisitor):
                 if expr_decl.idf not in self.varsForBitwidth:
                     self.varsForBitwidth[expr_decl.idf] = config.wordLength
 
-            #if idf == "X":
-            #    self.varScales[idf] = self.offset + (config.wordLength//2 + self.demotedVarsOffsets.get("X", 0) if 'X' in self.demotedVarsList else 0) #FIX THIS to +=
+            if idf == "X" and self.scaleForX is not None:
+                self.varScales[idf] = self.scaleForX + (config.wordLength // 2 + self.demotedVarsOffsets.get("X", 0) if 'X' in self.demotedVarsList else 0) #FIX THIS to +=
 
             if isinstance(node.decl, AST.Decl):
                 self.globalVars.append(idf)
@@ -2376,18 +2380,35 @@ class IRBuilder(ASTVisitor):
             shr_B, shr_A = totalShr // 2, totalShr - totalShr // 2
         else:
             shr_A, shr_B = totalShr // 2, totalShr - totalShr // 2
+        assert shr_A >= 0 and shr_B >= 0, "Invalid state"
         assert totalShr <= config.wordLength - 1, "Values wont fit in Stage 2 of MatMul"
         # after addition
         bitsAfterAddOp = bitwidth_temp
         scaleAfterAddOp = max(scale_temp, scaleAfterMulStore)
         totalShr += (scaleAfterAddOp - scaleAfterMulStore)
         H1 = (scaleAfterAddOp - scaleAfterMulStore)
+        assert H1 >= 0, "Invalid state"
         # after adjusting according to bitwidth of output
         bitsAfterAddStore = bitwidth_out
         scaleAfterAddStore = scale_out
         totalShr += (scaleAfterAddStore - scaleAfterAddOp)
         # last stage
         demote = totalShr - shr_A - shr_B - H1
+        if demote < 0:
+            if demote + H1 >= 0:
+                H1 += demote
+                demote = totalShr - shr_A - shr_B - H1
+            else:
+                H1 = 0
+                demote = totalShr - shr_A - shr_B - H1
+                if demote + shr_A + shr_B >= 0:
+                    toAdd = demote
+                    shr_A += demote // 2
+                    shr_B += demote - demote // 2
+                    demote = totalShr - shr_A - shr_B - H1
+                else:
+                    assert "Invalid state"
+        assert demote >= 0, "Illegal state"
         demote = 2 ** demote
         return shr_A, shr_B, H1, height - H1, demote, scale_out
 

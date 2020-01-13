@@ -13,13 +13,14 @@ import seedot.util as Util
 
 class Predictor:
 
-    def __init__(self, algo, version, datasetType, outputDir, scaleForX):
+    def __init__(self, algo, version, datasetType, outputDir, scaleForX, scalesForX):
         self.algo, self.version, self.datasetType = algo, version, datasetType
 
         self.outputDir = outputDir
         os.makedirs(self.outputDir, exist_ok=True)
 
         self.scaleForX = scaleForX
+        self.scalesForX = scalesForX
 
         self.genHeaderFile()
 
@@ -41,6 +42,11 @@ class Predictor:
             file.write("typedef uint16_t MYUINT;\n\n")
 
             file.write("const int scaleForX = %d;\n\n" % (self.scaleForX))
+            if len(self.scalesForX) > 0:
+                assert len(self.scalesForX) == max(list(self.scalesForX.keys())), "Malformed array scalesForX"
+                file.write("const int scalesForX[%d] = {%s};\n" % (len(self.scalesForX), ', '.join([str(self.scalesForX[i+1]) for i in range(len(self.scalesForX))])))
+            else:
+                file.write("const int scalesForX[1] = {100}; //junk, needed for compilation\n")
 
             if Util.debugMode():
                 file.write("const bool debugMode = true;\n")
@@ -56,7 +62,7 @@ class Predictor:
 
         projFile = "Predictor.vcxproj"
         args = [config.msbuildPath, projFile, r"/t:Build",
-                r"/p:Configuration=Debug", r"/p:Platform=x64"]
+                r"/p:Configuration=Release", r"/p:Platform=x64"]
 
         logFile = os.path.join(self.outputDir, "msbuild.txt")
         with open(logFile, 'w') as file:
@@ -97,7 +103,7 @@ class Predictor:
         '''
         print("Execution...", end='')
 
-        exeFile = os.path.join("x64", "Debug", "Predictor.exe")
+        exeFile = os.path.join("x64", "Release", "Predictor.exe")
         args = [exeFile, self.version, self.datasetType]
 
         logFile = os.path.join(self.outputDir, "exec.txt")

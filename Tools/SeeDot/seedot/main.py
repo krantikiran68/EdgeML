@@ -27,6 +27,8 @@ class Main:
         self.sf = sf
         self.accuracy = {}
         self.maximisingMetric = maximisingMetric
+        self.variableSubstitutions = {} #evaluated during profiling code run
+        self.scalesForX = {} #populated for multiple code generation
 
     def setup(self):
         curr_dir = os.path.dirname(os.path.realpath(__file__))
@@ -40,7 +42,7 @@ class Main:
 
     # Generate the fixed-point code using the input generated from the
     # Converter project
-    def compile(self, version, target, sf, generateAllFiles=True, id=None, printSwitch=-1):
+    def compile(self, version, target, sf, generateAllFiles=True, id=None, printSwitch=-1, scaleForX=None):
         print("Generating code...", end='')
 
         # Set input and output files
@@ -53,8 +55,10 @@ class Main:
         if version == config.Version.floatt:
             outputLogFile = os.path.join(logDir, "log-float.txt")
         else:
-            outputLogFile = os.path.join(
-                logDir, "log-fixed-" + str(abs(sf)) + ".txt")
+            if config.ddsEnabled:
+                outputLogFile = os.path.join(logDir, "log-fixed-" + str(abs(scaleForX)) + ".txt")
+            else:
+                outputLogFile = os.path.join(logDir, "log-fixed-" + str(abs(sf)) + ".txt")
 
         if target == config.Target.arduino:
             outputDir = os.path.join(config.outdir, "arduino")
@@ -63,14 +67,21 @@ class Main:
 
         try:
             obj = Compiler(self.algo, version, target, inputFile, outputDir,
-                           profileLogFile, sf, outputLogFile, generateAllFiles, id, printSwitch)
+                           profileLogFile, sf, outputLogFile, 
+                           generateAllFiles, id, printSwitch, self.variableSubstitutions, 
+                           scaleForX)
             obj.run()
+            if version == config.Version.floatt:
+                self.variableSubstitutions = obj.substitutions
         except:
             print("failed!\n")
             #traceback.print_exc()
             return False
 
-        self.scaleForX = obj.scaleForX
+        if id is None:
+            self.scaleForX = obj.scaleForX
+        else:
+            self.scalesForX[id] = obj.scaleForX
 
         print("completed")
         return True
@@ -117,7 +128,7 @@ class Main:
         os.chdir(os.path.join(config.tempdir, "Predictor"))
 
         obj = Predictor(self.algo, version, datasetType,
-                        outputDir, self.scaleForX)
+                        outputDir, self.scaleForX, self.scalesForX)
         execMap = obj.run()
 
         os.chdir(curDir)
@@ -125,8 +136,11 @@ class Main:
         return execMap
 
     # Compile and run the generated code once for a given scaling factor
-    def partialCompile(self, version, target, sf, generateAllFiles, id, printSwitch):
-        res = self.compile(version, target, sf, generateAllFiles, id, printSwitch)
+    def partialCompile(self, version, target, scale, generateAllFiles, id, printSwitch):
+        if config.ddsEnabled:
+            res = self.compile(version, target, None, generateAllFiles, id, printSwitch, scale)
+        else:
+            res = self.compile(version, target, scale, generateAllFiles, id, printSwitch, None)
         if res == False:
             return False
         else:
@@ -183,7 +197,10 @@ class Main:
         codeId = 0
         codeIdToScaleFactorMap = {}
         for i in range(highestValidScale, lowestValidScale - 1, -1):
-            print("Testing with max scale factor of " + str(i))
+            if config.ddsEnabled:
+                print("Testing with DDS and scale of X as" + str(i))
+            else:
+                print("Testing with max scale factor of " + str(i))
 
             codeId += 1
             try:

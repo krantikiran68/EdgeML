@@ -22,7 +22,7 @@ from seedot.writer import Writer
 
 class Arduino(CodegenBase):
 
-    def __init__(self, outputDir, decls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants):
+    def __init__(self, outputDir, decls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions):
         outputFile = os.path.join(outputDir, "predict.cpp")
         self.out = Writer(outputFile)
 

@@ -25,10 +25,11 @@ import seedot.compiler.type as type
 import seedot.util as util
 import seedot.writer as writer
 
+import seedot.config as config
 
 class Compiler:
 
-    def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile, generateAllFiles=True, id=None, printSwitch=-1):
+    def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile, generateAllFiles=True, id=None, printSwitch=-1, substitutions={}, scaleForX=None):
         if os.path.isfile(inputFile) == False:
             print(inputFile)
             raise Exception("Input file doesn't exist")
@@ -45,6 +46,10 @@ class Compiler:
         self.generateAllFiles = generateAllFiles
         self.id = str(id) if id is not None else ""
         self.printSwitch = printSwitch
+
+        self.intermediateScales = {}
+        self.substitutions = substitutions
+        self.scaleForX = scaleForX
 
     def genASTFromFile(self, inputFile):
         # Parse and generate CST for the input
@@ -97,13 +102,28 @@ class Compiler:
 
         outputLog = writer.Writer(self.outputLogFile)
 
-        compiler = irBuilder.IRBuilder(outputLog)
+        if util.getVersion() == config.Version.fixed and config.ddsEnabled:
+            self.intermediateScales = self.readDataDrivenScales()
+
+        compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX)
         res = compiler.visit(ast)
 
         outputLog.close()
 
-        state = compiler.varDeclarations, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants
+        state = compiler.varDeclarations, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants, compiler.substitutions
+
+        self.substitutions = compiler.substitutions # for profiling code, substitutions get updated and this variable is then read by main.py
 
         self.scaleForX = compiler.varScales['X']
 
         return res, state
+
+    def readDataDrivenScales(self):
+        tempScales = {}
+        with open('temp/Predictor/dump.profile', 'r') as f:
+            for line in f:
+                entries = line.strip().split(",")
+                var, m, M = entries
+                m, M = float(m), float(M)
+                tempScales[var] = util.computeScalingFactor(max(abs(m), abs(M))) 
+        return tempScales

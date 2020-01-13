@@ -21,7 +21,7 @@ class Config:
     # To use sparse matrix representation whenever required
     sparseMat = True
     
-    trimHighestDecile = False
+    trimHighestDecile = config.trimHighestDecile
 
 
 # Bonsai or Protonn

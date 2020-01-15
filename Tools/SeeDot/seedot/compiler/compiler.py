@@ -108,6 +108,8 @@ class Compiler:
         compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX)
         res = compiler.visit(ast)
 
+        print(compiler.varScales)
+
         outputLog.close()
 
         state = compiler.varDeclarations, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants, compiler.substitutions

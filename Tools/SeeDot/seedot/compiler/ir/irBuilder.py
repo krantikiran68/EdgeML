@@ -1324,10 +1324,10 @@ class IRBuilder(ASTVisitor):
 
         #scale_out = self.getScale(maxExp)
         if self.ddsEnabled:
-            bitwidth_out, scale_out = self.getBitwidthAndScale(expr_out.idf)
+            bitwidth_out, _ = self.getBitwidthAndScale(expr_out.idf)
         else:
             bitwidth_out = config.wordLength // 2 if expr_out.idf in self.demotedVarsList else config.wordLength
-            scale_out = self.getScale(maxExp) + config.wordLength // 2 if expr_out.idf in self.demotedVarsList else self.getScale(maxExp)
+        scale_out = self.getScale(maxExp) + config.wordLength // 2 if expr_out.idf in self.demotedVarsList else self.getScale(maxExp)
 
         intv_out = self.getInterval(scale_out, maxExp, maxExp)
 
@@ -1354,7 +1354,7 @@ class IRBuilder(ASTVisitor):
             expr_in: "A",
             IR.Int(I): "I",
             IR.Int(J): "J"
-        })  if self.functionReducedProfiling else IR.Comment("Recommend switching on Function Reduced Profiling for sound output")
+        })  if self.functionReducedProfiling and forFloat() else IR.Comment("Recommend switching on Function Reduced Profiling for sound output")
 
         profile = IR.FuncCall("Profile2", {
             expr_out: "Var",
@@ -2395,6 +2395,8 @@ class IRBuilder(ASTVisitor):
         # last stage
         demote = totalShr - shr_A - shr_B - H1
         if demote < 0:
+            print("Rolling back shr in matrix multiplication. Current demote: %d" % (demote))
+        if demote < 0:
             if demote + H1 >= 0:
                 H1 += demote
                 demote = totalShr - shr_A - shr_B - H1
@@ -2408,7 +2410,6 @@ class IRBuilder(ASTVisitor):
                     demote = totalShr - shr_A - shr_B - H1
                 else:
                     assert "Invalid state"
-        assert demote >= 0, "Illegal state"
         demote = 2 ** demote
         return shr_A, shr_B, H1, height - H1, demote, scale_out
 

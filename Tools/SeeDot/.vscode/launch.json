@@ -14,11 +14,11 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "bonsai",
+                "rnn",
                 "-v",
                 "fixed",
                 "-d",
-                "cr-binary"
+                "dsa"
             ]
         }
     ]

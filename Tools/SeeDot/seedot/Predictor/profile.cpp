@@ -91,8 +91,14 @@ void flushProfile() {
 			min_temp[name] = FLT_MAX;
 			max_temp[name] = -FLT_MAX;
 		}
+	} else {
+		for(auto it = min_temp.begin(); it != min_temp.end(); it ++) {
+			string name = it -> first;
+			min_temp[name] = FLT_MAX;
+			max_temp[name] = -FLT_MAX;
+		}
+		range_exceeded = false;
 	}
-	range_exceeded = false;
 }
 
 void checkRange2(float* A, int I, int J) {

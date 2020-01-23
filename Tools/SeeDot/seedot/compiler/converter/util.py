@@ -68,6 +68,10 @@ def forArduino():
     return getTarget() == config.Target.arduino
 
 
+def forX86():
+    return getTarget() == config.Target.x86
+
+
 def setInputFile(inputFile):
     Config.inputFile = inputFile
 
@@ -346,12 +350,7 @@ def writeMatToFile(mat, fileName: str, delimiter):
             file.write("\n")
 
 
-def writeMatsAsArray(mats: dict, fileName: str, shapeStr=None):
-    for key in mats:
-        writeMatAsArray(mats[key], key, fileName, shapeStr)
-
-
-def writeMatAsArray(mat, name: str, fileName: str, shapeStr=None):
+def writeMatAsArray(mat, name: str, fileName: str, shapeStr=None, bw=None):
     m, n = matShape(mat)
 
     dataType, formatSpecifier = getDataType(mat[0][0])
@@ -369,9 +368,15 @@ def writeMatAsArray(mat, name: str, fileName: str, shapeStr=None):
     if forArduino():
         arduinoStr = "PROGMEM "
 
+    if config.vbwEnabled and dataType == "MYINT" and bw is not None:    
+        dataType = "int%d_t" % bw
+
     with open(fileName, 'a') as file:
-        file.write('const %s%s %s%s = {\n' %
-                   (arduinoStr, dataType, name, shapeStr))
+        if not config.vbwEnabled or "float" in fileName:
+            file.write('const %s%s %s%s = {\n' % (arduinoStr, dataType, name, shapeStr))
+        else:
+            file.write('const %s%s %s%s%s = {\n' % (arduinoStr, dataType, name, "_temp" if forX86() else "", shapeStr))
+
 
         for row in mat:
             file.write('\t')
@@ -381,12 +386,7 @@ def writeMatAsArray(mat, name: str, fileName: str, shapeStr=None):
         file.write('};\n\n')
 
 
-def writeListsAsArray(lists: dict, fileName: str, shapeStr=None):
-    for key in lists:
-        writeListAsArray(lists[key], key, fileName, shapeStr)
-
-
-def writeListAsArray(list, name: str, fileName: str, shapeStr=None):
+def writeListAsArray(list, name: str, fileName: str, shapeStr=None, bw=None):
     n = len(list)
 
     dataType, formatSpecifier = getDataType(list[0])
@@ -404,9 +404,14 @@ def writeListAsArray(list, name: str, fileName: str, shapeStr=None):
     if forArduino():
         arduinoStr = "PROGMEM "
 
+    if config.vbwEnabled and dataType == "MYINT" and bw is not None:
+        dataType = "int%d_t" % bw
+
     with open(fileName, 'a') as file:
-        file.write('const %s%s %s%s = {\n' %
-                   (arduinoStr, dataType, name, shapeStr))
+        if not config.vbwEnabled or "float" in fileName:
+            file.write('const %s%s %s%s = {\n' % (arduinoStr, dataType, name, shapeStr))
+        else:
+            file.write('const %s%s %s%s%s = {\n' % (arduinoStr, dataType, name, "_temp" if forX86() else "", shapeStr))
 
         file.write('\t')
         for cell in list:

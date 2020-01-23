@@ -29,6 +29,8 @@ class Main:
         self.maximisingMetric = maximisingMetric
         self.variableSubstitutions = {} #evaluated during profiling code run
         self.scalesForX = {} #populated for multiple code generation
+        self.variableToBitwidthMap = {} #Populated during profiling code run
+        self.sparseMatrixSizes = {} #Populated during profiling code run
 
     def setup(self):
         curr_dir = os.path.dirname(os.path.realpath(__file__))
@@ -42,8 +44,11 @@ class Main:
 
     # Generate the fixed-point code using the input generated from the
     # Converter project
-    def compile(self, version, target, sf, generateAllFiles=True, id=None, printSwitch=-1, scaleForX=None):
+    def compile(self, version, target, sf, generateAllFiles=True, id=None, printSwitch=-1, scaleForX=None, variableToBitwidthMap=None, demotedVarsList=[], demotedVarsOffsets={}):
         print("Generating code...", end='')
+
+        if variableToBitwidthMap is None:
+            variableToBitwidthMap = dict(self.variableToBitwidthMap)
 
         # Set input and output files
         inputFile = os.path.join(self.modelDir, "input.sd")
@@ -69,10 +74,12 @@ class Main:
             obj = Compiler(self.algo, version, target, inputFile, outputDir,
                            profileLogFile, sf, outputLogFile, 
                            generateAllFiles, id, printSwitch, self.variableSubstitutions, 
-                           scaleForX)
+                           -5, #scaleForX, #for debugging VBW exploration
+                           variableToBitwidthMap, self.sparseMatrixSizes, demotedVarsList, demotedVarsOffsets)
             obj.run()
             if version == config.Version.floatt:
                 self.variableSubstitutions = obj.substitutions
+                self.variableToBitwidthMap = dict.fromkeys(obj.independentVars, config.wordLength)
         except:
             print("failed!\n")
             #traceback.print_exc()
@@ -113,6 +120,8 @@ class Main:
             obj.setInput(inputFile, self.modelDir,
                          self.trainingFile, self.testingFile)
             obj.run()
+            if version == config.Version.floatt:
+                self.sparseMatrixSizes = obj.sparseMatrixSizes
         except Exception as e:
             traceback.print_exc()
             return False
@@ -136,24 +145,33 @@ class Main:
         return execMap
 
     # Compile and run the generated code once for a given scaling factor
-    def partialCompile(self, version, target, scale, generateAllFiles, id, printSwitch):
+    def partialCompile(self, version, target, scale, generateAllFiles, id, printSwitch, variableToBitwidthMap=None, demotedVarsList=[], demotedVarsOffsets={}):
         if config.ddsEnabled:
-            res = self.compile(version, target, None, generateAllFiles, id, printSwitch, scale)
+            res = self.compile(version, target, None, generateAllFiles, id, printSwitch, scale, variableToBitwidthMap, demotedVarsList, demotedVarsOffsets)
         else:
-            res = self.compile(version, target, scale, generateAllFiles, id, printSwitch, None)
+            res = self.compile(version, target, scale, generateAllFiles, id, printSwitch, None, variableToBitwidthMap, demotedVarsList, demotedVarsOffsets)
         if res == False:
             return False
         else:
             return True
 
-    def runAll(self, version, datasetType, codeIdToScaleFactorMap):
+    def runAll(self, version, datasetType, codeIdToScaleFactorMap, demotedVarsToOffsetToCodeId=None):
         execMap = self.predict(version, datasetType)
         if execMap == None:
             return False, True
 
-        for codeId, sf in codeIdToScaleFactorMap.items():
-            self.accuracy[sf] = execMap[str(codeId)]
-            print("Accuracy at scale factor %d is %.3f%%, Disagreement Count is %d, Reduced Disagreement Count is %d\n" % (sf, execMap[str(codeId)][0], execMap[str(codeId)][1], execMap[str(codeId)][2]))
+        if codeIdToScaleFactorMap is not None:
+            for codeId, sf in codeIdToScaleFactorMap.items():
+                self.accuracy[sf] = execMap[str(codeId)]
+                print("Accuracy at scale factor %d is %.3f%%, Disagreement Count is %d, Reduced Disagreement Count is %d\n" % (sf, execMap[str(codeId)][0], execMap[str(codeId)][1], execMap[str(codeId)][2]))
+        else:
+            for demotedVars in demotedVarsToOffsetToCodeId:
+                offsetToCodeId = demotedVarsToOffsetToCodeId[demotedVars]
+                print("Demoted vars: %s\n" % str(demotedVars))
+                for offset in offsetToCodeId:
+                    codeId = offsetToCodeId[offset]
+                    print("Offset %d: Accuracy %.3f%%, Disagreement Count %d, Reduced Disagreement Count %d\n" %(offset, execMap[str(codeId)][0], execMap[str(codeId)][1], execMap[str(codeId)][2]))
+                    
 
         return True, False
 
@@ -198,7 +216,7 @@ class Main:
         codeIdToScaleFactorMap = {}
         for i in range(highestValidScale, lowestValidScale - 1, -1):
             if config.ddsEnabled:
-                print("Testing with DDS and scale of X as" + str(i))
+                print("Testing with DDS and scale of X as " + str(i))
             else:
                 print("Testing with max scale factor of " + str(i))
 
@@ -224,6 +242,37 @@ class Main:
 
         self.sf = self.getBestScale()
 
+        if config.vbwEnabled:
+            if config.wordLength != 16:
+                assert False, "VBW mode only supported if native bitwidth is 16"
+            print("Scales computed in native bitwidth. Starting exploration over other bitwidths.")
+
+            attemptToDemote = [var for var in self.variableToBitwidthMap if var[-3:] != "val"]
+            numCodes = 3 * len(attemptToDemote)
+            
+            self.partialCompile(config.Version.fixed, config.Target.x86, self.sf, True, None, -1 if len(attemptToDemote) > 0 else 0, dict(self.variableToBitwidthMap), [], {})
+            codeId = 0
+            contentToCodeIdMap = {}
+            for demoteVar in attemptToDemote:
+                newbitwidths = dict(self.variableToBitwidthMap)
+                newbitwidths[demoteVar] = config.wordLength // 2
+                if demoteVar + "val" in newbitwidths:
+                    newbitwidths[demoteVar + "val"] = config.wordLength // 2
+                demotedVarsList = [i for i in newbitwidths.keys() if newbitwidths[i] != config.wordLength]
+                demotedVarsOffsets = dict.fromkeys(demotedVarsList, 0)
+
+                contentToCodeIdMap[tuple(demotedVarsList)] = {}
+                for demOffset in [0, -1, -2]:
+                    codeId+= 1
+                    for k in demotedVarsOffsets:
+                        demotedVarsOffsets[k] = demOffset
+                    contentToCodeIdMap[tuple(demotedVarsList)][demOffset] = codeId
+                    compiled = self.partialCompile(config.Version.fixed, config.Target.x86, self.sf, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demotedVarsList), dict(demotedVarsOffsets))
+                    if compiled == False:
+                        print("Variable Bitwidth exploration resulted in a compilation error")
+                        return False
+            
+            execResult, exit = self.runAll(config.Version.fixed, config.DatasetType.training, None, contentToCodeIdMap)
         return True
 
     # Reverse sort the accuracies, print the top 5 accuracies and return the

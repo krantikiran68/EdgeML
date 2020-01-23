@@ -3,6 +3,7 @@
 
 # Target word length. Currently set to match the word length of Arduino (2 bytes)
 wordLength = 16
+availableBitwidths = [8, 16, 32]
 
 # Range of max scale factor used for exploration
 maxScaleRange = 0, -wordLength
@@ -18,7 +19,7 @@ msbuildPathOptions = [r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Comm
                       ]
 
 ddsEnabled = True
-vbwEnabled = False
+vbwEnabled = True
 functionReducedProfiling = False
 
 trimHighestDecile = False

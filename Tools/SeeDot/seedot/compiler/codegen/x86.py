@@ -17,7 +17,7 @@ import time
 
 class X86(CodegenBase):
 
-    def __init__(self, outputDir, generateAllFiles, printSwitch, idStr, decls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions):
+    def __init__(self, outputDir, generateAllFiles, printSwitch, idStr, decls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth):
         self.outputDir = outputDir
         cppFile = os.path.join(
             self.outputDir, "seedot_" + getVersion() + ".cpp")
@@ -49,18 +49,21 @@ class X86(CodegenBase):
         self.idStr = idStr
         self.printSwitch = printSwitch
 
+        self.demotedVarsOffsets = demotedVarsOffsets
+        self.varsForBitwidth = varsForBitwidth
+
     def printPrefix(self):
 
         if self.generateAllFiles:
             self.printCincludes()
 
+            self.printExpTables()
+
             self.printVarDecls()
 
         self.printCHeader()
 
-        self.printExpTables()
-
-        #self.printModelParamsWithBitwidth()
+        self.printModelParamsWithBitwidth()
 
         self.printConstDecls()
 
@@ -110,9 +113,43 @@ class X86(CodegenBase):
             type = "MYINT"
         if forFloat():
             self.out.printf('int seedot%s(%s **X) {\n' % (func, type), indent=True)
-        else: #TODO: X_temp
-            self.out.printf('int seedot%s%s(%s **X) {\n' % (func, self.idStr if not self.generateAllFiles else "", type), indent=True)
+        else: 
+            self.out.printf('int seedot%s%s(%s **X%s) {\n' % (func, self.idStr if not self.generateAllFiles else "", type, "_temp" if config.vbwEnabled else ""), indent=True)
         self.out.increaseIndent()
+
+    def printModelParamsWithBitwidth(self):
+        if config.vbwEnabled and forFixed():
+            for var in self.globalVars:
+                if var + "idx" in self.globalVars and var + "val" in self.globalVars:
+                    continue
+                bw = self.varsForBitwidth[var]
+                typ_str = "int%d_t" % bw
+                size = self.decls[var].shape
+                sizestr = ''.join(["[%d]" % (i) for i in size])
+
+                Xindexstr = ''
+                Xintstar = ''.join(["*" for i in size])
+
+                if var != 'X':
+                    self.out.printf(typ_str + " " + var + sizestr + ";\n", indent = True)
+                else:
+                    self.out.printf(typ_str + Xintstar + " " + var + ";\n", indent = True)
+
+                for i in range(len(size)):
+                    Xindexstr += ("[i" + str(i-1) + "]" if i > 0 else "")
+                    if var == 'X':
+                        Xintstar = Xintstar[:-1]
+                        self.out.printf("X%s = new %s%s[%d];\n" % (Xindexstr, typ_str, Xintstar, size[i]), indent=True)
+                    self.out.printf("for (int i%d = 0; i%d < %d; i%d ++) {\n" % (i,i,size[i], i), indent = True)
+                    self.out.increaseIndent()
+
+                indexstr = ''.join("[i" + str(i) + "]" for i in range(len(size)))
+                divide = int(round(np.ldexp(1, config.wordLength - self.varsForBitwidth[var] + (self.demotedVarsOffsets.get(var, 0) if self.varsForBitwidth[var] != config.wordLength else 0) ))) if var[-3:] != "idx" else 1
+                self.out.printf(var + indexstr + " = " + var + "_temp" + indexstr + "/" + str(divide) + ";\n", indent = True)
+
+                for i in range(len(size)):
+                    self.out.decreaseIndent()
+                    self.out.printf("}\n", indent = True)
 
     def printVarDecls(self):
         if self.generateAllFiles:
@@ -131,6 +168,12 @@ class X86(CodegenBase):
 
             if forFloat() and decl not in self.internalVars:
                 typ_str = IR.DataType.getFloatStr()
+            elif forFixed() and decl not in self.internalVars:
+                if config.vbwEnabled and decl not in self.internalVars:
+                    bw = self.varsForBitwidth[decl]
+                    typ_str = "int%d_t" % bw
+                else:
+                    typ_str = IR.DataType.getIntStr()
             else:
                 typ_str = IR.DataType.getIntStr()
 
@@ -141,11 +184,25 @@ class X86(CodegenBase):
             elif Type.isTensor(type):
                 shape_str = ''.join(['[' + str(n) + ']' for n in type.shape])
 
-            self.out.printf('%s vars_%s::%s%s;\n', typ_str,
-                            getVersion(), idf_str, shape_str, indent=True)
-            if self.generateAllFiles:
-                varsFile.printf('extern %s %s%s;\n', typ_str,
-                            idf_str, shape_str, indent=True)
+            if not config.vbwEnabled:
+                self.out.printf('%s vars_%s::%s%s;\n', typ_str,
+                                getVersion(), idf_str, shape_str, indent=True)
+                if self.generateAllFiles:
+                    varsFile.printf('extern %s %s%s;\n', typ_str,
+                                idf_str, shape_str, indent=True)
+            else:
+                if forFixed() and idf_str in self.varsForBitwidth and idf_str[:3] == "tmp":
+                    for bw in config.availableBitwidths:
+                        self.out.printf("int%d_t vars_%s::%s_%d%s;\n", bw, getVersion(), idf_str, bw, shape_str, indent=True)
+                else:
+                    self.out.printf("%s vars_%s::%s%s;\n", typ_str, getVersion(), idf_str, shape_str, indent=True)
+
+                if self.generateAllFiles:
+                    if forFixed() and idf_str in self.varsForBitwidth and idf_str[:3] == "tmp":
+                        for bw in config.availableBitwidths:
+                            varsFile.printf("extern int%d_t %s_%d%s;\n", bw, idf_str, bw, shape_str, indent=True)
+                    else:
+                        varsFile.printf("extern %s %s%s;\n", typ_str, idf_str, shape_str, indent=True)
 
         self.out.printf('\n')
         if self.generateAllFiles:
@@ -154,40 +211,6 @@ class X86(CodegenBase):
             varsFile.close()
 
         self.generateDebugProgram()
-
-    def printModelParamsWithBitwidth(self):
-        if forFixed():
-            for var in self.globalVars:
-                if var + "idx" in self.globalVars and var + "val" in self.globalVars:
-                    continue
-                bw = self.varsForBitwidth[var]
-                typ_str = "int" + str(bw) + "_t"
-                size = self.decls[var].shape
-                sizestr = ''.join(["[" + str(i) + "]" for i in size])
-
-                Xindexstr = ''
-                Xintstar =  ''.join(["*" for i in size])
-
-                if var != 'X':
-                    self.out.printf(typ_str + " " + var + sizestr +";\n" , indent = True)
-                else:
-                    self.out.printf(typ_str + Xintstar + " " + var +";\n" , indent = True)
-
-                for i in range(len(size)):
-                    Xindexstr += ("[i" + str(i-1) + "]" if i > 0 else "")
-                    if var == 'X':
-                        Xintstar = Xintstar[:-1]
-                        self.out.printf("X%s = new %s%s[%d];\n" %(Xindexstr, typ_str, Xintstar, size[i]), indent=True)
-                    self.out.printf("for (int i%d = 0; i%d < %d; i%d ++) {\n" %(i, i, size[i], i) , indent = True)
-                    self.out.increaseIndent()
-
-                indexstr = ''.join("[i" + str(i) + "]" for i in range(len(size)))
-                divide = int(round(np.ldexp(1, Common.wordLength - self.varsForBitwidth[var] + (self.demotedVarsOffsets.get(var,0) if self.varsForBitwidth[var] != Common.wordLength else 0) ))) if var[-3:] != "idx" else 1
-                self.out.printf(var + indexstr + " = " + var + "_temp" + indexstr + " / " + str(divide) + ";\n", indent = True)
-
-                for i in range(len(size)):
-                    self.out.decreaseIndent()
-                    self.out.printf("}\n" , indent = True)
 
     def generateDebugProgram(self):
         if not self.generateAllFiles:
@@ -231,6 +254,28 @@ class X86(CodegenBase):
 
     def printSuffix(self, expr: IR.Expr):
         self.out.printf('\n')
+
+        if config.vbwEnabled and forFixed():
+            bw = self.varsForBitwidth['X']
+            typ_str = "int%d_t" % bw
+            size = self.decls['X'].shape
+            sizestr = ''.join([("[%d]" % i) for i in size])
+
+            Xindexstr = ''
+            Xintstar = ''.join(["*" for i in size])
+
+            for i in range(len(size)):
+                Xindexstr += (("[i%d]" % (i-1)) if i > 0 else "")
+                self.out.printf("for (int i%d = 0; i%d < %d; i%d ++ ){\n" % (i,i,size[i],i), indent=True)
+                self.out.increaseIndent()
+
+            for i in range(len(size)-1, -1, -1):
+                self.out.decreaseIndent()
+                self.out.printf("}\n", indent=True)
+                self.out.printf("delete[] X%s;\n" % (Xindexstr), indent=True)
+                Xindexstr = Xindexstr[:-4] if len(Xindexstr) > 0 else Xindexstr
+                assert len(size) < 10, "Too simple logic for printing indices used, cannot handle 10+ Dim Tensors"
+
 
         type = self.decls[expr.idf]
 

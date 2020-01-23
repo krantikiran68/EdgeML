@@ -476,7 +476,7 @@ void SparseMatMul(const MYINT *Aidx, const MYINT *Aval, MYINT **B, MYINT *C, int
 		b = b / shrB;
 #endif
 
-		MYINT idx = Aidx[ite_idx];
+		MYITE idx = Aidx[ite_idx];
 		while (idx != 0)
 		{
 			MYINT a = Aval[ite_val];

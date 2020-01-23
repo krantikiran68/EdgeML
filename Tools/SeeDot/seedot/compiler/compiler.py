@@ -29,7 +29,7 @@ import seedot.config as config
 
 class Compiler:
 
-    def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile, generateAllFiles=True, id=None, printSwitch=-1, substitutions={}, scaleForX=None):
+    def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile, generateAllFiles=True, id=None, printSwitch=-1, substitutions={}, scaleForX=None, variableToBitwidthMap={}, sparseMatrixSizes={}, demotedVarsList=[], demotedVarsOffsets={}):
         if os.path.isfile(inputFile) == False:
             print(inputFile)
             raise Exception("Input file doesn't exist")
@@ -50,6 +50,12 @@ class Compiler:
         self.intermediateScales = {}
         self.substitutions = substitutions
         self.scaleForX = scaleForX
+
+        self.variableToBitwidthMap = variableToBitwidthMap
+        self.sparseMatrixSizes = sparseMatrixSizes
+
+        self.demotedVarsList = demotedVarsList
+        self.demotedVarsOffsets = demotedVarsOffsets
 
     def genASTFromFile(self, inputFile):
         # Parse and generate CST for the input
@@ -105,14 +111,18 @@ class Compiler:
         if util.getVersion() == config.Version.fixed and config.ddsEnabled:
             self.intermediateScales = self.readDataDrivenScales()
 
-        compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX)
+        compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
         res = compiler.visit(ast)
 
         print(compiler.varScales)
 
         outputLog.close()
 
-        state = compiler.varDeclarations, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants, compiler.substitutions
+        state = compiler.varDeclarations, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants, compiler.substitutions, compiler.demotedVarsOffsets, compiler.varsForBitwidth
+
+        if util.getVersion() == config.Version.floatt:
+            self.independentVars = list(compiler.independentVars)
+            self.independentVars += compiler.globalVars
 
         self.substitutions = compiler.substitutions # for profiling code, substitutions get updated and this variable is then read by main.py
 

@@ -19,25 +19,33 @@ from seedot.util import *
 
 class IRBuilder(ASTVisitor):
 
-    def __init__(self, outputLog, ddsScaleInfo = {}, substitutions = {}, scaleForX = None):
+    def __init__(self, outputLog, ddsScaleInfo = {}, substitutions = {}, scaleForX = None, variableToBitwidthMap={}, sparseMatrixSizes={}, demotedVarsList=[], demotedVarsOffsets={}):
 
         self.log = outputLog
 
         self.intermediateVarScales = ddsScaleInfo #populated when ddsEnabled
         self.substitutions = substitutions #for storing variable rename info
 
-        self.varsForBitwidth = {} #maps all modifiable variables to 16 in beginning, may be modified in this code
+        self.varsForBitwidth = variableToBitwidthMap #maps all modifiable variables to 16 in beginning, may be modified in this code
 
-        self.demotedVarsList = [] #list of all variables to be given config.wordlength // 2 bitwidth
-        self.demotedVarsOffsets = {} #demotedVarsList variables offset while conversion from config.wordLength to config.wordlength // 2
+        self.demotedVarsList = demotedVarsList #list of all variables to be given config.wordlength // 2 bitwidth
+        self.demotedVarsOffsets = demotedVarsOffsets #demotedVarsList variables offset while conversion from config.wordLength to config.wordlength // 2
 
-        self.independentBitwidthVars = self.varsForBitwidth.keys()
+        self.independentBitwidthVars = [i for i in self.varsForBitwidth]
 
         self.ddsEnabled = config.ddsEnabled
-        self.vbwEnabled = config.vbwEnabled
+        self.vbwEnabled = config.vbwEnabled and forFixed() #self.vbwEnabled will decide templated functions to be used or not
         self.functionReducedProfiling = config.functionReducedProfiling
 
+        self.sparseMatrixSizes = sparseMatrixSizes
+
         self.scaleForX = scaleForX
+
+        for i in self.demotedVarsList:
+            self.varsForBitwidth[i] = config.wordLength // 2
+
+        if forFloat():
+            self.independentVars = [] #To store the variables whose bitwidths can be tweaked
 
         # MAX_SCALE is used at each operation to compute scale parameters
         # It is not used for floating-poing code generation
@@ -203,6 +211,11 @@ class IRBuilder(ASTVisitor):
             expr_out: "B",
             IR.Int(I): "I",
             IR.Int(J): "J"
+        }) if not self.vbwEnabled else IR.FuncCall("Transpose<int%d_t>" % (bw_out), {
+            expr_in: "A",
+            expr_out: "B",
+            IR.Int(I): "I",
+            IR.Int(J): "J"
         })
 
         prog_transp = IR.Prog([comment, funcCall])
@@ -287,6 +300,9 @@ class IRBuilder(ASTVisitor):
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_reshape)
 
+        if forFloat() and self.ddsEnabled:
+            self.substitutions[expr_out.idf] = expr_in.idf #Scale and bitwidth will be conserved for input and output
+
         # Update context
         self.varDeclarations[expr_out.idf] = type_out
         self.varScales[expr_out.idf] = scale_out
@@ -313,6 +329,7 @@ class IRBuilder(ASTVisitor):
         bw_in, scale_in = self.getBitwidthAndScale(expr_in.idf)
         if self.ddsEnabled:
             bw_out, scale_out = self.getBitwidthAndScale(expr_out.idf)
+            assert bw_out == bw_in and scale_out == scale_in
         else:
             bw_out, scale_out = bw_in, scale_in
         demote = 2 ** (scale_out - scale_in)
@@ -340,6 +357,15 @@ class IRBuilder(ASTVisitor):
             IR.Int(W): "W",
             IR.Int(C): "C",
             IR.Int(stride): "stride"
+        }) if not self.vbwEnabled else IR.FuncCall("Maxpool<int%d_t, int%d_t>"%(bw_in, bw_out), {
+            expr_in: "A",
+            expr_out: "B",
+            IR.Int(N): "N",
+            IR.Int(H): "H",
+            IR.Int(W): "W",
+            IR.Int(C): "C",
+            IR.Int(stride): "stride",
+            IR.Int(demote): "demote"
         })
 
         prog_maxpool = IR.Prog([comment, funcCall])
@@ -567,7 +593,7 @@ class IRBuilder(ASTVisitor):
         expr_out.inputVar = False
 
         comment = IR.Comment(expr_in_A.idf + ' * ' + expr_in_B.idf)
-
+        bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
         funcCall = IR.FuncCall("ScalarMul", {
             a: "A",
             b: "B",
@@ -576,6 +602,15 @@ class IRBuilder(ASTVisitor):
             IR.Int(J): "J",
             shr_a: "shr1",
             shr_b: "shr2"
+        }) if not self.vbwEnabled else IR.FuncCall("ScalarMul<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
+            a: "A",
+            b: "B",
+            expr_out: "C",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            shr_a: "shr1",
+            shr_b: "shr2",
+            IR.Int(demote): "demote"
         })
 
         profile = IR.FuncCall("Profile2", {
@@ -584,7 +619,8 @@ class IRBuilder(ASTVisitor):
             IR.Int(J): "J",
             IR.String(expr_out): "VarName"
         })
-
+        if forFloat():
+            self.independentVars.append(expr_out.idf)
 
         prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
@@ -671,7 +707,9 @@ class IRBuilder(ASTVisitor):
             self.varsForBitwidth[expr_treeSum.idf] = bitwidth_temp
 
         comment = IR.Comment(expr_in_A.idf + ' * ' + expr_in_B.idf)
-
+        bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
+        if self.vbwEnabled:
+            self.varsForBitwidth[expr_treeSum.idf] = bitwidth_mul
         funcCall = IR.FuncCall("MatMul" + c, {
             expr_in_A: "A",
             expr_in_B: "B",
@@ -684,6 +722,19 @@ class IRBuilder(ASTVisitor):
             shr_B: "shr2",
             IR.Int(H1): "H1",
             IR.Int(H2): "H2"
+        }) if not self.vbwEnabled else IR.FuncCall("MatMul" + c + ("<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out)), {
+            expr_in_A: "A",
+            expr_in_B: "B",
+            expr_out: "C",
+            expr_treeSum: "T",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            IR.Int(K): "K",
+            shr_A: "shr1",
+            shr_B: "shr2",
+            IR.Int(H1): "H1",
+            IR.Int(H2): "H2",
+            IR.Int(demote): "demote"
         })
 
         profile = IR.FuncCall("Profile2", {
@@ -692,6 +743,8 @@ class IRBuilder(ASTVisitor):
             IR.Int(K): "J",
             IR.String(expr_out): "VarName"
         })
+        if forFloat():
+            self.independentVars.append(expr_out.idf)
 
         prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
@@ -729,6 +782,7 @@ class IRBuilder(ASTVisitor):
         type_out = node.type
 
         bitwidth_in_A, scale_in_A = self.getBitwidthAndScale(expr_in_A.idf)
+        bitwidth_in_Aid = (config.wordLength // 2) if (expr_in_A.idf[0] + 'idx') in self.demotedVarsList else config.wordLength
         bitwidth_in_B, scale_in_B = self.getBitwidthAndScale(expr_in_B.idf)
         if self.ddsEnabled:
             bitwidth_out, scale_out = self.getBitwidthAndScale(expr_out.idf)
@@ -772,7 +826,7 @@ class IRBuilder(ASTVisitor):
         comment = IR.Comment(expr_in_A.idf + ' |*| ' + expr_in_B.idf)
 
         cmd1 = IR.Memset(expr_out, type_out.size())
-
+        bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
         funcCall = IR.FuncCall("SparseMatMul", {
             in_A_idx: "Aidx",
             in_A_val: "Aval",
@@ -782,6 +836,16 @@ class IRBuilder(ASTVisitor):
             shr_A: "shrA",
             shr_B: "shrB",
             height_shr: "shrC"
+        }) if not self.vbwEnabled else IR.FuncCall("SparseMatMul<int%d_t, int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_Aid, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
+            in_A_idx: "Aidx",
+            in_A_val: "Aval",
+            expr_in_B: "B",
+            expr_out: "C",
+            IR.Int(Q): "K",
+            shr_A: "shrA",
+            shr_B: "shrB",
+            height_shr: "shrC",
+            IR.Int(demote): "demote"
         })
 
         profile = IR.FuncCall("Profile2", {
@@ -790,6 +854,8 @@ class IRBuilder(ASTVisitor):
                                 IR.Int(R): "J",
                                 IR.String(expr_out): "VarName"
                                 })
+        if forFloat():
+            self.independentVars.append(expr_out.idf)
 
         prog_mul = IR.Prog([comment, cmd1, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, cmd1, funcCall])
 
@@ -799,10 +865,8 @@ class IRBuilder(ASTVisitor):
         self.varScales[expr_out.idf] = scale_out
         self.varIntervals[expr_out.idf] = intv_out
 
-        # TODO: Length of Aidx and Aval hard coded to 100
-        # This is safe as it will be ignored in the generated code
-        self.varDeclarations.update({in_A_idx.idf: Type.Tensor([100]),
-                                     in_A_val.idf: Type.Tensor([100]),
+        self.varDeclarations.update({in_A_idx.idf: Type.Tensor([self.sparseMatrixSizes[expr_in_A.idf[0] + 'idx']]),
+                                     in_A_val.idf: Type.Tensor([self.sparseMatrixSizes[expr_in_A.idf[0] + 'val']]),
                                      })
         self.globalVars.append(in_A_idx.idf)
         self.globalVars.append(in_A_val.idf)
@@ -860,7 +924,7 @@ class IRBuilder(ASTVisitor):
         expr_out.inputVar = False
 
         comment = IR.Comment(expr_in_A.idf + ' <*> ' + expr_in_B.idf)
-
+        bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
         funcCall = IR.FuncCall("MulCir", {
             expr_in_A: "A",
             expr_in_B: "B",
@@ -869,6 +933,15 @@ class IRBuilder(ASTVisitor):
             IR.Int(J): "J",
             shr_A: "shrA",
             shr_B: "shrB"
+        }) if not self.vbwEnabled else IR.FuncCall("MulCir<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
+            expr_in_A: "A",
+            expr_in_B: "B",
+            expr_out: "C",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            shr_A: "shrA",
+            shr_B: "shrB",
+            IR.Int(demote): "demote"
         })
 
         profile = IR.FuncCall("Profile2", {
@@ -877,6 +950,8 @@ class IRBuilder(ASTVisitor):
             IR.Int(J): "J",
             IR.String(expr_out): "VarName"
         })
+        if forFloat():
+            self.independentVars.append(expr_out.idf)
 
         prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
@@ -1057,6 +1132,8 @@ class IRBuilder(ASTVisitor):
             })
         else:
             assert False, "AddCir only supports 2D and 4D tensors."
+        if forFloat():
+            self.independentVars.append(expr_out.idf)
 
         prog_cir = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
@@ -1174,6 +1251,16 @@ class IRBuilder(ASTVisitor):
                 shr_A: "shrA",
                 shr_B: "shrB",
                 shr_out: "shrC"
+            }) if not self.vbwEnabled else IR.FuncCall(funcName + c + ("<int%d_t, int%d_t, int%d_t>" % (bitwidth_in_A, bitwidth_in_B, bitwidth_out)), {
+                expr_in_A: "A",
+                expr_in_B: "B",
+                expr_out: "C",
+                IR.Int(I): "I",
+                IR.Int(J): "J",
+                shr_A: "shrA",
+                shr_B: "shrB",
+                shr_out: "shrC",
+                irdemote: "demote"
             })
 
             profile = IR.FuncCall("Profile2", {
@@ -1182,6 +1269,8 @@ class IRBuilder(ASTVisitor):
                                 IR.Int(J): "J",
                                 IR.String(expr_out): "VarName"
                                 })
+            if forFloat():
+                self.independentVars.append(expr_out.idf)
 
             adjust = []
             if forFixed():
@@ -1243,7 +1332,7 @@ class IRBuilder(ASTVisitor):
     def visitRelu(self, node: AST.Func):
 
         (prog_in, expr_in) = self.visit(node.expr)
-
+        assert False, "not handled relu"
         (m, M) = self.varIntervals[expr_in.idf]
         if m < 0:
             m = 0
@@ -1348,6 +1437,14 @@ class IRBuilder(ASTVisitor):
             shr1: "shrA",
             shr2: "shrB",
             expr_out: "B"
+        }) if not self.vbwEnabled else IR.FuncCall("Exp<int%d_t, int%d_t>"%(bitwidth_in, bitwidth_out), {
+            expr_in: "A",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            shr1: "shrA",
+            shr2: "shrB",
+            expr_out: "B",
+            IR.Int(1): "demote"
         })
 
         rangeCheck = IR.FuncCall("checkRange2", {
@@ -1362,6 +1459,8 @@ class IRBuilder(ASTVisitor):
             IR.Int(J): "J",
             IR.String(expr_out): "VarName"
         })
+        if forFloat():
+            self.independentVars.append(expr_out.idf)
 
         prog_exp = IR.Prog([cmd0, rangeCheck, funcCall, profile] if forFloat() and self.ddsEnabled else [cmd0, funcCall])
 
@@ -1568,6 +1667,11 @@ class IRBuilder(ASTVisitor):
             IR.Int(I): "I",
             IR.Int(J): "J",
             expr_out: "index"
+        }) if not self.vbwEnabled else IR.FuncCall("ArgMax<int%d_t>"%(bitwidth_in), {
+            expr_in: "A",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            expr_out: "index"
         })
 
         prog_argmax = IR.Prog([comment, funcCall])
@@ -1644,6 +1748,12 @@ class IRBuilder(ASTVisitor):
         tanh_limit_out = 2 ** -scale_out
 
         funcCall = IR.FuncCall("TanH", {
+            expr_in: "A",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            tanh_limit: "scale_in",
+            IR.Int(tanh_limit_out): "scale_out"
+        }) if not self.vbwEnabled else IR.FuncCall("TanH<int%d_t>"%(bitwidth_in), {
             expr_in: "A",
             IR.Int(I): "I",
             IR.Int(J): "J",
@@ -1729,6 +1839,15 @@ class IRBuilder(ASTVisitor):
             sigmoid_limit_ir: "sigmoid_limit",
             IR.Int(scale_in_num): "scale_in",
             IR.Int(scale_out_num): "scale_out"
+        }) if not self.vbwEnabled else IR.FuncCall("Sigmoid<int%d_t>"%(bitwidth_in), {
+            expr_in: "A",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            IR.Int(denominator): "div",
+            addition_ir: "add",
+            sigmoid_limit_ir: "sigmoid_limit",
+            IR.Int(scale_in_num): "scale_in",
+            IR.Int(scale_out_num): "scale_out"
         })
 
         prog_sigmoid = IR.Prog([comment, funcCall])
@@ -1802,7 +1921,10 @@ class IRBuilder(ASTVisitor):
 
         cmd1 = IR.Memset(expr_out, type_out.size())
         if self.ddsEnabled:
-            cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shl(expr_in_idx, max(scale_raw - scale_out, 0))))
+            if scale_raw > scale_out:
+                cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shl(expr_in_idx, scale_raw - scale_out, 0)))
+            else:
+                cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shr(expr_in_idx, scale_out - scale_raw, 0)))
         else:
             cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shr(expr_in_idx, height_shr)))
         treeSum = IRUtil.loop(type_out.shape, iters, [cmd2])
@@ -1815,6 +1937,8 @@ class IRBuilder(ASTVisitor):
                 IR.Int(type_out.shape[1]): "J",
                 IR.String(expr_out): "VarName"
             })]
+        if forFloat():
+            self.independentVars.append(expr_out.idf)
 
         # Final program to sum output of each iteration
         prog_sum = [cmd1,
@@ -1989,7 +2113,7 @@ class IRBuilder(ASTVisitor):
                     self.varsForBitwidth[expr_decl.idf] = config.wordLength
 
             if idf == "X" and self.scaleForX is not None:
-                self.varScales[idf] = self.scaleForX + (config.wordLength // 2 + self.demotedVarsOffsets.get("X", 0) if 'X' in self.demotedVarsList else 0) #FIX THIS to +=
+                self.varScales[idf] = self.scaleForX + (config.wordLength // 2 + self.demotedVarsOffsets.get("X", 0) if 'X' in self.demotedVarsList else 0)
 
             if isinstance(node.decl, AST.Decl):
                 self.globalVars.append(idf)
@@ -2016,7 +2140,7 @@ class IRBuilder(ASTVisitor):
                 #assert diff_scale == 0, "I did NOT see this coming"
 
                 [I, J] = type_decl.shape
-
+                bitwidth_decl, scale_decl = self.getBitwidthAndScale(expr_decl.idf)
                 adjust = []
                 if curr_scale != new_scale:
                     if curr_scale > new_scale:
@@ -2025,14 +2149,24 @@ class IRBuilder(ASTVisitor):
                                             IR.Int(I): "I",
                                             IR.Int(J): "J",
                                             IR.Int(diff_scale): "scale"
-                                            })]
+                                 })] if not self.vbwEnabled else [IR.FuncCall("AdjustScaleShl<int%d_t>"%(bitwidth_decl), {
+                                            IR.Var(idf): "A",
+                                            IR.Int(I): "I",
+                                            IR.Int(J): "J",
+                                            IR.Int(diff_scale): "scale"
+                                 })]
                     elif curr_scale < new_scale:
                         adjust = [IR.FuncCall("AdjustScaleShr", {
                                             IR.Var(idf): "A",
                                             IR.Int(I): "I",
                                             IR.Int(J): "J",
                                             IR.Int(diff_scale): "scale"
-                                            })]
+                                 })] if not self.vbwEnabled else [IR.FuncCall("AdjustScaleShr<int%d_t>"%(bitwidth_decl), {
+                                            IR.Var(idf): "A",
+                                            IR.Int(I): "I",
+                                            IR.Int(J): "J",
+                                            IR.Int(diff_scale): "scale"
+                                 })]
 
                 prog_for_mutable = IR.Prog(adjust)
 
@@ -2359,7 +2493,7 @@ class IRBuilder(ASTVisitor):
             hiddenDim
         ):
         bitwidth_mul = max(bitwidth_in_A, bitwidth_in_B) 
-        bitwidth_mul = bitwidth_mul * 2 if self.vbwEnabled else bitwidth_mul
+        bitwidth_mul = bitwidth_mul * 2 if config.vbwEnabled else bitwidth_mul
         height = int(np.ceil(np.log2(hiddenDim)))
         if forFloat():
             return 1, 1, 0, height, 1, scale_out if scale_out is not None else 0
@@ -2394,6 +2528,17 @@ class IRBuilder(ASTVisitor):
         totalShr += (scaleAfterAddStore - scaleAfterAddOp)
         # last stage
         demote = totalShr - shr_A - shr_B - H1
+        if height < H1:
+            print("Rolling back H1 in matrix multiplication. Current H1: %d height: %d" % (H1, height))
+        if height < H1:
+            diff = H1 - height
+            H1 = height
+            if shr_A >= shr_B:
+                shr_A += diff // 2
+                shr_B += diff - diff // 2
+            else:
+                shr_B += diff // 2
+                shr_A += diff - diff // 2
         if demote < 0:
             print("Rolling back shr in matrix multiplication. Current demote: %d" % (demote))
         if demote < 0:

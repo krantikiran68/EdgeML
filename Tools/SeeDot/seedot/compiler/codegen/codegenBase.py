@@ -36,7 +36,16 @@ class CodegenBase:
         self.out.printf('%ff', ir.n)
 
     def printVar(self, ir):
-        self.out.printf('%s', ir.idf)
+        if config.vbwEnabled and forFixed():
+            if hasattr(self, "varsForBitwidth"):
+                if ir.idf in self.varsForBitwidth and ir.idf[:3] == "tmp":
+                    self.out.printf("%s_%d", ir.idf, self.varsForBitwidth[ir.idf])
+                else:
+                    self.out.printf("%s", ir.idf)
+            else:
+                assert False, "Illegal state, codegenBase must have variable bitwidth info for VBW mode"
+        else:
+            self.out.printf("%s", ir.idf)
         for e in ir.idx:
             self.out.printf('[')
             self.print(e)
@@ -149,7 +158,7 @@ class CodegenBase:
         self.print(ir.cond)
         self.out.printf('; ')
         self.print(ir.var)
-        self.out.printf('++) {\n')
+        self.out.printf('++) {\n') #TODO: What if --?
 
     def printWhile(self, ir):
         self.out.printf('while (', indent=True)
@@ -189,8 +198,14 @@ class CodegenBase:
     def printMemset(self, ir):
         self.out.printf('memset(', indent=True)
         self.print(ir.e)
+        typ_str = "MYINT"
+        if config.vbwEnabled:
+            if hasattr(self, 'varsForBitwidth'):
+                typ_str = ("int%d_t" % (self.varsForBitwidth[ir.e.idf])) if ir.e.idf in self.varsForBitwidth else typ_str
+            else:
+                assert False, "Illegal state, VBW mode but no variable information present"
         self.out.printf(', 0, sizeof(%s) * %d);\n' %
-                        ("float" if forFloat() else "MYINT", ir.len))
+                        ("float" if forFloat() else typ_str, ir.len))
 
     def printPrint(self, ir):
         self.out.printf('cout << ', indent=True)
@@ -281,6 +296,11 @@ class CodegenBase:
                 typ_str = IR.DataType.getFloatStr()
             else:
                 typ_str = IR.DataType.getIntStr()
+                if self.vbwEnabled:
+                    if hasattr(self, 'varsForBitwidth'):
+                        typ_str = ("int%d_t" % (self.varsForBitwidth[decl])) if decl in self.varsForBitwidth else typ_str
+                    else:
+                        assert False, "VBW enabled but bitwidth info missing"
 
             idf_str = decl
             type = self.decls[decl]
@@ -300,11 +320,21 @@ class CodegenBase:
                 self.out.printf('%s = %f;\n', var,
                                 self.floatConstants[var], indent=True)
             else:
-                if np.iinfo(np.int16).min <= num <= np.iinfo(np.int16).max:
-                    self.out.printf('%s = %d;\n', var, num, indent=True)
-                elif np.iinfo(np.int32).min <= num <= np.iinfo(np.int32).max:
-                    self.out.printf('%s = %dL;\n', var, num, indent=True)
-                elif np.iinfo(np.int64).min <= num <= np.iinfo(np.int64).max:
-                    self.out.printf('%s = %dLL;\n', var, num, indent=True)
+                if self.vbwEnabled and var in self.varsForBitwidth.keys() and forX86():
+                    if np.iinfo(np.int16).min <= num <= np.iinfo(np.int16).max:
+                        self.out.printf('%s_%d = %d;\n', var, self.varsForBitwidth[var], num, indent=True)
+                    elif np.iinfo(np.int32).min <= num <= np.iinfo(np.int32).max:
+                        self.out.printf('%s_%d = %dL;\n', var, self.varsForBitwidth[var], num, indent=True)
+                    elif np.iinfo(np.int64).min <= num <= np.iinfo(np.int64).max:
+                        self.out.printf('%s_%d = %dLL;\n', var, self.varsForBitwidth[var], num, indent=True)
+                    else:
+                        assert False
                 else:
-                    assert False
+                    if np.iinfo(np.int16).min <= num <= np.iinfo(np.int16).max:
+                        self.out.printf('%s = %d;\n', var, num, indent=True)
+                    elif np.iinfo(np.int32).min <= num <= np.iinfo(np.int32).max:
+                        self.out.printf('%s = %dL;\n', var, num, indent=True)
+                    elif np.iinfo(np.int64).min <= num <= np.iinfo(np.int64).max:
+                        self.out.printf('%s = %dLL;\n', var, num, indent=True)
+                    else:
+                        assert False

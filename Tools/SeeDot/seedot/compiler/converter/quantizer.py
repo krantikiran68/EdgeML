@@ -17,6 +17,9 @@ from seedot.compiler.converter.util import *
 
 class Quantizer:
 
+    def __init__(self):
+        self.sparseMatSizes = {}
+
     def genASTFromFile(self, inputFile):
         # Parse and generate CST for the input
         lexer = SeeDotLexer(FileStream(inputFile))
@@ -110,7 +113,7 @@ class Quantizer:
 
         if forArduino() and dumpDataset():
             scaleOfX = computeScale(*self.trainDatasetRange)
-
+            assert False, "Handle this, need precomputed Xscale to avoid error"
             writeListAsArray(self.X[0], 'X', self.headerFile)
             writeVars({'scaleOfX': scaleOfX}, self.headerFile)
             writeVars({'Y': self.Y[0][0]}, self.headerFile)
@@ -119,11 +122,20 @@ class Quantizer:
             if param.sparse:
                 transp = matTranspose(param.data)
                 val, idx = convertToSparse(transp)
-                writeListsAsArray(
-                    {param.name + 'val': val, param.name + 'idx': idx}, self.headerFile)
+                self.sparseMatSizes[param.name + 'val'] = len(val)
+                self.sparseMatSizes[param.name + 'idx'] = len(idx)
+                if forArduino():
+                    writeListAsArray(val, param.name + 'val', self.headerFile, None, self.varsForBitwidth[param.name + 'val'])
+                    writeListAsArray(idx, param.name + 'idx', self.headerFile, None, self.varsForBitwidth[param.name + 'idx'])
+                else:
+                    writeListAsArray(val, param.name + 'val', self.headerFile)
+                    writeListAsArray(idx, param.name + 'idx', self.headerFile)
             else:
-                writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=(
-                    "[%d]" * len(param.shape)) % tuple(param.shape))
+                if forArduino():
+                    writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape), bw=self.varsForBitwidth[param.name])
+                else:
+                    writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape))
+
 
         self.writeFooter()
 

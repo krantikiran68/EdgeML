@@ -446,7 +446,7 @@ void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C, 
 		TypeTemp b = (TypeTemp)B[k * 1][0];
 		//b = b / shrB;
 
-		MYINT idx = Aidx[ite_idx];
+		MYITE idx = Aidx[ite_idx];
 		while (idx != 0) {
 			TypeTemp a = (TypeTemp)Aval[ite_val];
 			//a = a / shrA;
@@ -480,14 +480,14 @@ void MulCir(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT sh
 }
 
 template<class TypeA>
-void TanH(TypeA* A, MYINT I, MYINT J, TypeA tanh_limit) {
+void TanH(TypeA* A, MYINT I, MYINT J, TypeA scale_in, TypeA scale_out) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			float x = float(A[i * J + j]) / tanh_limit;
+			float x = float(A[i * J + j]) / scale_in;
 
 			float y = tanh(x);
 
-			MYINT z = (TypeA)(y * tanh_limit);
+			MYINT z = (TypeA)(y * scale_out);
 
 			A[i * J + j] = z;
 		}

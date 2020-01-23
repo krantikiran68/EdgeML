@@ -23,6 +23,8 @@ class Converter:
         setDatasetOutputDir(datasetOutputDir)
         setOutputDir(outputDir)
 
+        self.sparseMatrixSizes = {}
+
     def setInput(self, inputFile, modelDir, trainingInput, testingInput):
         setInputFile(inputFile)
         setModelDir(modelDir)
@@ -40,3 +42,5 @@ class Converter:
             obj = QuantizerFloat()
 
         obj.run()
+
+        self.sparseMatrixSizes = obj.sparseMatSizes

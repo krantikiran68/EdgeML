@@ -76,7 +76,7 @@ class Main:
             obj = Compiler(self.algo, version, target, inputFile, outputDir,
                            profileLogFile, sf, outputLogFile, 
                            generateAllFiles, id, printSwitch, self.variableSubstitutions, 
-                           -5, #scaleForX, #for debugging VBW exploration
+                           scaleForX,
                            variableToBitwidthMap, self.sparseMatrixSizes, demotedVarsList, demotedVarsOffsets)
             obj.run()
             if version == config.Version.floatt:

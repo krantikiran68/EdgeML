@@ -31,6 +31,8 @@ class Main:
         self.scalesForX = {} #populated for multiple code generation
         self.variableToBitwidthMap = {} #Populated during profiling code run
         self.sparseMatrixSizes = {} #Populated during profiling code run
+        self.varDemoteDetails = [] #Populated during variable demotion in VBW mode
+        self.flAccuracy = -1 #Populated during profiling code run
 
     def setup(self):
         curr_dir = os.path.dirname(os.path.realpath(__file__))
@@ -155,7 +157,7 @@ class Main:
         else:
             return True
 
-    def runAll(self, version, datasetType, codeIdToScaleFactorMap, demotedVarsToOffsetToCodeId=None):
+    def runAll(self, version, datasetType, codeIdToScaleFactorMap, demotedVarsToOffsetToCodeId=None, doNotSort=False):
         execMap = self.predict(version, datasetType)
         if execMap == None:
             return False, True
@@ -165,14 +167,28 @@ class Main:
                 self.accuracy[sf] = execMap[str(codeId)]
                 print("Accuracy at scale factor %d is %.3f%%, Disagreement Count is %d, Reduced Disagreement Count is %d\n" % (sf, execMap[str(codeId)][0], execMap[str(codeId)][1], execMap[str(codeId)][2]))
         else:
+            def getMaximisingMetricValue(a):
+                if self.maximisingMetric == config.MaximisingMetric.accuracy:
+                    return a[1][0]
+                elif self.maximisingMetric == config.MaximisingMetric.disagreements:
+                    return -a[1][1]
+                elif self.maximisingMetric == config.MaximisingMetric.reducedDisagreements:
+                    return -a[1][2]
+            allVars = []
             for demotedVars in demotedVarsToOffsetToCodeId:
                 offsetToCodeId = demotedVarsToOffsetToCodeId[demotedVars]
                 print("Demoted vars: %s\n" % str(demotedVars))
+                
+                x = [(i, execMap[str(offsetToCodeId[i])]) for i in offsetToCodeId]
+                x.sort(key=getMaximisingMetricValue, reverse=True)
+                allVars.append(((demotedVars, x[0][0]), x[0][1]))
+
                 for offset in offsetToCodeId:
                     codeId = offsetToCodeId[offset]
-                    print("Offset %d: Accuracy %.3f%%, Disagreement Count %d, Reduced Disagreement Count %d\n" %(offset, execMap[str(codeId)][0], execMap[str(codeId)][1], execMap[str(codeId)][2]))
-                    
-
+                    print("Offset %d (Code ID %d): Accuracy %.3f%%, Disagreement Count %d, Reduced Disagreement Count %d\n" %(offset, codeId, execMap[str(codeId)][0], execMap[str(codeId)][1], execMap[str(codeId)][2]))
+            if not doNotSort:
+                allVars.sort(key=getMaximisingMetricValue, reverse=True)
+            self.varDemoteDetails = allVars
         return True, False
 
     # Iterate over multiple scaling factors and store their accuracies
@@ -263,7 +279,7 @@ class Main:
 
                 contentToCodeIdMap[tuple(demotedVarsList)] = {}
                 for demOffset in [0, -1, -2]:
-                    codeId+= 1
+                    codeId += 1
                     for k in demotedVarsOffsets:
                         demotedVarsOffsets[k] = demOffset
                     contentToCodeIdMap[tuple(demotedVarsList)][demOffset] = codeId
@@ -272,7 +288,46 @@ class Main:
                         print("Variable Bitwidth exploration resulted in a compilation error")
                         return False
             
-            execResult, exit = self.runAll(config.Version.fixed, config.DatasetType.training, None, contentToCodeIdMap)
+            res, exit = self.runAll(config.Version.fixed, config.DatasetType.training, None, contentToCodeIdMap)
+
+            self.partialCompile(config.Version.fixed, config.Target.x86, self.sf, True, None, -1 if len(attemptToDemote) > 0 else 0, dict(self.variableToBitwidthMap), [], {})
+            contentToCodeIdMap = {}
+            demotedVarsOffsets = {}
+            demotedVarsList = []
+            codeId = 0
+            numCodes = len(attemptToDemote)
+            demotedVarsListToOffsets = {}
+            for ((demoteVars, offset), metrics) in self.varDemoteDetails:
+                newbitwidths = dict(self.variableToBitwidthMap)    
+                for var in demoteVars:
+                    newbitwidths[var] = config.wordLength // 2
+                    demotedVarsOffsets[var] = offset
+                    demotedVarsList.append(var)
+                codeId += 1
+                contentToCodeIdMap[tuple(demotedVarsList)] = {}
+                contentToCodeIdMap[tuple(demotedVarsList)][offset] = codeId
+                demotedVarsListToOffsets[tuple(demotedVarsList)] = dict(demotedVarsOffsets)
+                compiled = self.partialCompile(config.Version.fixed, config.Target.x86, self.sf, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demotedVarsList), dict(demotedVarsOffsets))
+                if compiled == False:
+                    print("Variable Bitwidth exploration resulted in another compilation error")
+                    return False
+
+            res, exit = self.runAll(config.Version.fixed, config.DatasetType.training, None, contentToCodeIdMap, True)
+
+            if exit == True or res == False:
+                return False
+
+            okToDemote = ()
+            for ((demotedVars, _), metrics) in self.varDemoteDetails:
+                acc = metrics[0]
+                if (self.flAccuracy - acc) > 1.0:
+                    break
+                else:
+                    okToDemote = demotedVars
+            
+            self.demotedVarsList = [i for i in okToDemote]
+            self.demotedVarsOffsets = demotedVarsListToOffsets[okToDemote]
+
         return True
 
     # Reverse sort the accuracies, print the top 5 accuracies and return the
@@ -320,6 +375,9 @@ class Main:
 
         print("Setting max scaling factor to %d\n" % (self.sf))
 
+        if config.vbwEnabled:
+            print("Demoted Vars with Offsets: %s\n" % (str(self.demotedVarsOffsets)))
+
         # Generate files for the testing dataset
         res = self.convert(config.Version.fixed,
                            config.DatasetType.testing, config.Target.x86)
@@ -327,8 +385,10 @@ class Main:
             return False
 
         # Compile and run code using the best scaling factor
-        compiled = self.partialCompile(
-            config.Version.fixed, config.Target.x86, self.sf, True, None, 0)
+        if config.vbwEnabled:
+            compiled = self.partialCompile(config.Version.fixed, config.Target.x86, self.sf, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
+        else:
+            compiled = self.partialCompile(config.Version.fixed, config.Target.x86, self.sf, True, None, 0)
         if compiled == False:
             return False
             
@@ -357,6 +417,7 @@ class Main:
         if execMap == None:
             return False
 
+        self.flAccuracy = execMap["default"][0]
         print("Accuracy is %.3f%%\n" % (execMap["default"][0]))
 
     # Generate code for Arduino

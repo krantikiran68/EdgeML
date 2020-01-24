@@ -304,7 +304,8 @@ int main(int argc, char *argv[])
 
 	stats.close();
 
-	dumpProfile();
+	if (version == Float)
+		dumpProfile();
 
 	if (datasetType == Training)
 		dumpRange(outputDir + "/profile.txt");

@@ -909,7 +909,25 @@ class IRBuilder(ASTVisitor):
         #scale_in_A, scale_in_B = self.varScales[expr_in_A.idf], self.varScales[expr_in_B.idf]
         intv_in_A, intv_in_B = self.varIntervals[expr_in_A.idf], self.varIntervals[expr_in_B.idf]
 
-        shr_A, shr_B, H1, H2, demote, scale_out = self.getShrTreeSumAndDemoteParamsForMul(bitwidth_in_A, scale_in_A, bitwidth_in_B, scale_in_B, bitwidth_temp, scale_temp, bitwidth_out, scale_out, 1)
+        shr_A, shr_B, H1, H2, demote, scale_raw = self.getShrTreeSumAndDemoteParamsForMul(bitwidth_in_A, scale_in_A, bitwidth_in_B, scale_in_B, bitwidth_temp, scale_temp, bitwidth_out, scale_out, 1)
+
+        adjust = []
+        if scale_raw != scale_out:
+            diff = 2 ** abs(scale_raw - scale_out)
+            if scale_raw > scale_out:
+                adjust = [IR.FuncCall("AdjustScaleShl", {
+                            expr_out: "A",
+                            IR.Int(I): "I",
+                            IR.Int(J): "J",
+                            IR.Int(diff): "scale"
+                         })]
+            else:
+                adjust = [IR.FuncCall("AdjustScaleShr", {
+                            expr_out: "A",
+                            IR.Int(I): "I",
+                            IR.Int(J): "J",
+                            IR.Int(diff): "scale"
+                         })]
 
         #[shr_A, shr_B] = self.getShrForMul(scale_in_A, scale_in_B)
 
@@ -953,7 +971,7 @@ class IRBuilder(ASTVisitor):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall] + adjust)
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -2550,11 +2568,14 @@ class IRBuilder(ASTVisitor):
                 demote = totalShr - shr_A - shr_B - H1
                 if demote + shr_A + shr_B >= 0:
                     toAdd = demote
-                    shr_A += demote // 2
-                    shr_B += demote - demote // 2
+                    shr_A += toAdd // 2
+                    shr_B += toAdd - toAdd // 2
                     demote = totalShr - shr_A - shr_B - H1
                 else:
-                    assert "Invalid state"
+                    shr_A = 0
+                    shr_B = 0
+                    demote = 0
+                    scale_out = scale_in_A + scale_in_B
         demote = 2 ** demote
         return shr_A, shr_B, H1, height - H1, demote, scale_out
 

@@ -18,9 +18,9 @@
                 "-v",
                 "fixed",
                 "-d",
-                "spectakoms",
+                "usps10",
                 "-m",
-                "acc"
+                "red_disagree"
             ]
         }
     ]

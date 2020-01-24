@@ -169,11 +169,11 @@ class Main:
         else:
             def getMaximisingMetricValue(a):
                 if self.maximisingMetric == config.MaximisingMetric.accuracy:
-                    return a[1][0]
+                    return (a[1][0], -a[1][1], -a[1][2])
                 elif self.maximisingMetric == config.MaximisingMetric.disagreements:
-                    return -a[1][1]
+                    return (-a[1][1], -a[1][2], a[1][0])
                 elif self.maximisingMetric == config.MaximisingMetric.reducedDisagreements:
-                    return -a[1][2]
+                    return (-a[1][2], -a[1][1], a[1][0])
             allVars = []
             for demotedVars in demotedVarsToOffsetToCodeId:
                 offsetToCodeId = demotedVarsToOffsetToCodeId[demotedVars]
@@ -335,11 +335,11 @@ class Main:
     def getBestScale(self):
         def getMaximisingMetricValue(a):
             if self.maximisingMetric == config.MaximisingMetric.accuracy:
-                return a[1][0]
+                return (a[1][0], -a[1][1], -a[1][2])
             elif self.maximisingMetric == config.MaximisingMetric.disagreements:
-                return -a[1][1]
+                return (-a[1][1], -a[1][2], a[1][0])
             elif self.maximisingMetric == config.MaximisingMetric.reducedDisagreements:
-                return -a[1][2]
+                return (-a[1][2], -a[1][1], a[1][0])
         x = [(i, self.accuracy[i]) for i in self.accuracy]
         x.sort(key=getMaximisingMetricValue, reverse=True)
         sorted_accuracy = x[:5]

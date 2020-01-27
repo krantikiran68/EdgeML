@@ -198,7 +198,7 @@ void MatSub(TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, in
 			a = a / shrA;
 			b = b / shrB;
 
-			MYINT c = a / shrC - b / shrC;
+			TypeTemp c = a / shrC - b / shrC;
 
 			C[i * J + j] = Saturate<TypeC>(c / demote);
 		}

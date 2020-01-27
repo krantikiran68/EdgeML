@@ -296,7 +296,7 @@ class CodegenBase:
                 typ_str = IR.DataType.getFloatStr()
             else:
                 typ_str = IR.DataType.getIntStr()
-                if self.vbwEnabled:
+                if config.vbwEnabled:
                     if hasattr(self, 'varsForBitwidth'):
                         typ_str = ("int%d_t" % (self.varsForBitwidth[decl])) if decl in self.varsForBitwidth else typ_str
                     else:
@@ -320,7 +320,7 @@ class CodegenBase:
                 self.out.printf('%s = %f;\n', var,
                                 self.floatConstants[var], indent=True)
             else:
-                if self.vbwEnabled and var in self.varsForBitwidth.keys() and forX86():
+                if config.vbwEnabled and var in self.varsForBitwidth.keys() and forX86():
                     if np.iinfo(np.int16).min <= num <= np.iinfo(np.int16).max:
                         self.out.printf('%s_%d = %d;\n', var, self.varsForBitwidth[var], num, indent=True)
                     elif np.iinfo(np.int32).min <= num <= np.iinfo(np.int32).max:

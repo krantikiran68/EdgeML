@@ -83,6 +83,8 @@ class MainDriver:
             self.args.datasetType = [self.args.datasetType]
         if not isinstance(self.args.target, list):
             self.args.target = [self.args.target]
+        if not isinstance(self.args.maximisingMetric, list):
+            self.args.maximisingMetric = [self.args.maximisingMetric]
 
         if self.args.tempdir is not None:
             assert os.path.isdir(

@@ -912,22 +912,25 @@ class IRBuilder(ASTVisitor):
         shr_A, shr_B, H1, H2, demote, scale_raw = self.getShrTreeSumAndDemoteParamsForMul(bitwidth_in_A, scale_in_A, bitwidth_in_B, scale_in_B, bitwidth_temp, scale_temp, bitwidth_out, scale_out, 1)
 
         adjust = []
-        if scale_raw != scale_out:
-            diff = 2 ** abs(scale_raw - scale_out)
-            if scale_raw > scale_out:
-                adjust = [IR.FuncCall("AdjustScaleShl", {
-                            expr_out: "A",
-                            IR.Int(I): "I",
-                            IR.Int(J): "J",
-                            IR.Int(diff): "scale"
-                         })]
-            else:
-                adjust = [IR.FuncCall("AdjustScaleShr", {
-                            expr_out: "A",
-                            IR.Int(I): "I",
-                            IR.Int(J): "J",
-                            IR.Int(diff): "scale"
-                         })]
+        if self.ddsEnabled:
+            if scale_raw != scale_out:
+                diff = 2 ** abs(scale_raw - scale_out)
+                if scale_raw > scale_out:
+                    adjust = [IR.FuncCall("AdjustScaleShl", {
+                                expr_out: "A",
+                                IR.Int(I): "I",
+                                IR.Int(J): "J",
+                                IR.Int(diff): "scale"
+                            })]
+                else:
+                    adjust = [IR.FuncCall("AdjustScaleShr", {
+                                expr_out: "A",
+                                IR.Int(I): "I",
+                                IR.Int(J): "J",
+                                IR.Int(diff): "scale"
+                            })]
+        else:
+            scale_out = scale_raw
 
         #[shr_A, shr_B] = self.getShrForMul(scale_in_A, scale_in_B)
 
@@ -1269,7 +1272,7 @@ class IRBuilder(ASTVisitor):
                 shr_A: "shrA",
                 shr_B: "shrB",
                 shr_out: "shrC"
-            }) if not self.vbwEnabled else IR.FuncCall(funcName + c + ("<int%d_t, int%d_t, int%d_t>" % (bitwidth_in_A, bitwidth_in_B, bitwidth_out)), {
+            }) if not self.vbwEnabled else IR.FuncCall(funcName + c + ("<int%d_t, int%d_t, int%d_t, int%d_t>" % (bitwidth_in_A, bitwidth_in_B, self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add"), bitwidth_out)), {
                 expr_in_A: "A",
                 expr_in_B: "B",
                 expr_out: "C",
@@ -1823,7 +1826,7 @@ class IRBuilder(ASTVisitor):
 
         intv_out = (m_new, M_new)
 
-        scale_out = self.getScale(1.5)
+        scale_out = self.getScale(1.5) + ((config.wordLength // 2 + self.demotedVarsOffsets[expr_in.idf]) if expr_in.idf in self.demotedVarsList else 0)
 
         # Compute new scale
         # TODO: Temp computation for POC. Remove later.
@@ -1940,9 +1943,11 @@ class IRBuilder(ASTVisitor):
         cmd1 = IR.Memset(expr_out, type_out.size())
         if self.ddsEnabled:
             if scale_raw > scale_out:
-                cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shl(expr_in_idx, scale_raw - scale_out, 0)))
+                cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shr(IRUtil.shl(expr_in_idx, scale_raw - scale_out), height_shr)))
+            elif scale_raw < scale_out:
+                cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shr(IRUtil.shr(expr_in_idx, scale_out - scale_raw), height_shr)))
             else:
-                cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shr(expr_in_idx, scale_out - scale_raw, 0)))
+                cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shr(expr_in_idx, height_shr)))
         else:
             cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shr(expr_in_idx, height_shr)))
         treeSum = IRUtil.loop(type_out.shape, iters, [cmd2])
@@ -2532,7 +2537,6 @@ class IRBuilder(ASTVisitor):
             shr_B, shr_A = totalShr // 2, totalShr - totalShr // 2
         else:
             shr_A, shr_B = totalShr // 2, totalShr - totalShr // 2
-        assert shr_A >= 0 and shr_B >= 0, "Invalid state"
         assert totalShr <= config.wordLength - 1, "Values wont fit in Stage 2 of MatMul"
         # after addition
         bitsAfterAddOp = bitwidth_temp
@@ -2577,6 +2581,7 @@ class IRBuilder(ASTVisitor):
                     demote = 0
                     scale_out = scale_in_A + scale_in_B
         demote = 2 ** demote
+        assert shr_A >= 0 and shr_B >= 0, "Invalid state"
         return shr_A, shr_B, H1, height - H1, demote, scale_out
 
     def getOffsetForDemotedVariable(self, varName):
@@ -2593,12 +2598,14 @@ class IRBuilder(ASTVisitor):
     def getBitwidthAndScale(self, varName, native=False):
         if forFloat():
             return 0,0
-        if self.ddsEnabled: #If not enabled, all scales statically computed
-            while varName not in self.independentBitwidthVars:
-                if varName in self.substitutions:
-                    varName = self.substitutions[varName]
-                else:
-                    break
+        if self.ddsEnabled or self.vbwEnabled: #If not enabled, all scales statically computed
+            # while varName not in self.independentBitwidthVars:
+            #     if varName in self.substitutions:
+            #         varName = self.substitutions[varName]
+            #     else:
+            #         break
+            while varName in self.substitutions:
+                varName = self.substitutions[varName]
         if varName in self.varScales.keys(): #Function has been called on this variable or scale has been manually computed
             if varName in self.demotedVarsList:
                 return config.wordLength // 2, self.varScales[varName]

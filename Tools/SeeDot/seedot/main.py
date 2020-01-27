@@ -33,6 +33,7 @@ class Main:
         self.sparseMatrixSizes = {} #Populated during profiling code run
         self.varDemoteDetails = [] #Populated during variable demotion in VBW mode
         self.flAccuracy = -1 #Populated during profiling code run
+        self.allScales = {} #Eventually populated with scale assignments in final code
 
     def setup(self):
         curr_dir = os.path.dirname(os.path.realpath(__file__))
@@ -68,7 +69,7 @@ class Main:
                 outputLogFile = os.path.join(logDir, "log-fixed-" + str(abs(sf)) + ".txt")
 
         if target == config.Target.arduino:
-            outputDir = os.path.join(config.outdir, "arduino")
+            outputDir = os.path.join(config.outdir)
         elif target == config.Target.x86:
             outputDir = os.path.join(config.tempdir, "Predictor")
 
@@ -76,9 +77,10 @@ class Main:
             obj = Compiler(self.algo, version, target, inputFile, outputDir,
                            profileLogFile, sf, outputLogFile, 
                            generateAllFiles, id, printSwitch, self.variableSubstitutions, 
-                           -5, #scaleForX, #for debugging VBW exploration
+                           scaleForX,
                            variableToBitwidthMap, self.sparseMatrixSizes, demotedVarsList, demotedVarsOffsets)
             obj.run()
+            self.allScales = dict(obj.varScales)
             if version == config.Version.floatt:
                 self.variableSubstitutions = obj.substitutions
                 self.variableToBitwidthMap = dict.fromkeys(obj.independentVars, config.wordLength)
@@ -97,7 +99,7 @@ class Main:
 
     # Run the converter project to generate the input files using reading the
     # training model
-    def convert(self, version, datasetType, target):
+    def convert(self, version, datasetType, target, varsForBitwidth={}, demotedVarsOffsets={}):
         print("Generating input files for %s %s dataset..." %
               (version, datasetType), end='')
 
@@ -117,8 +119,11 @@ class Main:
         inputFile = os.path.join(self.modelDir, "input.sd")
 
         try:
+            varsForBitwidth = dict(varsForBitwidth)
+            for var in demotedVarsOffsets:
+                varsForBitwidth[var] = config.wordLength // 2
             obj = Converter(self.algo, version, datasetType, target,
-                            datasetOutputDir, outputDir)
+                            datasetOutputDir, outputDir, varsForBitwidth, self.allScales)
             obj.setInput(inputFile, self.modelDir,
                          self.trainingFile, self.testingFile)
             obj.run()
@@ -169,11 +174,11 @@ class Main:
         else:
             def getMaximisingMetricValue(a):
                 if self.maximisingMetric == config.MaximisingMetric.accuracy:
-                    return a[1][0]
+                    return (a[1][0], -a[1][1], -a[1][2])
                 elif self.maximisingMetric == config.MaximisingMetric.disagreements:
-                    return -a[1][1]
+                    return (-a[1][1], -a[1][2], a[1][0])
                 elif self.maximisingMetric == config.MaximisingMetric.reducedDisagreements:
-                    return -a[1][2]
+                    return (-a[1][2], -a[1][1], a[1][0])
             allVars = []
             for demotedVars in demotedVarsToOffsetToCodeId:
                 offsetToCodeId = demotedVarsToOffsetToCodeId[demotedVars]
@@ -259,6 +264,7 @@ class Main:
         self.sf = self.getBestScale()
 
         if config.vbwEnabled:
+            assert config.ddsEnabled, "Currently VBW on maxscale not supported"
             if config.wordLength != 16:
                 assert False, "VBW mode only supported if native bitwidth is 16"
             print("Scales computed in native bitwidth. Starting exploration over other bitwidths.")
@@ -335,11 +341,11 @@ class Main:
     def getBestScale(self):
         def getMaximisingMetricValue(a):
             if self.maximisingMetric == config.MaximisingMetric.accuracy:
-                return a[1][0]
+                return (a[1][0], -a[1][1], -a[1][2])
             elif self.maximisingMetric == config.MaximisingMetric.disagreements:
-                return -a[1][1]
+                return (-a[1][1], -a[1][2], a[1][0])
             elif self.maximisingMetric == config.MaximisingMetric.reducedDisagreements:
-                return -a[1][2]
+                return (-a[1][2], -a[1][1], a[1][0])
         x = [(i, self.accuracy[i]) for i in self.accuracy]
         x.sort(key=getMaximisingMetricValue, reverse=True)
         sorted_accuracy = x[:5]
@@ -426,8 +432,9 @@ class Main:
         print("Generating code for %s..." % (self.target))
         print("------------------------------\n")
 
+        demotedVarsOffsets = dict(self.demotedVarsOffsets)
         res = self.convert(config.Version.fixed,
-                           config.DatasetType.testing, self.target)
+                           config.DatasetType.testing, self.target, dict(self.variableToBitwidthMap), demotedVarsOffsets)
         if res == False:
             return False
 
@@ -443,7 +450,11 @@ class Main:
         destFile = os.path.join(config.outdir, "library.h")
         shutil.copyfile(srcFile, destFile)
 
-        res = self.compile(config.Version.fixed, self.target, self.sf)
+
+        modifiedBitwidths = dict.fromkeys(self.variableToBitwidthMap.keys(), config.wordLength)
+        for i in self.demotedVarsList:
+            modifiedBitwidths[i] = config.wordLength // 2
+        res = self.partialCompile(config.Version.fixed, self.target, self.sf, True, None, 0, dict(modifiedBitwidths), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
         if res == False:
             return False
 

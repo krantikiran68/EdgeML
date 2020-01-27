@@ -144,7 +144,7 @@ class X86(CodegenBase):
                     self.out.increaseIndent()
 
                 indexstr = ''.join("[i" + str(i) + "]" for i in range(len(size)))
-                divide = int(round(np.ldexp(1, config.wordLength - self.varsForBitwidth[var] + (self.demotedVarsOffsets.get(var, 0) if self.varsForBitwidth[var] != config.wordLength else 0) ))) if var[-3:] != "idx" else 1
+                divide = int(round(np.ldexp(1, config.wordLength - self.varsForBitwidth[var] + (self.demotedVarsOffsets.get(var, 0) if self.varsForBitwidth[var] != config.wordLength else 0) ))) if var[-3:] != "idx" and var != "X" else 1
                 self.out.printf(var + indexstr + " = " + var + "_temp" + indexstr + "/" + str(divide) + ";\n", indent = True)
 
                 for i in range(len(size)):
@@ -170,7 +170,7 @@ class X86(CodegenBase):
                 typ_str = IR.DataType.getFloatStr()
             elif forFixed() and decl not in self.internalVars:
                 if config.vbwEnabled and decl not in self.internalVars:
-                    bw = self.varsForBitwidth[decl]
+                    bw = self.varsForBitwidth.get(decl, config.wordLength)
                     typ_str = "int%d_t" % bw
                 else:
                     typ_str = IR.DataType.getIntStr()

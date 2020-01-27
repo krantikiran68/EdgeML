@@ -18,7 +18,11 @@
                 "-v",
                 "fixed",
                 "-d",
-                "ward-binary"
+                "usps-binary",
+                "-m",
+                "acc",
+                "-t",
+                "arduino"
             ]
         }
     ]

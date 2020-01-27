@@ -432,9 +432,10 @@ class Main:
         print("Generating code for %s..." % (self.target))
         print("------------------------------\n")
 
-        demotedVarsOffsets = dict(self.demotedVarsOffsets)
+        demotedVarsOffsets = dict(self.demotedVarsOffsets) if hasattr(self, 'demotedVarsOffsets') else {}
+        variableToBitwidthMap = dict(self.variableToBitwidthMap) if hasattr(self, 'variableToBitwidthMap') else {}
         res = self.convert(config.Version.fixed,
-                           config.DatasetType.testing, self.target, dict(self.variableToBitwidthMap), demotedVarsOffsets)
+                           config.DatasetType.testing, self.target, variableToBitwidthMap, demotedVarsOffsets)
         if res == False:
             return False
 
@@ -451,10 +452,11 @@ class Main:
         shutil.copyfile(srcFile, destFile)
 
 
-        modifiedBitwidths = dict.fromkeys(self.variableToBitwidthMap.keys(), config.wordLength)
-        for i in self.demotedVarsList:
-            modifiedBitwidths[i] = config.wordLength // 2
-        res = self.partialCompile(config.Version.fixed, self.target, self.sf, True, None, 0, dict(modifiedBitwidths), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
+        modifiedBitwidths = dict.fromkeys(self.variableToBitwidthMap.keys(), config.wordLength) if hasattr(self, 'variableToBitwidthMap') else {}
+        if hasattr(self, 'demotedVarsList'):
+            for i in self.demotedVarsList:
+                modifiedBitwidths[i] = config.wordLength // 2
+        res = self.partialCompile(config.Version.fixed, self.target, self.sf, True, None, 0, dict(modifiedBitwidths), list(self.demotedVarsList) if hasattr(self, 'demotedVarsList') else [], dict(demotedVarsOffsets))
         if res == False:
             return False
 

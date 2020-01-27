@@ -99,7 +99,7 @@ namespace Streamer
 				// Note: Prediction code identifies class indices from 0.
 				// Hence, add one to the predicted label.
 				var output = port.ReadLine();
-				int classID = int.Parse(output) + 1;
+				int classID = int.Parse(output);
 
 				output = port.ReadLine();
 				predictionTime = ulong.Parse(output);

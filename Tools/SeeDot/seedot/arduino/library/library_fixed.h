@@ -123,13 +123,13 @@ inline __attribute__((always_inline)) void MatAddCN(const TypeA* A, TypeB* B, Ty
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a;
 			if (isSame<TypeA, int8_t>()) {
-				a = (TypeTemp)pgm_read_byte_near(&A[i * J + j]);
+				a = (TypeA)pgm_read_byte_near(&A[i * J + j]);
 			}
 			else if (isSame<TypeA, int16_t>()) {
-				a = (TypeTemp)pgm_read_word_near(&A[i * J + j]);
+				a = (TypeA)pgm_read_word_near(&A[i * J + j]);
 			}
 			else if (isSame<TypeA, int32_t>()) {
-				a = (TypeTemp)pgm_read_dword_near(&A[i * J + j]);
+				a = (TypeA)pgm_read_dword_near(&A[i * J + j]);
 			}
 			
 			TypeTemp b = (TypeTemp)B[i * J + j];
@@ -179,13 +179,13 @@ inline __attribute__((always_inline)) void MatAddNC(TypeA* A, const TypeB* B, Ty
 
 			TypeTemp b;
 			if (isSame<TypeB, int8_t>()) {
-				b = (TypeTemp)pgm_read_byte_near(&B[i * J + j]);
+				b = (TypeB)pgm_read_byte_near(&B[i * J + j]);
 			}
 			else if (isSame<TypeB, int16_t>()) {
-				b = (TypeTemp)pgm_read_word_near(&B[i * J + j]);
+				b = (TypeB)pgm_read_word_near(&B[i * J + j]);
 			}
 			else if (isSame<TypeB, int32_t>()) {
-				b = (TypeTemp)pgm_read_dword_near(&B[i * J + j]);
+				b = (TypeB)pgm_read_dword_near(&B[i * J + j]);
 			}
 
 			a = a / shrA;
@@ -237,24 +237,24 @@ inline __attribute__((always_inline)) void MatAddCC(const TypeA* A, const TypeB*
 
 			TypeTemp a;
 			if (isSame<TypeA, int8_t>()) {
-				a = (TypeTemp)pgm_read_byte_near(&A[i * J + j]);
+				a = (TypeA)pgm_read_byte_near(&A[i * J + j]);
 			}
 			else if (isSame<TypeA, int16_t>()) {
-				a = (TypeTemp)pgm_read_word_near(&A[i * J + j]);
+				a = (TypeA)pgm_read_word_near(&A[i * J + j]);
 			}
 			else if (isSame<TypeA, int32_t>()) {
-				a = (TypeTemp)pgm_read_dword_near(&A[i * J + j]);
+				a = (TypeA)pgm_read_dword_near(&A[i * J + j]);
 			}
 
 			TypeTemp b;
 			if (isSame<TypeB, int8_t>()) {
-				b = (TypeTemp)pgm_read_byte_near(&B[i * J + j]);
+				b = (TypeB)pgm_read_byte_near(&B[i * J + j]);
 			}
 			else if (isSame<TypeB, int16_t>()) {
-				b = (TypeTemp)pgm_read_word_near(&B[i * J + j]);
+				b = (TypeB)pgm_read_word_near(&B[i * J + j]);
 			}
 			else if (isSame<TypeB, int32_t>()) {
-				b = (TypeTemp)pgm_read_dword_near(&B[i * J + j]);
+				b = (TypeB)pgm_read_dword_near(&B[i * J + j]);
 			}
 
 			a = a / shrA;
@@ -375,13 +375,13 @@ inline __attribute__((always_inline)) void MatSub(TypeA* A, const TypeB* B, Type
 			
 			TypeTemp b;
 			if (isSame<TypeB, int8_t>()) {
-				b = (TypeTemp)pgm_read_byte_near(&B[i * J + j]);
+				b = (TypeB)pgm_read_byte_near(&B[i * J + j]);
 			}
 			else if (isSame<TypeB, int16_t>()) {
-				b = (TypeTemp)pgm_read_word_near(&B[i * J + j]);
+				b = (TypeB)pgm_read_word_near(&B[i * J + j]);
 			}
 			else if (isSame<TypeB, int32_t>()) {
-				b = (TypeTemp)pgm_read_dword_near(&B[i * J + j]);
+				b = (TypeB)pgm_read_dword_near(&B[i * J + j]);
 			}
 
 			a = a / shrA;
@@ -638,16 +638,16 @@ inline __attribute__((always_inline)) void MatMulCN(const TypeA* A, TypeB* B, Ty
 			for (MYITE k = 0; k < K; k++) {
 				TypeTemp a;
 				if (isSame<TypeA, int8_t>()) {
-					a = (TypeTemp)pgm_read_byte_near(&A[i * J + j]);
+					a = (TypeA)pgm_read_byte_near(&A[i * K + k]);
 				}
 				else if (isSame<TypeA, int16_t>()) {
-					a = (TypeTemp)pgm_read_word_near(&A[i * J + j]);
+					a = (TypeA)pgm_read_word_near(&A[i * K + k]);
 				}
 				else if (isSame<TypeA, int32_t>()) {
-					a = (TypeTemp)pgm_read_dword_near(&A[i * J + j]);
+					a = (TypeA)pgm_read_dword_near(&A[i * K + k]);
 				}
 
-				TypeTemp b = (TypeTemp)B[i * J + j];
+				TypeTemp b = (TypeTemp)B[k * J + j];
 
 				TypeTemp prod = a * b;
 
@@ -759,13 +759,13 @@ inline __attribute__((always_inline)) void MatMulNC(TypeA* A, const TypeB* B, Ty
 				
 				TypeTemp b;
 				if (isSame<TypeB, int8_t>()) {
-					b = (TypeTemp)pgm_read_byte_near(&B[i * J + j]);
+					b = (TypeB)pgm_read_byte_near(&B[k * J + j]);
 				}
 				else if (isSame<TypeB, int16_t>()) {
-					b = (TypeTemp)pgm_read_word_near(&B[i * J + j]);
+					b = (TypeB)pgm_read_word_near(&B[k * J + j]);
 				}
 				else if (isSame<TypeB, int32_t>()) {
-					b = (TypeTemp)pgm_read_dword_near(&B[i * J + j]);
+					b = (TypeB)pgm_read_dword_near(&B[k * J + j]);
 				}
 
 				TypeTemp prod = a * b;
@@ -882,24 +882,24 @@ inline __attribute__((always_inline)) void MatMulCC(const TypeA* A, const TypeB*
 			for (MYITE k = 0; k < K; k++) {
 				TypeTemp a;
 				if (isSame<TypeA, int8_t>()) {
-					a = (TypeTemp)pgm_read_byte_near(&A[i * J + j]);
+					a = (TypeA)pgm_read_byte_near(&A[i * K + k]);
 			}
 				else if (isSame<TypeA, int16_t>()) {
-					a = (TypeTemp)pgm_read_word_near(&A[i * J + j]);
+					a = (TypeA)pgm_read_word_near(&A[i * K + k]);
 				}
 				else if (isSame<TypeA, int32_t>()) {
-					a = (TypeTemp)pgm_read_dword_near(&A[i * J + j]);
+					a = (TypeA)pgm_read_dword_near(&A[i * K + k]);
 				}
 
 				TypeTemp b;
 				if (isSame<TypeB, int8_t>()) {
-					b = (TypeTemp)pgm_read_byte_near(&B[i * J + j]);
+					b = (TypeB)pgm_read_byte_near(&B[k * J + j]);
 				}
 				else if (isSame<TypeB, int16_t>()) {
-					b = (TypeTemp)pgm_read_word_near(&B[i * J + j]);
+					b = (TypeB)pgm_read_word_near(&B[k * J + j]);
 				}
 				else if (isSame<TypeB, int32_t>()) {
-					b = (TypeTemp)pgm_read_dword_near(&B[i * J + j]);
+					b = (TypeB)pgm_read_dword_near(&B[k * J + j]);
 				}
 
 				TypeTemp prod = a * b;
@@ -1022,14 +1022,14 @@ inline __attribute__((always_inline)) void SparseMatMul(const TypeAidx* Aidx, co
 		}
 		while (idx != 0) {
 			TypeTemp a;
-			if (isSame<TypeTemp, int8_t>()) {
-				a = (TypeTemp)pgm_read_byte_near(&Aval[ite_val]);
+			if (isSame<TypeA, int8_t>()) {
+				a = (TypeA)pgm_read_byte_near(&Aval[ite_val]);
 			}
 			else if (isSame<TypeTemp, int16_t>()) {
-				a = (TypeTemp)pgm_read_word_near(&Aval[ite_val]);
+				a = (TypeA)pgm_read_word_near(&Aval[ite_val]);
 			}
 			else if (isSame<TypeTemp, int32_t>()) {
-				a = (TypeTemp)pgm_read_dword_near(&Aval[ite_val]);
+				a = (TypeA)pgm_read_dword_near(&Aval[ite_val]);
 			}
 			//a = a / shrA;
 			TypeTemp c = (TypeTemp)(a * b);
@@ -1335,13 +1335,13 @@ inline __attribute__((always_inline)) void Conv(TypeA* A, const TypeB* B, TypeC*
 								TypeTemp a = (TypeTemp)(((((h + hf) < padH) || ((h + hf) >= (H + padH))) || (((w + wf) < padW) || ((w + wf) >= (W + padW)))) ? 0 : A[n * H * W * CI + ((h + hf) - padH) * W * CI + ((w + wf) - padW) * CI + ci]);
 								TypeTemp b;
 								if (isSame<TypeB, int8_t>()) {
-									b = (TypeTemp)pgm_read_byte_near(&B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co]);
+									b = (TypeB)pgm_read_byte_near(&B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co]);
 								}
 								else if (isSame<TypeB, int16_t>()) {
-									b = (TypeTemp)pgm_read_word_near(&B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co]);
+									b = (TypeB)pgm_read_word_near(&B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co]);
 								}
 								else if (isSame<TypeB, int32_t>()) {
-									b = (TypeTemp)pgm_read_dword_near(&B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co]);
+									b = (TypeB)pgm_read_dword_near(&B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co]);
 								}
 								tmp[counter] = a * b;
 								counter++;
@@ -1438,13 +1438,13 @@ inline __attribute__((always_inline)) void AddOrSubCir4D(TypeA* A, const TypeB* 
 
 					TypeTemp b;
 					if (isSame<TypeB, int8_t>()) {
-						b = (TypeTemp)pgm_read_byte_near(&B[c]);
+						b = (TypeB)pgm_read_byte_near(&B[c]);
 					}
 					else if (isSame<TypeB, int16_t>()) {
-						b = (TypeTemp)pgm_read_word_near(&B[c]);
+						b = (TypeB)pgm_read_word_near(&B[c]);
 					}
 					else if (isSame<TypeB, int32_t>()) {
-						b = (TypeTemp)pgm_read_dword_near(&B[c]);
+						b = (TypeB)pgm_read_dword_near(&B[c]);
 					}
 
 					b = b / shrB;
@@ -1506,13 +1506,13 @@ inline __attribute__((always_inline)) void AddOrSubCir2D(TypeA* A, const TypeB* 
 
 			TypeTemp b;
 			if (isSame<TypeB, int8_t>()) {
-				b = (TypeTemp)pgm_read_byte_near(&B[w]);
+				b = (TypeB)pgm_read_byte_near(&B[w]);
 			}
 			else if (isSame<TypeB, int16_t>()) {
-				b = (TypeTemp)pgm_read_word_near(&B[w]);
+				b = (TypeB)pgm_read_word_near(&B[w]);
 			}
 			else if (isSame<TypeB, int32_t>()) {
-				b = (TypeTemp)pgm_read_dword_near(&B[w]);
+				b = (TypeB)pgm_read_dword_near(&B[w]);
 			}
 
 			b = b / shrB;

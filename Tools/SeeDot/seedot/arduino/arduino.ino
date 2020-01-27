@@ -97,7 +97,7 @@ void predictionTime() {
 
 // In accuracy mode, this function reads an integer from the serial port.
 // In the prediction time mode, this function reads an integer from the array X stored in device's flash memory.
-MYINT getIntFeature(MYINT i) {
+int32_t getIntFeature(MYITE i) {
 #ifdef ACCURACY
 	char buff[13];
 	while (!Serial.available())
@@ -111,35 +111,7 @@ MYINT getIntFeature(MYINT i) {
 #endif
 
 	double f_int = ldexp(f, -scaleOfX);
-	return (MYINT)(f_int);
-}
-
-MYINT getIntFeatureOld(MYINT i) {
-#ifdef ACCURACY
-#ifdef INT16
-	char buff[10];
-	while (!Serial.available())
-		;
-	Serial.readBytes(buff, 10);
-	return (MYINT)(atol(buff));
-#endif
-#ifdef INT32
-	char buff[14];
-	while (!Serial.available())
-		;
-	Serial.readBytes(buff, 14);
-	return (MYINT)(atoll(buff));
-#endif
-#endif
-
-#ifdef PREDICTIONTIME
-#ifdef INT16
-	return ((MYINT) pgm_read_word_near(&X[i]));
-#endif
-#ifdef INT32
-	return ((MYINT) pgm_read_dword_near(&X[i]));
-#endif
-#endif
+	return (int32_t)(f_int);
 }
 
 // Function reads a float variable either from the serial port or from the array X stored in devices' flash memory.

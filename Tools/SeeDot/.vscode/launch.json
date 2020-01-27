@@ -14,13 +14,15 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "rnn",
+                "bonsai",
                 "-v",
                 "fixed",
                 "-d",
-                "usps10",
+                "usps-binary",
                 "-m",
-                "red_disagree"
+                "acc",
+                "-t",
+                "arduino"
             ]
         }
     ]

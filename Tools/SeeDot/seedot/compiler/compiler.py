@@ -115,6 +115,7 @@ class Compiler:
         res = compiler.visit(ast)
 
         print(compiler.varScales)
+        self.varScales = dict(compiler.varScales)
 
         outputLog.close()
 

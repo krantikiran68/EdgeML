@@ -112,9 +112,9 @@ class Quantizer:
         self.writeHeader()
 
         if forArduino() and dumpDataset():
-            scaleOfX = computeScale(*self.trainDatasetRange)
-            assert False, "Handle this, need precomputed Xscale to avoid error"
-            writeListAsArray(self.X[0], 'X', self.headerFile)
+            scaleOfX = self.allScales['X'] #computeScale(*self.trainDatasetRange)
+
+            writeListAsArray(self.X[0], 'X', self.headerFile, None, self.varsForBitwidth['X'])
             writeVars({'scaleOfX': scaleOfX}, self.headerFile)
             writeVars({'Y': self.Y[0][0]}, self.headerFile)
 
@@ -212,6 +212,11 @@ class Quantizer:
 
 class QuantizerFixed(Quantizer):
 
+    def __init__(self, varsForBitwidth, allScales):
+        super().__init__()
+        self.varsForBitwidth = varsForBitwidth
+        self.allScales = allScales
+
     # The X matrix is quantized using a scale factor computed from the training dataset.
     # The range of X_train is used to compute the scale factor.
     # Since the range of X_train depends on its distribution, the scale computed may be imprecise.
@@ -264,7 +269,11 @@ class QuantizerFixed(Quantizer):
             #print("New range = ", afterRange, "New scale = ", scale_new)
             # print()
 
-            param.data, _ = scaleMat(param.data)
+            if forArduino():
+                scale = self.allScales[param.name]
+                param.data, _ = scaleMat(param.data, scale)
+            else:
+                param.data, _ = scaleMat(param.data)
 
 
 class QuantizerFloat(Quantizer):

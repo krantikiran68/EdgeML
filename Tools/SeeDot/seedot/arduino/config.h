@@ -20,18 +20,24 @@
 // The selection below should be equal to the Common.wordLength variable in Common.py
 // Uncomment the below #define to choose the datatype. Default is INT16.
 
-
+//define INT8
 #define INT16
 //#define INT32
 
 
+#ifdef INT8
+typedef int8_t MYINT;
+typedef uint8_t MYUINT;
+#endif
+
 #ifdef INT16
 typedef int16_t MYINT;
+typedef uint16_t MYUINT;
 #endif
 
 #ifdef INT32
 typedef int32_t MYINT;
+typedef uint32_t MYUINT;
 #endif
 
 typedef int16_t MYITE;
-typedef uint16_t MYUINT;

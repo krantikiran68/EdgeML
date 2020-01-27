@@ -22,7 +22,7 @@ from seedot.writer import Writer
 
 class Arduino(CodegenBase):
 
-    def __init__(self, outputDir, decls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions):
+    def __init__(self, outputDir, decls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth):
         outputFile = os.path.join(outputDir, "predict.cpp")
         self.out = Writer(outputFile)
 
@@ -34,6 +34,9 @@ class Arduino(CodegenBase):
         self.globalVars = globalVars
         self.internalVars = internalVars
         self.floatConstants = floatConstants
+
+        self.demotedVarsOffsets = demotedVarsOffsets
+        self.varsForBitwidth = varsForBitwidth
 
     def printPrefix(self):
         self.printArduinoIncludes()
@@ -125,6 +128,8 @@ class Arduino(CodegenBase):
     # Print the variable with pragmas
     def printVar(self, ir):
         if ir.inputVar:
+            if config.wordLength == 8:
+                self.out.printf('((MYINT) pgm_read_byte_near(&')
             if config.wordLength == 16:
                 self.out.printf('((MYINT) pgm_read_word_near(&')
             elif config.wordLength == 32:

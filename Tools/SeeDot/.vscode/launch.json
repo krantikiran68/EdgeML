@@ -18,7 +18,7 @@
                 "-v",
                 "fixed",
                 "-d",
-                "usps-binary",
+                "ward-binary",
                 "-m",
                 "acc"
             ]

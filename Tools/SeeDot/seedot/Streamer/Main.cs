@@ -101,6 +101,7 @@ namespace Streamer
 
 					totalPredictionTime += predictionTime;
 					total++;
+					Console.WriteLine("Accuracy: " + (((float)correct / total) * 100));
 				}
 
 				file.WriteLine("\n\n#test points = " + total);

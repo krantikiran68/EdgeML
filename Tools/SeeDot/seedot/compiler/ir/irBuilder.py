@@ -1408,8 +1408,85 @@ class IRBuilder(ASTVisitor):
         elif useTableExp():
             self.readExpProfileFile()
             return self.visitTableExp(node)
+        elif useNewTableExp():
+            return self.visitNewTableExp(node)
         else:
             assert False
+
+
+    def visitNewTableExp(self, node: AST.Func):
+
+        assert self.vbwEnabled, "VBW must be enabled for new table"
+
+        (prog_in, expr_in) = self.visit(node.expr)
+
+        type_in = node.expr.type
+
+        bitwidth_in_raw, scale_in_raw = self.getBitwidthAndScale(expr_in.idf)
+
+        MIN = 0.1
+        maxExp = np.exp(MIN)
+
+        expr_out = self.getTempVar()
+
+        if self.ddsEnabled:
+            bitwidth_out, _ = self.getBitwidthAndScale(expr_out.idf)
+        else:
+            bitwidth_out = config.wordLength // 2 if expr_out.idf in self.demotedVarsList else config.wordLength
+        
+        scale_out = self.getScale(maxExp) + config.wordLength // 2 if expr_out.idf in self.demotedVarsList else self.getScale(maxExp)
+        scale_in_adjusted = self.getScale(maxExp) + config.wordLength // 2 if expr_in.idf in self.demotedVarsList else self.getScale(maxExp)
+
+        [I, J] = type_in.shape
+
+        scale_in = -4 if expr_in.idf in self.demotedVarsList else -11
+
+        scaling = 1
+        if expr_in.idf in self.demotedVarsList and expr_out.idf not in self.demotedVarsList:
+            scaling = 256
+        elif expr_in.idf not in self.demotedVarsList and expr_out.idf in self.demotedVarsList:
+            scaling = 256
+
+        adjust = []
+        if scale_in_raw != scale_in:
+            diff_scale = abs(scale_in_raw - scale_in)
+            if scale_in_raw > scale_in:
+                saturate = (2 ** (-scale_in_adjusted - diff_scale))
+                adjust = [IR.FuncCall("AdjustScaleShlSaturate<int%d_t>" %(bitwidth_in_raw), {
+                                            expr_in : "A",
+                                            IR.Int(I): "I",
+                                            IR.Int(J): "J",
+                                            IR.Int(2 ** diff_scale): "scale",
+                                            IR.Int(saturate): "saturate"
+                })]
+            else:
+                adjust = [IR.FuncCall("AdjustScaleShr<int%d_t>" %(bitwidth_in_raw), {
+                                            expr_in : "A",
+                                            IR.Int(I): "I",
+                                            IR.Int(J): "J",
+                                            IR.Int(2 ** diff_scale): "scale"
+                })]
+
+        comm = IR.Comment('exp(' + expr_in.idf + ')')
+
+        funcCall = IR.FuncCall("ExpNew%d<int%d_t>" %(bitwidth_in_raw, bitwidth_out), {
+            expr_in: "A",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            IR.Int(scaling): "adjust",
+            expr_out: "B"
+        })
+
+        prog_exp = IR.Prog([comm] + adjust + [funcCall])
+
+        prog_out = IRUtil.concatPrograms(prog_in, prog_exp)
+
+        self.varDeclarations[expr_out.idf] = type_in
+        self.varScales[expr_out.idf] = scale_out
+        self.varIntervals[expr_out.idf] = (0, 0)
+
+        return (prog_out, expr_out)
+
 
     # Note: We assume e<=0 for exp(e)
     def visitMathExp(self, node: AST.Func):

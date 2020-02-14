@@ -9,7 +9,7 @@ import seedot.config as config
 
 class Config:
     expBigLength = 6
-    exp = "math"  # "table" "math"
+    exp = "new table"  # "table" "math" "new table"
     codegen = "funcCall"  # "funcCall" "inline"
     debug = False
     debugCompiler = True
@@ -102,6 +102,10 @@ def useMathExp():
 
 def useTableExp():
     return Config.exp == "table"
+
+
+def useNewTableExp():
+    return Config.exp == "new table"
 
 
 def genFuncCalls():

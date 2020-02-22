@@ -24,7 +24,7 @@ void SparseMatMul(const MYINT *Aidx, const float *Aval, float **B, float *C, int
 
 void MulCir(float *A, float *B, float *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB);
 
-void TanH(float *A, MYINT I, MYINT J, float scale_in, float scale_out);
+void TanH(float *A, MYINT I, MYINT J, float scale_in, float scale_out, float *B);
 
 void ArgMax(float *A, MYINT I, MYINT J, MYINT *index);
 
@@ -46,7 +46,7 @@ void Maxpool(float *A, float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT strid
 
 void Exp(float *A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, float *B);
 
-void Sigmoid(float *A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out);
+void Sigmoid(float *A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, float *B);
 
 void AdjustScaleShr(float *A, MYINT I, MYINT J, MYINT scale);
 void AdjustScaleShl(float *A, MYINT I, MYINT J, MYINT scale);

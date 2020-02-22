@@ -31,7 +31,7 @@ void SparseMatMul(const MYINT *Aidx, const MYINT *Aval, MYINT **B, MYINT *C, int
 
 void MulCir(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB);
 
-void TanH(MYINT *A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out);
+void TanH(MYINT *A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out, MYINT *B);
 
 void ArgMax(MYINT *A, MYINT I, MYINT J, MYINT *index);
 
@@ -53,7 +53,7 @@ void Maxpool(MYINT *A, MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT strid
 
 void Exp(MYINT *A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT *B);
 
-void Sigmoid(MYINT *A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_limit, MYINT scale_in, MYINT scale_out);
+void Sigmoid(MYINT *A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_limit, MYINT scale_in, MYINT scale_out, MYINT *B);
 
 void AdjustScaleShr(MYINT *A, MYINT I, MYINT J, MYINT scale);
 void AdjustScaleShl(MYINT *A, MYINT I, MYINT J, MYINT scale);
@@ -480,22 +480,6 @@ void MulCir(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT sh
 }
 
 template<class TypeA>
-void TanH(TypeA* A, MYINT I, MYINT J, TypeA scale_in, TypeA scale_out) {
-	for (MYITE i = 0; i < I; i++) {
-		for (MYITE j = 0; j < J; j++) {
-			float x = float(A[i * J + j]) / scale_in;
-
-			float y = tanh(x);
-
-			MYINT z = (TypeA)(y * scale_out);
-
-			A[i * J + j] = z;
-		}
-	}
-	return;
-}
-
-template<class TypeA>
 void Confidence(TypeA* A, float* confidence) {
 	*confidence = *A;
 	if (*confidence < 0)
@@ -767,6 +751,9 @@ const int8_t expTable8[128] = {64, 60, 56, 53, 50, 47, 44, 41, 39, 36, 34, 32, 3
 template<class TypeB>
 inline TypeB expBase8(int8_t A, MYINT adjust) {
 	int8_t val = (A == -128) ? 127 : -A;
+	if(val < 0) {
+		val = 127;
+	}
 	return (TypeB) (expTable8[val] * adjust);
 }
 
@@ -803,7 +790,7 @@ void ExpNew16(int16_t *A, MYINT I, MYINT J, MYINT adjust, TypeB *B) {
 
 
 template<class TypeA>
-void Sigmoid(TypeA* A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_limit, MYINT scale_in, MYINT scale_out) {
+void Sigmoid(TypeA* A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_limit, MYINT scale_in, MYINT scale_out, TypeA* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			float x = float(A[i * J + j]) / scale_in;
@@ -812,12 +799,97 @@ void Sigmoid(TypeA* A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_lim
 
 			TypeA z = (TypeA)(y * scale_out);
 
-			A[i * J + j] = z;
+			B[i * J + j] = z;
 		}
 	}
 
 	return;
 }
+// Integer sigmoid using new table exponentiation
+template<int dummy>
+void SigmoidNew8(int8_t* A, MYINT I, MYINT J, int8_t* B) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			int8_t a = A[i * J + j];
+			if (a <= 0) {
+				int8_t b = expBase8<int8_t>(a, 1);
+				B[i * J + j] = (int8_t)((64 * (int16_t)b) / ((int16_t)b + (int16_t)64));
+			} else {
+				B[i * J + j] = (int8_t)(((int16_t)4096) / ((int16_t)64 + (int16_t)expBase8<int8_t>(-a, 1)));
+			}
+			
+		}
+	}
+	return;
+}
+template<int dummy>
+void SigmoidNew16(int16_t* A, MYINT I, MYINT J, int16_t* B) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			int16_t a = A[i * J + j];
+			if (a <= 0) {
+				int16_t b = expBase16<int16_t>(a, 1);
+				B[i * J + j] = (int16_t)((16384 * (int32_t)b) / ((int32_t)b + (int32_t)16384));
+			} else {
+				B[i * J + j] = (int16_t)(((int32_t)267943936L) / ((int32_t)16384 + (int32_t)expBase16<int16_t>(-a, 1)));
+			}
+			
+		}
+	}
+	return;
+}
+
+template<class TypeA>
+void TanH(TypeA* A, MYINT I, MYINT J, TypeA scale_in, TypeA scale_out, TypeA* B) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			float x = float(A[i * J + j]) / scale_in;
+
+			float y = tanh(x);
+
+			MYINT z = (TypeA)(y * scale_out);
+
+			B[i * J + j] = z;
+		}
+	}
+	return;
+}
+// Integer TanH using new table exponentiation
+template<int dummy>
+void TanHNew8(int8_t* A, MYINT I, MYINT J, int8_t* B) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			int8_t a = A[i * J + j];
+			if (a <= 0) {
+				int16_t b = expBase8<int8_t>(2*a, 1);
+				B[i * J + j] = (int8_t)( (((int16_t)64)*(b - 64)) / (b + 64));
+			} else {
+				int16_t b = expBase8<int8_t>(-2*a, 1);
+				B[i * J + j] = (int8_t)( (((int16_t)64)*(64 - b)) / (b + 64));
+			}
+			
+		}
+	}
+	return;
+}
+template<int dummy>
+void TanHNew16(int16_t* A, MYINT I, MYINT J, int16_t* B) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			int16_t a = A[i * J + j];
+			if (a <= 0) {
+				int32_t b = expBase16<int16_t>(2*a, 1);
+				B[i * J + j] = (int16_t)( (((int32_t)16384)*(b - 16384)) / (b + 16384));
+			} else {
+				int32_t b = expBase16<int16_t>(-2*a, 1);
+				B[i * J + j] = (int16_t)( (((int32_t)16384)*(16384 - b)) / (b + 16384));
+			}
+			
+		}
+	}
+	return;
+}
+
 
 template<class TypeA>
 void AdjustScaleShr(TypeA* A, MYINT I, MYINT J, MYINT scale) {

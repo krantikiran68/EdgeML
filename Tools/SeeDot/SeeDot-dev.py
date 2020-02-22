@@ -103,7 +103,10 @@ class MainDriver:
                 self.args.outdir), "Output directory doesn't exist"
             config.outdir = self.args.outdir
         else:
-            config.outdir = os.path.join(config.tempdir, "arduino")
+            if self.args.target == [config.Target.arduino]:
+                config.outdir = os.path.join("arduinodump", "arduino")
+            else:
+                config.outdir = os.path.join(config.tempdir, "arduino")
             os.makedirs(config.outdir, exist_ok=True)
 
     def checkMSBuildPath(self):
@@ -139,8 +142,11 @@ class MainDriver:
 
         results = self.loadResultsFile()
 
-        for iter in product(self.args.algo, self.args.version, self.args.dataset, self.args.target, self.args.maximisingMetric):
-            algo, version, dataset, target, maximisingMetric = iter
+        for iter in product(self.args.algo, self.args.version, self.args.dataset, self.args.target, self.args.maximisingMetric, [16]):
+            algo, version, dataset, target, maximisingMetric, wordLength = iter
+
+            #config.wordLength = wordLength
+            #config.maxScaleRange = 0, -wordLength
 
             print("\n========================================")
             print("Executing on %s %s %s %s" %
@@ -221,10 +227,12 @@ class MainDriver:
                 sf = self.args.max_scale_factor
 
             obj = main.Main(algo, version, target, trainingInput,
-                            testingInput, modelDir, sf, maximisingMetric)
+                            testingInput, modelDir, sf, maximisingMetric, dataset)
             obj.run()
-
-            acc = obj.testingAccuracy
+            try:
+                acc = obj.testingAccuracy
+            except:
+                print("CODE FAILED TO COMPILE AND/OR EXECUTE")
             if acc != expectedAcc:
                 print("FAIL: Expected accuracy %f%%" % (expectedAcc))
                 # return

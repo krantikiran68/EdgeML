@@ -94,7 +94,7 @@ namespace Streamer
 					}
 					else
 					{
-						Console.WriteLine((i + 1) + ": Incorrect prediction");
+						Console.WriteLine((i + 1) + ": Incorrect prediction" + classID + "/" + label);
 						//file.WriteLine("Incorrect prediction for input " + (i + 1));
 						file.WriteLine("Incorrect prediction for input " + (total + 1) + ". Predicted " + classID + " Expected " + label);
 					}

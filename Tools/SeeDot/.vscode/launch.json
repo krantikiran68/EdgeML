@@ -18,9 +18,11 @@
                 "-v",
                 "fixed",
                 "-d",
-                "ward-binary",
+                "usps-multiclass",
                 "-m",
-                "acc"
+                "red_disagree",
+                "-t",
+                "arduino"
             ]
         }
     ]

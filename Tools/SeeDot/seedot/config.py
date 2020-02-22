@@ -2,7 +2,7 @@
 # Licensed under the MIT license.
 
 # Target word length. Currently set to match the word length of Arduino (2 bytes)
-wordLength = 8
+wordLength = 16
 availableBitwidths = [8, 16, 32]
 
 # Range of max scale factor used for exploration
@@ -19,10 +19,12 @@ msbuildPathOptions = [r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Comm
                       ]
 
 ddsEnabled = True
-vbwEnabled = False
-functionReducedProfiling = False
+vbwEnabled = True
+functionReducedProfiling = True
 
 trimHighestDecile = False
+
+higherOffsetBias = True
 
 class MaximisingMetric:
     accuracy = "acc"

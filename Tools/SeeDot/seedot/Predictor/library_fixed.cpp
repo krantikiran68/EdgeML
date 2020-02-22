@@ -527,7 +527,7 @@ void MulCir(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT sh
 }
 
 // A = tanh(A)
-void TanH(MYINT *A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out)
+void TanH(MYINT *A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out, MYINT *B)
 {
 	for (MYITE i = 0; i < I; i++)
 	{
@@ -540,7 +540,7 @@ void TanH(MYINT *A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out)
 
 			MYINT z = MYINT(y * scale_out);
 
-			A[i * J + j] = z;
+			B[i * J + j] = z;
 #else
 			MYINT x = A[i * J + j], y;
 
@@ -555,7 +555,7 @@ void TanH(MYINT *A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out)
 
 			y *= scale_diff;
 
-			A[i * J + j] = y;
+			B[i * J + j] = y;
 #endif
 		}
 	}
@@ -870,8 +870,8 @@ void Exp(MYINT *A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT *B)
 	return;
 }
 
-// A = Sigmoid(A)
-void Sigmoid(MYINT *A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_limit, MYINT scale_in, MYINT scale_out)
+// B = Sigmoid(A)
+void Sigmoid(MYINT *A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_limit, MYINT scale_in, MYINT scale_out, MYINT *B)
 {
 
 	MYINT scale_diff = scale_out / scale_in;
@@ -887,7 +887,7 @@ void Sigmoid(MYINT *A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_lim
 
 			MYINT z = MYINT(y * scale_out);
 
-			A[i * J + j] = z;
+			B[i * J + j] = z;
 #else
 			MYINT x = A[i * J + j];
 
@@ -903,7 +903,7 @@ void Sigmoid(MYINT *A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_lim
 
 			y = y * scale_diff;
 
-			A[i * J + j] = y;
+			B[i * J + j] = y;
 #endif
 		}
 	}

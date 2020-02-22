@@ -1272,7 +1272,7 @@ class IRBuilder(ASTVisitor):
                 shr_A: "shrA",
                 shr_B: "shrB",
                 shr_out: "shrC"
-            }) if not self.vbwEnabled else IR.FuncCall(funcName + c + ("<int%d_t, int%d_t, int%d_t, int%d_t>" % (bitwidth_in_A, bitwidth_in_B, self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add"), bitwidth_out)), {
+            }) if not self.vbwEnabled else IR.FuncCall(funcName + c + ("<int%d_t, int%d_t, int%d_t, int%d_t>" % (bitwidth_in_A, bitwidth_in_B, self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add", bitwidth_out), bitwidth_out)), {
                 expr_in_A: "A",
                 expr_in_B: "B",
                 expr_out: "C",
@@ -1343,9 +1343,15 @@ class IRBuilder(ASTVisitor):
         elif node.op == SeeDotParser.SGN:
             return self.visitSgn(node)
         elif node.op == SeeDotParser.TANH:
-            return self.visitTanh(node)
+            if useNewTableExp() and forFixed():
+                return self.visitNewTableTanH(node)
+            else:
+                return self.visitTanh(node)
         elif node.op == SeeDotParser.SIGMOID:
-            return self.visitSigmoid(node)
+            if useNewTableExp() and forFixed():
+                return self.visitNewTableSigmoid(node)
+            else:
+                return self.visitSigmoid(node)
         else:
             assert False
 
@@ -1819,9 +1825,15 @@ class IRBuilder(ASTVisitor):
         type_in = node.expr.type
         [I, J] = type_in.shape
 
+        expr_out = self.getTempVar()
+
         #scale_in = self.varScales[expr_in.idf]
         bitwidth_in, scale_in = self.getBitwidthAndScale(expr_in.idf)
         intv_in = self.varIntervals[expr_in.idf]
+
+        if expr_in.idf in self.demotedVarsList:
+            self.demotedVarsList.append(expr_out.idf)
+            self.demotedVarsOffsets[expr_out.idf] = 0
 
         if forFloat():
             tanh_limit = IR.Float(config.tanhLimit)
@@ -1850,24 +1862,96 @@ class IRBuilder(ASTVisitor):
             IR.Int(I): "I",
             IR.Int(J): "J",
             tanh_limit: "scale_in",
-            IR.Int(tanh_limit_out): "scale_out"
+            IR.Int(tanh_limit_out): "scale_out",
+            expr_out: "B"
         }) if not self.vbwEnabled else IR.FuncCall("TanH<int%d_t>"%(bitwidth_in), {
             expr_in: "A",
             IR.Int(I): "I",
             IR.Int(J): "J",
             tanh_limit: "scale_in",
-            IR.Int(tanh_limit_out): "scale_out"
+            IR.Int(tanh_limit_out): "scale_out",
+            expr_out: "B"
         })
 
         prog_tanh = IR.Prog([comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_tanh)
 
-        self.varIntervals[expr_in.idf] = intv_out
-        self.varScales[expr_in.idf] = scale_out
-        expr_out = expr_in
+        self.varDeclarations[expr_out.idf] = type_in
+        self.varIntervals[expr_out.idf] = intv_out
+        self.varScales[expr_out.idf] = scale_out
 
         return (prog_out, expr_out)
+
+
+
+    def visitNewTableTanH(self, node: AST.Func):
+
+        assert self.vbwEnabled, "VBW must be enabled for new table"
+
+        (prog_in, expr_in) = self.visit(node.expr)
+
+        type_in = node.expr.type
+
+        bitwidth_in_raw, scale_in_raw = self.getBitwidthAndScale(expr_in.idf)
+
+        MIN = 0.1
+        maxExp = np.exp(MIN)
+
+        expr_out = self.getTempVar()
+        
+        if bitwidth_in_raw != config.wordLength:
+            self.demotedVarsList.append(expr_out.idf)
+            self.demotedVarsOffsets[expr_out.idf] = 0
+            self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
+
+        bitwidth_out = bitwidth_in_raw
+        scale_out = self.getScale(maxExp) + config.wordLength // 2 if expr_out.idf in self.demotedVarsList else self.getScale(maxExp)
+        scale_in_adjusted = scale_out
+
+        [I, J] = type_in.shape
+
+        scale_in = -4 if bitwidth_in_raw != config.wordLength else -11
+
+        adjust = []
+        if scale_in_raw != scale_in:
+            diff_scale = abs(scale_in_raw - scale_in)
+            if scale_in_raw > scale_in:
+                saturate = (2 ** (-scale_in_adjusted - diff_scale))
+                adjust = [IR.FuncCall("AdjustScaleShlSaturate<int%d_t>" %(bitwidth_in_raw), {
+                                            expr_in : "A",
+                                            IR.Int(I): "I",
+                                            IR.Int(J): "J",
+                                            IR.Int(2 ** diff_scale): "scale",
+                                            IR.Int(saturate): "saturate"
+                })]
+            else:
+                adjust = [IR.FuncCall("AdjustScaleShr<int%d_t>" %(bitwidth_in_raw), {
+                                            expr_in : "A",
+                                            IR.Int(I): "I",
+                                            IR.Int(J): "J",
+                                            IR.Int(2 ** diff_scale): "scale"
+                })]
+
+        comm = IR.Comment('tanh(' + expr_in.idf + ')')
+
+        funcCall = IR.FuncCall("TanHNew%d<0>" %(bitwidth_in_raw), {
+            expr_in: "A",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            expr_out: "B"
+        })
+
+        prog_tanh = IR.Prog([comm] + adjust + [funcCall])
+
+        prog_out = IRUtil.concatPrograms(prog_in, prog_tanh)
+
+        self.varDeclarations[expr_out.idf] = type_in
+        self.varScales[expr_out.idf] = scale_out
+        self.varIntervals[expr_out.idf] = (0, 0)
+
+        return (prog_out, expr_out)
+        
 
     # out = sigmoid(in)
     def visitSigmoid(self, node: AST.Func):
@@ -1883,9 +1967,15 @@ class IRBuilder(ASTVisitor):
         type_in = node.expr.type
         [I, J] = type_in.shape
 
+        expr_out = self.getTempVar()
+
         #scale_in = self.varScales[expr_in.idf]
         bitwidth_in, scale_in = self.getBitwidthAndScale(expr_in.idf)
         intv_in = self.varIntervals[expr_in.idf]
+
+        if expr_in.idf in self.demotedVarsList:
+            self.demotedVarsList.append(expr_out.idf)
+            self.demotedVarsOffsets[expr_out.idf] = 0
 
         # Scale sigmoid limit and other constants
         addition_int = self.getNumInFixedPoint(addition, scale_in)
@@ -1936,7 +2026,8 @@ class IRBuilder(ASTVisitor):
             addition_ir: "add",
             sigmoid_limit_ir: "sigmoid_limit",
             IR.Int(scale_in_num): "scale_in",
-            IR.Int(scale_out_num): "scale_out"
+            IR.Int(scale_out_num): "scale_out",
+            expr_out: "B"
         }) if not self.vbwEnabled else IR.FuncCall("Sigmoid<int%d_t>"%(bitwidth_in), {
             expr_in: "A",
             IR.Int(I): "I",
@@ -1945,17 +2036,17 @@ class IRBuilder(ASTVisitor):
             addition_ir: "add",
             sigmoid_limit_ir: "sigmoid_limit",
             IR.Int(scale_in_num): "scale_in",
-            IR.Int(scale_out_num): "scale_out"
+            IR.Int(scale_out_num): "scale_out",
+            expr_out: "B"
         })
 
         prog_sigmoid = IR.Prog([comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_sigmoid)
 
-        expr_out = expr_in
-
-        self.varScales[expr_in.idf] = scale_out
-        self.varIntervals[expr_in.idf] = intv_out
+        self.varDeclarations[expr_out.idf] = type_in
+        self.varScales[expr_out.idf] = scale_out
+        self.varIntervals[expr_out.idf] = intv_out
 
         self.log.print(comment.msg)
         self.log.print("\tInput:  scale = %d, interval = [%d, %d]" % (
@@ -1964,6 +2055,74 @@ class IRBuilder(ASTVisitor):
             (self.varScales[expr_out.idf],) + self.varIntervals[expr_out.idf]))
 
         return (prog_out, expr_out)
+
+    def visitNewTableSigmoid(self, node: AST.Func):
+
+        assert self.vbwEnabled, "VBW must be enabled for new table"
+
+        (prog_in, expr_in) = self.visit(node.expr)
+
+        type_in = node.expr.type
+
+        bitwidth_in_raw, scale_in_raw = self.getBitwidthAndScale(expr_in.idf)
+
+        MIN = 0.1
+        maxExp = np.exp(MIN)
+
+        expr_out = self.getTempVar()
+        
+        if bitwidth_in_raw != config.wordLength:
+            self.demotedVarsList.append(expr_out.idf)
+            self.demotedVarsOffsets[expr_out.idf] = 0
+            self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
+
+        bitwidth_out = bitwidth_in_raw
+        scale_out = self.getScale(maxExp) + config.wordLength // 2 if expr_out.idf in self.demotedVarsList else self.getScale(maxExp)
+        scale_in_adjusted = scale_out
+
+        [I, J] = type_in.shape
+
+        scale_in = -4 if bitwidth_in_raw != config.wordLength else -11
+
+        adjust = []
+        if scale_in_raw != scale_in:
+            diff_scale = abs(scale_in_raw - scale_in)
+            if scale_in_raw > scale_in:
+                saturate = (2 ** (-scale_in_adjusted - diff_scale))
+                adjust = [IR.FuncCall("AdjustScaleShlSaturate<int%d_t>" %(bitwidth_in_raw), {
+                                            expr_in : "A",
+                                            IR.Int(I): "I",
+                                            IR.Int(J): "J",
+                                            IR.Int(2 ** diff_scale): "scale",
+                                            IR.Int(saturate): "saturate"
+                })]
+            else:
+                adjust = [IR.FuncCall("AdjustScaleShr<int%d_t>" %(bitwidth_in_raw), {
+                                            expr_in : "A",
+                                            IR.Int(I): "I",
+                                            IR.Int(J): "J",
+                                            IR.Int(2 ** diff_scale): "scale"
+                })]
+
+        comm = IR.Comment('tanh(' + expr_in.idf + ')')
+
+        funcCall = IR.FuncCall("SigmoidNew%d<0>" %(bitwidth_in_raw), {
+            expr_in: "A",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            expr_out: "B"
+        })
+
+        prog_sigmoid = IR.Prog([comm] + adjust + [funcCall])
+
+        prog_out = IRUtil.concatPrograms(prog_in, prog_sigmoid)
+
+        self.varDeclarations[expr_out.idf] = type_in
+        self.varScales[expr_out.idf] = scale_out
+        self.varIntervals[expr_out.idf] = (0, 0)
+
+        return (prog_out, expr_out)
+
 
     # out = $x[start:end] in
     def visitSum(self, node: AST.Sum):
@@ -2069,6 +2228,11 @@ class IRBuilder(ASTVisitor):
         if forFixed():
             scale, intv = self.readProfileForMutableVars(idf)
             bitwidth, _ = self.getBitwidthAndScale(idf) #(init 0 default scale currently storedin varScales which has to be overwritten)
+            if bitwidth != config.wordLength:
+                idfs = idf
+                while idfs in self.substitutions.keys():
+                    idfs = self.substitutions[idfs]
+                scale += config.wordLength // 2 + self.demotedVarsOffsets[idfs]
             self.varScales[idf] = scale
             self.varIntervals[idf] = intv
 
@@ -2232,7 +2396,10 @@ class IRBuilder(ASTVisitor):
                 # add a loop to adjust the scale back to the original one
                 curr_scale = self.varScales[idf]
                 [minVal, maxVal] = self.mutableVarsProfile[0]
-                new_scale = self.getScale(max(abs(minVal), abs(maxVal)))
+                idfs = idf
+                while idfs in self.substitutions.keys():
+                    idfs = self.substitutions[idfs]
+                new_scale = self.getScale(max(abs(minVal), abs(maxVal))) + (config.wordLength // 2 + self.demotedVarsOffsets[idfs] if idfs in self.demotedVarsList else 0)
                 new_intv = self.getInterval(new_scale, minVal, maxVal)
 
                 diff_scale = 2 ** (curr_scale - new_scale) if curr_scale > new_scale else 2 ** (new_scale - curr_scale)
@@ -2296,6 +2463,11 @@ class IRBuilder(ASTVisitor):
                     if idf in self.substitutions.keys():
                         assert False, "What kind of subtitutions are going on?"
                     self.substitutions[idf] = expr_decl.idf
+
+                # To ensure loop variable is correctly fed for data driven scaling
+                for i in range(len(self.independentVars)):
+                    while self.independentVars[i] in self.substitutions.keys(): 
+                        self.independentVars[i] = self.substitutions[self.independentVars[i]]
 
             prog_in = prog_in.subst(idf, expr_decl)
             expr_in = expr_in.subst(idf, expr_decl)
@@ -2547,12 +2719,14 @@ class IRBuilder(ASTVisitor):
         else:
             assert False
 
-    def getTempBitwidth(self, bitwidthA, bitwidthB, op):
+    def getTempBitwidth(self, bitwidthA, bitwidthB, op, bitwidthC=None):
         if op == "mul":
+            assert bitwidthC is None, "Illegal call to getTempBitwidth()"
             biggerBitWidth = max(bitwidthA, bitwidthB)
             return biggerBitWidth * 2
         elif op == "add":
-            biggerBitWidth = max(bitwidthA, bitwidthB)
+            assert bitwidthC is not None, "Illegal call to getTempBitwidth()"
+            biggerBitWidth = max(bitwidthA, bitwidthB, bitwidthC)
             return biggerBitWidth
         else:
             assert False, "Illegal operation specified for temp bitwidth"

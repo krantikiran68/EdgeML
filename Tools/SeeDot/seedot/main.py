@@ -21,10 +21,11 @@ import seedot.util as Util
 
 class Main:
 
-    def __init__(self, algo, version, target, trainingFile, testingFile, modelDir, sf, maximisingMetric):
+    def __init__(self, algo, version, target, trainingFile, testingFile, modelDir, sf, maximisingMetric, dataset):
         self.algo, self.version, self.target = algo, version, target
         self.trainingFile, self.testingFile, self.modelDir = trainingFile, testingFile, modelDir
         self.sf = sf
+        self.dataset = dataset
         self.accuracy = {}
         self.maximisingMetric = maximisingMetric
         self.variableSubstitutions = {} #evaluated during profiling code run
@@ -69,7 +70,9 @@ class Main:
                 outputLogFile = os.path.join(logDir, "log-fixed-" + str(abs(sf)) + ".txt")
 
         if target == config.Target.arduino:
-            outputDir = os.path.join(config.outdir)
+            outdir = os.path.join(config.outdir, str(config.wordLength), self.algo, self.dataset)
+            os.makedirs(outdir, exist_ok=True)
+            outputDir = os.path.join(outdir)
         elif target == config.Target.x86:
             outputDir = os.path.join(config.tempdir, "Predictor")
 
@@ -171,6 +174,16 @@ class Main:
             for codeId, sf in codeIdToScaleFactorMap.items():
                 self.accuracy[sf] = execMap[str(codeId)]
                 print("Accuracy at scale factor %d is %.3f%%, Disagreement Count is %d, Reduced Disagreement Count is %d\n" % (sf, execMap[str(codeId)][0], execMap[str(codeId)][1], execMap[str(codeId)][2]))
+                if datasetType == config.DatasetType.testing and self.target == config.Target.arduino:
+                    outdir = os.path.join(config.outdir, str(config.wordLength), self.algo, self.dataset)
+                    os.makedirs(outdir, exist_ok=True)
+                    file = open(os.path.join(outdir, "res"), "w")
+                    file.write("Demoted Vars:\n")
+                    file.write(str(self.demotedVarsOffsets) if hasattr(self, 'demotedVarsOffsets') else "")
+                    file.write("\nAll scales:\n")
+                    file.write(str(self.allScales))
+                    file.write("\nAccuracy at scale factor %d is %.3f%%, Disagreement Count is %d, Reduced Disagreement Count is %d\n" % (sf, execMap[str(codeId)][0], execMap[str(codeId)][1], execMap[str(codeId)][2]))
+                    file.close()
         else:
             def getMaximisingMetricValue(a):
                 if self.maximisingMetric == config.MaximisingMetric.accuracy:
@@ -204,7 +217,8 @@ class Main:
         firstCompileSuccess = False
         while firstCompileSuccess == False:
             if highestValidScale == end:
-                assert False, "Compilation not possible for any Scale Factor. Abort"
+                print("Compilation not possible for any Scale Factor. Abort")
+                return False
             try:
                 firstCompileSuccess = self.partialCompile(config.Version.fixed, config.Target.x86, highestValidScale, True, None, 0)
             except:
@@ -270,7 +284,7 @@ class Main:
             print("Scales computed in native bitwidth. Starting exploration over other bitwidths.")
 
             attemptToDemote = [var for var in self.variableToBitwidthMap if var[-3:] != "val"]
-            numCodes = 3 * len(attemptToDemote)
+            numCodes = 3 * len(attemptToDemote) + 3 # 6 offsets tried for X while 3 tried for other variables
             
             self.partialCompile(config.Version.fixed, config.Target.x86, self.sf, True, None, -1 if len(attemptToDemote) > 0 else 0, dict(self.variableToBitwidthMap), [], {})
             codeId = 0
@@ -284,7 +298,7 @@ class Main:
                 demotedVarsOffsets = dict.fromkeys(demotedVarsList, 0)
 
                 contentToCodeIdMap[tuple(demotedVarsList)] = {}
-                for demOffset in [0, -1, -2]:
+                for demOffset in ([0, -1, -2] if demoteVar != 'X' else [0, -1, -2, -3, -4, -5]):
                     codeId += 1
                     for k in demotedVarsOffsets:
                         demotedVarsOffsets[k] = demOffset
@@ -332,7 +346,7 @@ class Main:
                     okToDemote = demotedVars
             
             self.demotedVarsList = [i for i in okToDemote]
-            self.demotedVarsOffsets = demotedVarsListToOffsets[okToDemote]
+            self.demotedVarsOffsets = demotedVarsListToOffsets.get(okToDemote, {})
 
         return True
 
@@ -341,11 +355,11 @@ class Main:
     def getBestScale(self):
         def getMaximisingMetricValue(a):
             if self.maximisingMetric == config.MaximisingMetric.accuracy:
-                return (a[1][0], -a[1][1], -a[1][2])
+                return (a[1][0], -a[1][1], -a[1][2]) if not config.higherOffsetBias else (a[1][0], -a[0])
             elif self.maximisingMetric == config.MaximisingMetric.disagreements:
-                return (-a[1][1], -a[1][2], a[1][0])
+                return (-a[1][1], -a[1][2], a[1][0]) if not config.higherOffsetBias else (-a[1][1], -a[0])
             elif self.maximisingMetric == config.MaximisingMetric.reducedDisagreements:
-                return (-a[1][2], -a[1][1], a[1][0])
+                return (-a[1][2], -a[1][1], a[1][0]) if not config.higherOffsetBias else (-a[1][2], -a[0])
         x = [(i, self.accuracy[i]) for i in self.accuracy]
         x.sort(key=getMaximisingMetricValue, reverse=True)
         sorted_accuracy = x[:5]
@@ -441,7 +455,8 @@ class Main:
 
         # Copy file
         srcFile = os.path.join(config.outdir, "input", "model_fixed.h")
-        destFile = os.path.join(config.outdir, "model.h")
+        destFile = os.path.join(config.outdir, str(config.wordLength), self.algo, self.dataset, "model.h")
+        os.makedirs(os.path.join(config.outdir, str(config.wordLength), self.algo, self.dataset), exist_ok=True)
         shutil.copyfile(srcFile, destFile)
 
         # Copy library.h file

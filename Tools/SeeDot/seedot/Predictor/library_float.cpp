@@ -417,7 +417,7 @@ void MulCir(float *A, float *B, float *C, MYINT I, MYINT J, MYINT shrA, MYINT sh
 }
 
 // A = tanh(A)
-void TanH(float *A, MYINT I, MYINT J, float scale_in, float scale_out)
+void TanH(float *A, MYINT I, MYINT J, float scale_in, float scale_out, float *B)
 {
 	for (MYITE i = 0; i < I; i++)
 	{
@@ -427,7 +427,7 @@ void TanH(float *A, MYINT I, MYINT J, float scale_in, float scale_out)
 
 			y = tanh(x);
 
-			A[i * J + j] = y;
+			B[i * J + j] = y;
 		}
 	}
 	return;
@@ -723,7 +723,7 @@ void Exp(float *A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, float *B)
 }
 
 // A = sigmoid(A)
-void Sigmoid(float *A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out)
+void Sigmoid(float *A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, float *B)
 {
 	for (MYITE i = 0; i < I; i++)
 	{
@@ -733,7 +733,7 @@ void Sigmoid(float *A, MYINT I, MYINT J, float div, float add, float sigmoid_lim
 
 			y = 1 / (1 + exp(-x));
 
-			A[i * J + j] = y;
+			B[i * J + j] = y;
 		}
 	}
 	return;

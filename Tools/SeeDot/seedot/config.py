@@ -26,6 +26,8 @@ trimHighestDecile = False
 
 higherOffsetBias = True
 
+fixedPointVbwIteration = True
+
 class MaximisingMetric:
     accuracy = "acc"
     disagreements = "disagree"

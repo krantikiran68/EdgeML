@@ -22,11 +22,12 @@ from seedot.writer import Writer
 
 class Arduino(CodegenBase):
 
-    def __init__(self, outputDir, decls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth):
+    def __init__(self, outputDir, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth):
         outputFile = os.path.join(outputDir, "predict.cpp")
         self.out = Writer(outputFile)
 
         self.decls = decls
+        self.localDecls = localDecls
         self.scales = scales
         self.intvs = intvs
         self.cnsts = cnsts
@@ -173,8 +174,8 @@ class Arduino(CodegenBase):
             # Example: A[10][10] is written as &A[0][0]. The value of x in this case is 2.
             # x is 0 for constants
             # x is -1 for integer variables where only & is printed and not []
-            if isinstance(arg, IR.Var) and arg.idf in self.decls.keys() and not arg.idf == 'X':
-                type = self.decls[arg.idf]
+            if isinstance(arg, IR.Var) and (arg.idf in self.decls.keys() or arg.idf in self.localDecls.keys()) and not arg.idf == 'X':
+                type = self.decls[arg.idf] if arg.idf in self.decls else self.localDecls[arg.idf]
                 if isinstance(type, Type.Tensor):
                     if type.dim == 0:
                         x = -1

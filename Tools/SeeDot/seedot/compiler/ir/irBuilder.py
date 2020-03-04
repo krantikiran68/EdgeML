@@ -74,13 +74,15 @@ class IRBuilder(ASTVisitor):
 
         # Global variables
         #
-        # varDeclarations: Map of local variables to their type used for declaring the variables in the generated C++ code
+        # varDeclarations: Map of local variables (declared at the beginning) to their type used for declaring the variables in the generated C++ code
+        # varDeclarationsLocal: Same as varDeclarations, for variables which are declared locally within a For loop
         # varScales: Map of variables to their scaling factors
         # varIntervals: Map of variables to the range of values stored in the variable, which is obtained from range analysis
         # internalVars: List of intermediate variables in the program whose type is always int irrespective of floating-point or fixed-point code generation
         # intConstants: Map of integer constant variables to their value
         # floatConstants: Map of float constant variables to their value
         self.varDeclarations = {}
+        self.varDeclarationsLocal = {}
         self.varScales = {}
         self.varIntervals = {}
         self.internalVars = []
@@ -2236,7 +2238,18 @@ class IRBuilder(ASTVisitor):
             self.varScales[idf] = scale
             self.varIntervals[idf] = intv
 
+        prevVarDecls = dict(self.varDeclarations)
+
         (prog_in, expr_in) = self.visit(node.expr)
+
+        forDecls = {}
+        for key in self.varDeclarations.keys():
+            if key not in prevVarDecls and not(key in self.intConstants or key in self.floatConstants):
+                forDecls[key] = self.varDeclarations[key]
+
+        for key in forDecls.keys():
+            del self.varDeclarations[key]
+            self.varDeclarationsLocal[key] = forDecls[key]
 
         start, end = node.start, node.end
         assert start == 0, "'loop' operator currently supports only iterations starting from 0."
@@ -2247,7 +2260,7 @@ class IRBuilder(ASTVisitor):
             node.name, start, end, idf))
 
         loop = IR.For(var, 0, IRUtil.lt(
-            var, IR.Int(end - start)), prog_in.cmd_l)
+            var, IR.Int(end - start)), prog_in.cmd_l, 0, forDecls)
 
         # Generate code for profiling
         if forFloat() and getTarget() == config.Target.x86:

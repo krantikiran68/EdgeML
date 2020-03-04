@@ -6,6 +6,7 @@
 #include <limits>
 #include <cmath>
 #include <unordered_map>
+#include <algorithm>
 
 #include "datatypes.h"
 #include "profile.h"
@@ -62,6 +63,9 @@ unordered_map<string, float> max_all;
 unordered_map<string, float> min_temp;
 unordered_map<string, float> max_temp;
 
+unordered_map<string, vector<float>> all_values;
+unordered_map<string, pair<float, float>> statistics;
+
 bool range_exceeded = false;
 
 void dumpProfile() {
@@ -73,6 +77,34 @@ void dumpProfile() {
 		string key = min_i->first;
 		outfile << key << "," << min_all[key] << "," << max_all[key] << endl;
 		min_i++;
+		
+		// sort(all_values[key].begin(), all_values[key].end());
+		// float sum = 0.0;
+		// for(auto iter = all_values[key].begin(); iter != all_values[key].end(); iter++) {
+		// 	sum += *iter;
+		// }
+		// float mean = sum / all_values[key].size();
+		// float variance = 0.0;
+		// for(auto iter = all_values[key].begin(); iter != all_values[key].end(); iter++) {
+		// 	variance += (*iter - mean)*(*iter - mean);
+		// }
+		// variance /= all_values[key].size();
+		// float stddev = sqrt(variance);
+		// int n = 3;
+		// float minVal, maxVal;
+		// bool minAssigned = false, maxAssigned = false;
+		// for(auto iter = all_values[key].begin(); iter != all_values[key].end(); iter++) {
+		// 	if(minAssigned == false && *iter >= mean - n*stddev && *iter >= min_all[key]) {
+		// 		minVal = *iter;
+		// 		minAssigned = true;
+		// 	}
+		// 	if(maxAssigned == false && *iter <= mean + n*stddev && *iter <= max_all[key]) {
+		// 		maxVal = *iter;
+		// 	} else {
+		// 		maxAssigned = true;
+		// 	}
+		// }
+		// outfile << key << "," << minVal << "," << maxVal << endl;
 	}
 	outfile.close();
 }
@@ -119,11 +151,13 @@ void Profile2(float* A, int I, int J, string name) {
 	if (min_temp.find(name) == min_temp.end()) {
 		min_temp[name] = FLT_MAX;
 		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
 	}
 	for (int i = 0; i < I; i++) {
 		for (int j = 0; j < J; j++) {
 			min_temp[name] = min_temp[name] < A[i * J + j] ? min_temp[name] : A[i * J + j];
 			max_temp[name] = max_temp[name] > A[i * J + j] ? max_temp[name] : A[i * J + j];
+			all_values[name].push_back(A[i * J + j]);
 		}
 	}
 }

@@ -212,17 +212,18 @@ class If(Cmd):
 
 class For(Cmd):
 
-    def __init__(self, var: Var, st: int, cond: Expr, cmd_l: CmdList, fac=0):
+    def __init__(self, var: Var, st: int, cond: Expr, cmd_l: CmdList, fac=0, varDecls={}):
         self.var = var
         self.st = DataType.getInt(st)
         self.cond = cond
         self.cmd_l = cmd_l
         self.factor = fac
+        self.varDecls = varDecls
 
     def subst(self, from_idf: str, to_e: Expr):
         cmd_l_new = list(
             map(lambda cmd: cmd.subst(from_idf, to_e), self.cmd_l))
-        return For(self.var, self.st, self.cond.subst(from_idf, to_e), cmd_l_new, self.factor)
+        return For(self.var, self.st, self.cond.subst(from_idf, to_e), cmd_l_new, self.factor, self.varDecls)
 
 
 class While(Cmd):

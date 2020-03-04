@@ -38,7 +38,7 @@ class CodegenBase:
     def printVar(self, ir):
         if config.vbwEnabled and forFixed():
             if hasattr(self, "varsForBitwidth"):
-                if ir.idf in self.varsForBitwidth and ir.idf[:3] == "tmp":
+                if ir.idf in self.varsForBitwidth and ir.idf[:3] == "tmp" and ir.idf in self.decls:
                     self.out.printf("%s_%d", ir.idf, self.varsForBitwidth[ir.idf])
                 else:
                     self.out.printf("%s", ir.idf)
@@ -146,6 +146,24 @@ class CodegenBase:
     def printFor(self, ir):
         self.printForHeader(ir)
         self.out.increaseIndent()
+        for var in ir.varDecls.keys():
+            if forFloat():
+                typ_str = IR.DataType.getFloatStr()
+            else:
+                typ_str = IR.DataType.getIntStr()
+                if config.vbwEnabled:
+                    if hasattr(self, 'varsForBitwidth'):
+                        typ_str = ("int%d_t" % (self.varsForBitwidth[var])) if var in self.varsForBitwidth else typ_str
+                    else:
+                        assert False, "VBW enabled but bitwidth info missing"
+            idf_str = var
+            type = ir.varDecls[var]
+            if Type.isInt(type):
+                shape_str = ''
+            elif Type.isTensor(type):
+                shape_str = ''.join(['[' + str(n) + ']' for n in type.shape])
+            self.out.printf('%s %s%s;\n', typ_str, idf_str,
+                            shape_str, indent=True)
         for cmd in ir.cmd_l:
             self.print(cmd)
         self.out.decreaseIndent()
@@ -175,8 +193,8 @@ class CodegenBase:
         keys = list(ir.argList)
         for i in range(len(keys)):
             arg = keys[i]
-            if isinstance(arg, IR.Var) and arg.idf in self.decls.keys() and not arg.idf == 'X':
-                type = self.decls[arg.idf]
+            if isinstance(arg, IR.Var) and (arg.idf in self.decls.keys() or arg.idf in self.localDecls.keys()) and not arg.idf == 'X':
+                type = self.decls[arg.idf] if arg.idf in self.decls else self.localDecls[arg.idf]
                 if isinstance(type, Type.Tensor):
                     if type.dim == 0:
                         x = -1

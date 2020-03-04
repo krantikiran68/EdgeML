@@ -362,7 +362,7 @@ class Main:
                 acceptedAcc = lastStageAcc
                 for ((demotedVars, _), metrics) in self.varDemoteDetails:
                     acc = metrics[0]
-                    if (self.flAccuracy - acc) > 1.0:
+                    if (self.flAccuracy - acc) > 2.0:
                         break
                     else:
                         okToDemote = demotedVars

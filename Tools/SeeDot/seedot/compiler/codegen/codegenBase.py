@@ -146,24 +146,7 @@ class CodegenBase:
     def printFor(self, ir):
         self.printForHeader(ir)
         self.out.increaseIndent()
-        for var in ir.varDecls.keys():
-            if forFloat():
-                typ_str = IR.DataType.getFloatStr()
-            else:
-                typ_str = IR.DataType.getIntStr()
-                if config.vbwEnabled:
-                    if hasattr(self, 'varsForBitwidth'):
-                        typ_str = ("int%d_t" % (self.varsForBitwidth[var])) if var in self.varsForBitwidth else typ_str
-                    else:
-                        assert False, "VBW enabled but bitwidth info missing"
-            idf_str = var
-            type = ir.varDecls[var]
-            if Type.isInt(type):
-                shape_str = ''
-            elif Type.isTensor(type):
-                shape_str = ''.join(['[' + str(n) + ']' for n in type.shape])
-            self.out.printf('%s %s%s;\n', typ_str, idf_str,
-                            shape_str, indent=True)
+        self.printLocalVarDecls(ir)
         for cmd in ir.cmd_l:
             self.print(cmd)
         self.out.decreaseIndent()
@@ -189,6 +172,9 @@ class CodegenBase:
         self.out.printf('}\n', indent=True)
 
     def printFuncCall(self, ir):
+        self.out.printf("{\n", indent=True)
+        self.out.increaseIndent()
+        self.printLocalVarDecls(ir)
         self.out.printf("%s(" % ir.name, indent=True)
         keys = list(ir.argList)
         for i in range(len(keys)):
@@ -212,6 +198,8 @@ class CodegenBase:
             if i != len(keys) - 1:
                 self.out.printf(", ")
         self.out.printf(");\n\n")
+        self.out.decreaseIndent()
+        self.out.printf("}\n", indent=True)
 
     def printMemset(self, ir):
         self.out.printf('memset(', indent=True)
@@ -356,3 +344,23 @@ class CodegenBase:
                         self.out.printf('%s = %dLL;\n', var, num, indent=True)
                     else:
                         assert False
+    
+    def printLocalVarDecls(self, ir):
+        for var in ir.varDecls.keys():
+            if forFloat():
+                typ_str = IR.DataType.getFloatStr()
+            else:
+                typ_str = IR.DataType.getIntStr()
+                if config.vbwEnabled:
+                    if hasattr(self, 'varsForBitwidth'):
+                        typ_str = ("int%d_t" % (self.varsForBitwidth[var])) if var in self.varsForBitwidth else typ_str
+                    else:
+                        assert False, "VBW enabled but bitwidth info missing"
+            idf_str = var
+            type = ir.varDecls[var]
+            if Type.isInt(type):
+                shape_str = ''
+            elif Type.isTensor(type):
+                shape_str = ''.join(['[' + str(n) + ']' for n in type.shape])
+            self.out.printf('%s %s%s;\n', typ_str, idf_str,
+                            shape_str, indent=True)

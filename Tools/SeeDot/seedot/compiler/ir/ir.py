@@ -239,14 +239,15 @@ class While(Cmd):
 
 class FuncCall(Cmd):
 
-    def __init__(self, name, argList):
+    def __init__(self, name, argList, varDecls={}):
         self.name = name
         self.argList = argList
+        self.varDecls = varDecls
 
     def subst(self, from_idf: str, to_e: Expr):
         argList_new = dict(
             map(lambda cmd: (cmd[0].subst(from_idf, to_e), cmd[1]), self.argList.items()))
-        return FuncCall(self.name, argList_new)
+        return FuncCall(self.name, argList_new, self.varDecls)
 
 
 class Memset(Cmd):

@@ -155,6 +155,36 @@ class Arduino(CodegenBase):
             size = np.prod(self.localDecls[var].shape)
             varToLiveRange.append((self.varLiveIntervals[var], var, size, self.varsForBitwidth[var]))
         varToLiveRange.sort()
+        usedSpaceMap = {}
+        for ([startIns, endIns], var, size, atomSize) in varToLiveRange:
+            spaceNeeded = size * atomSize // 8
+            varsToKill = []
+            for activeVar in usedSpaceMap.keys():
+                endingIns = usedSpaceMap[activeVar][0]
+                if endingIns < startIns:
+                    varsToKill.append(activeVar)
+            for tbk in varsToKill:
+                del usedSpaceMap[tbk]
+            i = 0
+            blockSize = int(2**np.ceil(np.log2(spaceNeeded)))
+            breakOutOfWhile = True
+            while True:
+                potentialStart = blockSize * i
+                potentialEnd = blockSize * (i+1) - 1
+                for activeVar in usedSpaceMap.keys():
+                    (locationOccupiedStart, locationOccupiedEnd) = usedSpaceMap[activeVar][1]
+                    if not (locationOccupiedStart > potentialEnd or locationOccupiedEnd < potentialStart):
+                        i += 1
+                        breakOutOfWhile = False
+                        break
+                    else:
+                        breakOutOfWhile = True
+                        continue
+                if breakOutOfWhile:
+                    break
+                
+            usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
+                
         self.printLocalVarDecls(ir) #
         for cmd in ir.cmd_l:
             self.print(cmd)

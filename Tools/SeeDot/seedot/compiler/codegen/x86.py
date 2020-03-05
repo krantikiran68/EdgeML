@@ -17,7 +17,7 @@ import time
 
 class X86(CodegenBase):
 
-    def __init__(self, outputDir, generateAllFiles, printSwitch, idStr, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth):
+    def __init__(self, outputDir, generateAllFiles, printSwitch, idStr, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals):
         self.outputDir = outputDir
         cppFile = os.path.join(
             self.outputDir, "seedot_" + getVersion() + ".cpp")
@@ -52,6 +52,8 @@ class X86(CodegenBase):
 
         self.demotedVarsOffsets = demotedVarsOffsets
         self.varsForBitwidth = varsForBitwidth
+
+        self.varLiveIntervals = varLiveIntervals
 
     def printPrefix(self):
 

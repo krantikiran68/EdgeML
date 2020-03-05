@@ -22,7 +22,7 @@ from seedot.writer import Writer
 
 class Arduino(CodegenBase):
 
-    def __init__(self, outputDir, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth):
+    def __init__(self, outputDir, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals):
         outputFile = os.path.join(outputDir, "predict.cpp")
         self.out = Writer(outputFile)
 
@@ -38,6 +38,8 @@ class Arduino(CodegenBase):
 
         self.demotedVarsOffsets = demotedVarsOffsets
         self.varsForBitwidth = varsForBitwidth
+
+        self.varLiveIntervals = varLiveIntervals
 
     def printPrefix(self):
         self.printArduinoIncludes()
@@ -145,6 +147,20 @@ class Arduino(CodegenBase):
         if ir.inputVar:
             self.out.printf('))')
 
+    def printFor(self, ir):
+        self.printForHeader(ir)
+        self.out.increaseIndent() #
+        varToLiveRange = []
+        for var in ir.varDecls.keys():
+            size = np.prod(self.localDecls[var].shape)
+            varToLiveRange.append((self.varLiveIntervals[var], var, size, self.varsForBitwidth[var]))
+        varToLiveRange.sort()
+        self.printLocalVarDecls(ir) #
+        for cmd in ir.cmd_l:
+            self.print(cmd)
+        self.out.decreaseIndent()
+        self.out.printf('}\n', indent=True)
+
     # The variable X is used to define the data point.
     # It is either read from the serial port or from the device's memory based on the operating mode.
     # The getIntFeature() function reads the appropriate value of X based on the mode.
@@ -160,6 +176,9 @@ class Arduino(CodegenBase):
             super().printAssn(ir)
 
     def printFuncCall(self, ir):
+        self.out.printf("{\n", indent=True)
+        self.out.increaseIndent()
+        self.printLocalVarDecls(ir)
         self.out.printf("%s(" % ir.name, indent=True)
         keys = list(ir.argList)
         for i in range(len(keys)):
@@ -186,6 +205,10 @@ class Arduino(CodegenBase):
             else:
                 x = 0
 
+            if forFixed():
+                typeCast = "(int%d_t*)" % self.varsForBitwidth[arg.idf] if x > 0 else ""
+                self.out.printf(typeCast)
+
             if x != 0:
                 self.out.printf("&")
 
@@ -196,7 +219,9 @@ class Arduino(CodegenBase):
             if i != len(keys) - 1:
                 self.out.printf(", ")
 
-        self.out.printf(");\n\n")
+        self.out.printf(");\n")
+        self.out.decreaseIndent()
+        self.out.printf("}\n", indent=True)
 
     def printPrint(self, ir):
         self.out.printf('Serial.println(', indent=True)

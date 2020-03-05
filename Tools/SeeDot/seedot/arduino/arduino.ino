@@ -107,11 +107,21 @@ int32_t getIntFeature(MYITE i) {
 #endif
 
 #ifdef PREDICTIONTIME
+  #ifdef XFLOAT
 	double f = ((float) pgm_read_float_near(&X[i]));
+  #endif
+  #ifdef XINT8
+  return ((int8_t) pgm_read_byte_near(&Xint[i]));
+  #endif
+  #ifdef XINT16
+  return ((int16_t) pgm_read_word_near(&Xint[i]));
+  #endif
 #endif
 
-	double f_int = ldexp(f, -scaleOfX);
-	return (int32_t)(f_int);
+#ifdef XFLOAT
+  double f_int = ldexp(f, -scaleOfX);
+  return (int32_t)(f_int);
+#endif
 }
 
 // Function reads a float variable either from the serial port or from the array X stored in devices' flash memory.

@@ -197,7 +197,7 @@ class CodegenBase:
                 self.out.printf("[0]" * x)
             if i != len(keys) - 1:
                 self.out.printf(", ")
-        self.out.printf(");\n\n")
+        self.out.printf(");\n")
         self.out.decreaseIndent()
         self.out.printf("}\n", indent=True)
 

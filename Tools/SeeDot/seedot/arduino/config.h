@@ -24,6 +24,9 @@
 #define INT16
 //#define INT32
 
+#define XFLOAT
+//#define XINT8
+//#define XINT16
 
 #ifdef INT8
 typedef int8_t MYINT;

@@ -113,8 +113,10 @@ class Quantizer:
 
         if forArduino() and dumpDataset():
             scaleOfX = self.allScales['X'] #computeScale(*self.trainDatasetRange)
+            Xint, _ = scaleList(self.X[0], scaleOfX)
 
             writeListAsArray(self.X[0], 'X', self.headerFile, None, self.varsForBitwidth['X'])
+            writeListAsArray(Xint, 'Xint', self.headerFile, None, self.varsForBitwidth['X'])
             writeVars({'scaleOfX': scaleOfX}, self.headerFile)
             writeVars({'Y': self.Y[0][0]}, self.headerFile)
 

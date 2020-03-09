@@ -40,6 +40,7 @@ class Arduino(CodegenBase):
         self.varsForBitwidth = varsForBitwidth
 
         self.varLiveIntervals = varLiveIntervals
+        self.scratchSubs = {}
 
     def printPrefix(self):
         self.printArduinoIncludes()
@@ -156,6 +157,7 @@ class Arduino(CodegenBase):
             varToLiveRange.append((self.varLiveIntervals[var], var, size, self.varsForBitwidth[var]))
         varToLiveRange.sort()
         usedSpaceMap = {}
+        totalScratchSize = -1
         for ([startIns, endIns], var, size, atomSize) in varToLiveRange:
             spaceNeeded = size * atomSize // 8
             varsToKill = []
@@ -184,7 +186,9 @@ class Arduino(CodegenBase):
                     break
                 
             usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
-                
+            totalScratchSize = max(totalScratchSize, potentialEnd)
+            self.scratchSubs[var] = potentialStart
+        self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
         self.printLocalVarDecls(ir) #
         for cmd in ir.cmd_l:
             self.print(cmd)
@@ -239,13 +243,16 @@ class Arduino(CodegenBase):
                 typeCast = "(int%d_t*)" % self.varsForBitwidth[arg.idf] if x > 0 else ""
                 self.out.printf(typeCast)
 
-            if x != 0:
-                self.out.printf("&")
+            
+            if not (isinstance(arg, IR.Var) and arg.idf in self.scratchSubs):
+                if x != 0:
+                    self.out.printf("&")
+                self.print(arg)
 
-            self.print(arg)
-
-            if x != 0 and x != -1:
-                self.out.printf("[0]" * x)
+                if x != 0 and x != -1:
+                    self.out.printf("[0]" * x)
+            else:
+                self.out.printf("(scratch + %d)"%(self.scratchSubs[arg.idf]))
             if i != len(keys) - 1:
                 self.out.printf(", ")
 

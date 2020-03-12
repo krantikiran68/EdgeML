@@ -59,6 +59,14 @@ class Transp(ASTNode):
         self.expr = expr
 
 
+class Splice(ASTNode):
+
+    def __init__(self, expr, vars, sizes):
+        super().__init__()
+        self.expr = expr
+        self.vars = vars
+        self.sizes = sizes
+
 class Reshape(ASTNode):
 
     def __init__(self, expr, shape, order):

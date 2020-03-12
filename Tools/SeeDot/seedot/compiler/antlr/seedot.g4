@@ -15,6 +15,8 @@ expr:	IntConst								# int
 	|	Reshape '(' expr ','
 		'(' intConstList ')' ','
 		'(' intConstList ')' ')'				# reshape
+	|	expr '[' expr ':+' IntConst ']' 
+		('[' expr ':+' IntConst ']')*			# splice
 	|	Maxpool '(' expr ',' IntConst ')'		# maxpool
 	|	expr '[' expr ']'						# index
 	|	Id '(' expr (',' expr)* ')'				# funcCall

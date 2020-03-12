@@ -347,7 +347,7 @@ class CodegenBase:
     
     def printLocalVarDecls(self, ir):
         for var in ir.varDecls.keys():
-            if forFloat():
+            if forFloat() and var not in self.internalVars:
                 typ_str = IR.DataType.getFloatStr()
             else:
                 typ_str = IR.DataType.getIntStr()

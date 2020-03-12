@@ -32,6 +32,13 @@ class ASTBuilder(SeeDotVisitor):
             ctx.FloatConst(1).getText())
         return AST.Decl(shape, range)
 
+    def visitSplice(self, ctx: SeeDotParser.SpliceContext):
+        exprs = [self.visit(expr) for expr in ctx.expr()]
+        var = exprs[0]
+        startIndices = exprs[1:]
+        Sizes = [int(size.getText()) for size in ctx.IntConst()]
+        return AST.Splice(var, startIndices, Sizes)
+
     def visitInit(self, ctx: SeeDotParser.InitContext):
         shape = [int(IntConst.getText())
                  for IntConst in ctx.intConstList().IntConst()]

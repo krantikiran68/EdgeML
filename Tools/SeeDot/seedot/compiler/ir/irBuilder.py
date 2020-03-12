@@ -173,7 +173,7 @@ class IRBuilder(ASTVisitor):
 
         memset = IR.Memset(expr, node.type.size())
         self.counter_inst += 1
-        self.updateLiveRange(expr.idf)
+        self.updateLiveRange(expr)
 
         prog_init = IR.Prog([comment, memset])
 
@@ -227,7 +227,7 @@ class IRBuilder(ASTVisitor):
         })
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf, expr_out.idf])
+        self.updateLiveRange([expr_in, expr_out])
 
         prog_transp = IR.Prog([comment, funcCall])
 
@@ -236,6 +236,73 @@ class IRBuilder(ASTVisitor):
         self.varDeclarations[expr_out.idf] = type_out
         self.varScales[expr_out.idf] = scale_out
         self.varIntervals[expr_out.idf] = intv_out
+
+        return (prog_out, expr_out)
+
+    # out = in[a:+num][b:+num]...
+    def visitSplice(self, node: AST.Splice):
+
+        (prog_in, expr_in) = self.visit(node.expr)
+
+        vars_in = []
+        progs_in = []
+        for var in node.vars:
+            part_prog_in, part_expr_in = self.visit(var)
+            progs_in.append(part_prog_in)
+            vars_in.append(part_expr_in)
+
+        type_in = node.expr.type
+        type_out = node.type
+
+        bw_out, scale_out = self.getBitwidthAndScale(expr_in.idf)
+
+        expr_out = self.getTempVar()
+
+        if forFixed():
+            self.varsForBitwidth[expr_out.idf] = bw_out
+            if self.varsForBitwidth[expr_out.idf] != config.wordLength:
+                self.demotedVarsList.append(expr_out.idf)
+                self.demotedVarsOffsets[expr_out.idf] = self.getOffsetForDemotedVariable(expr_in.idf)
+
+        iters_in = self.getTempIterators(type_in.dim)
+        iters_out = self.getTempVars(type_out.dim)
+
+        loopShape = []
+        loopIters = []
+        loopAssns = []
+        for order in range(type_in.dim):
+            loopShape.append(node.sizes[order])
+            loopIters.append(iters_in[order])
+            loopAssns.append(IR.Assn(iters_out[order], IRUtil.add(iters_in[order], vars_in[order])))
+
+        loop = IRUtil.loop(loopShape, loopIters, loopAssns + [
+                IR.Assn(IRUtil.addIndex(expr_out, iters_in), IRUtil.addIndex(expr_in, iters_out))
+            ])
+
+        comment = IR.Comment("splice")
+        prog_splice = IR.Prog([comment] + loop)
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in, expr_out])
+
+        prog_out = IR.Prog([])
+        prog_out = IRUtil.concatPrograms(prog_out, prog_in)
+        for prog in progs_in:
+            prog_out = IRUtil.concatPrograms(prog_out, prog)
+        prog_out = IRUtil.concatPrograms(prog_out, prog_splice)
+
+        if forFloat() and self.ddsEnabled:
+            self.substitutions[expr_out.idf] = expr_in.idf #Scale and bitwidth will be conserved for input and output
+
+        # Update context
+        self.varDeclarations[expr_out.idf] = type_out
+        self.varScales[expr_out.idf] = scale_out
+        self.varIntervals[expr_out.idf] = (0,0)
+
+        # Update declarations
+        for var in iters_out:
+            self.varDeclarations[var.idf] = Type.Int()
+            self.internalVars.append(var.idf)
 
         return (prog_out, expr_out)
 
@@ -310,7 +377,7 @@ class IRBuilder(ASTVisitor):
         prog_reshape = IR.Prog([comment] + cmd1 + loop)
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf, expr_out.idf])
+        self.updateLiveRange([expr_in, expr_out])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_reshape)
 
@@ -383,7 +450,7 @@ class IRBuilder(ASTVisitor):
         })
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf, expr_out.idf])
+        self.updateLiveRange([expr_in, expr_out])
 
         prog_maxpool = IR.Prog([comment, funcCall])
 
@@ -452,7 +519,7 @@ class IRBuilder(ASTVisitor):
         prog_funcCall = IR.Prog([comment, funcCall])
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf for expr_in in node.exprList] + [expr_out.idf])
+        self.updateLiveRange([expr_in for expr_in in node.exprList] + [expr_out])
 
         prog_out = IRUtil.concatPrograms(prog_out, prog_funcCall)
 
@@ -510,7 +577,7 @@ class IRBuilder(ASTVisitor):
             self.varIntervals[expr_out.idf] = intv_out
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf, expr_out.idf])
+        self.updateLiveRange([expr_in, expr_out])
 
         return (prog_out, expr_out)
 
@@ -557,7 +624,7 @@ class IRBuilder(ASTVisitor):
         expr_out = IRUtil.mul(expr_in_A, expr_in_B)
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in_A.idf, expr_in_B.idf, expr_out.idf])
+        self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
 
         # Just to be safe, check that the scaling factor of the integer variables is never tracked
         if isinstance(expr_in_A, IR.Var):
@@ -640,7 +707,7 @@ class IRBuilder(ASTVisitor):
         })
 
         self.counter_inst += 1
-        self.updateLiveRange([a.idf, b.idf, expr_out.idf])
+        self.updateLiveRange([a, b, expr_out])
 
         profile = IR.FuncCall("Profile2", {
             expr_out: "Var",
@@ -767,7 +834,7 @@ class IRBuilder(ASTVisitor):
         }, {expr_treeSum.idf: type_treeSum})
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in_A.idf, expr_in_B.idf, expr_out.idf, expr_treeSum.idf])
+        self.updateLiveRange([expr_in_A, expr_in_B, expr_out, expr_treeSum])
 
         profile = IR.FuncCall("Profile2", {
             expr_out: "Var",
@@ -881,7 +948,7 @@ class IRBuilder(ASTVisitor):
         })
 
         self.counter_inst += 1
-        self.updateLiveRange([in_A_idx.idf, in_A_val.idf, expr_in_B.idf, expr_out.idf])
+        self.updateLiveRange([in_A_idx, in_A_val, expr_in_B, expr_out])
 
         profile = IR.FuncCall("Profile2", {
                                 expr_out: "Var",
@@ -1001,7 +1068,7 @@ class IRBuilder(ASTVisitor):
         })
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in_A.idf, expr_in_B.idf, expr_out.idf])
+        self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
 
         profile = IR.FuncCall("Profile2", {
             expr_out: "Var",
@@ -1092,7 +1159,7 @@ class IRBuilder(ASTVisitor):
         })
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in_A.idf, expr_in_B.idf, expr_out.idf, expr_treeSum.idf])
+        self.updateLiveRange([expr_in_A, expr_in_B, expr_out, expr_treeSum])
 
         assert False, "Conv ke liye no DDP and variable bitwidth support for temp variable not added"
 
@@ -1198,7 +1265,7 @@ class IRBuilder(ASTVisitor):
             self.independentVars.append(expr_out.idf)
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in_A.idf, expr_in_B.idf])
+        self.updateLiveRange([expr_in_A, expr_in_B])
 
         prog_cir = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
@@ -1329,7 +1396,7 @@ class IRBuilder(ASTVisitor):
             })
 
             self.counter_inst += 1
-            self.updateLiveRange([expr_in_A.idf, expr_in_B.idf, expr_out.idf])
+            self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
 
             profile = IR.FuncCall("Profile2", {
                                 expr_out: "Var",
@@ -1446,7 +1513,7 @@ class IRBuilder(ASTVisitor):
             assert False, "Relu operator currently only supports 2D and 4D tensors."
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf])
+        self.updateLiveRange([expr_in])
 
         prog_relu = IR.Prog([comment, funcCall])
 
@@ -1534,7 +1601,7 @@ class IRBuilder(ASTVisitor):
         })
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf, expr_out.idf])
+        self.updateLiveRange([expr_in, expr_out])
 
         prog_exp = IR.Prog([comm] + adjust + [funcCall])
 
@@ -1605,7 +1672,7 @@ class IRBuilder(ASTVisitor):
         })
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf, expr_out.idf])
+        self.updateLiveRange([expr_in, expr_out])
 
         rangeCheck = IR.FuncCall("checkRange2", {
             expr_in: "A",
@@ -1835,7 +1902,7 @@ class IRBuilder(ASTVisitor):
         })
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf, expr_out.idf])
+        self.updateLiveRange([expr_in, expr_out])
 
         prog_argmax = IR.Prog([comment, funcCall])
 
@@ -1868,7 +1935,7 @@ class IRBuilder(ASTVisitor):
             expr_in_idx, IRUtil.one, IRUtil.zero))
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf, expr_out.idf])
+        self.updateLiveRange([expr_in, expr_out])
 
         prog_sgn = IR.Prog([comment, cmd1])
 
@@ -1936,7 +2003,7 @@ class IRBuilder(ASTVisitor):
         })
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf, expr_out.idf])
+        self.updateLiveRange([expr_in, expr_out])
 
         prog_tanh = IR.Prog([comment, funcCall])
 
@@ -2008,7 +2075,7 @@ class IRBuilder(ASTVisitor):
         })
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf, expr_out.idf])
+        self.updateLiveRange([expr_in, expr_out])
 
         prog_tanh = IR.Prog([comm] + adjust + [funcCall])
 
@@ -2109,7 +2176,7 @@ class IRBuilder(ASTVisitor):
         })
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf, expr_out.idf])
+        self.updateLiveRange([expr_in, expr_out])
 
         prog_sigmoid = IR.Prog([comment, funcCall])
 
@@ -2185,7 +2252,7 @@ class IRBuilder(ASTVisitor):
         })
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf, expr_out.idf])
+        self.updateLiveRange([expr_in, expr_out])
 
         prog_sigmoid = IR.Prog([comm] + adjust + [funcCall])
 
@@ -2281,7 +2348,7 @@ class IRBuilder(ASTVisitor):
                     ]
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf, expr_out.idf])
+        self.updateLiveRange([expr_in, expr_out])
 
         prog_out = IR.Prog([comment] + prog_sum)
 
@@ -2338,7 +2405,7 @@ class IRBuilder(ASTVisitor):
             var, IR.Int(end - start)), prog_in.cmd_l, 0, forDecls)
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in.idf])
+        self.updateLiveRange([expr_in])
 
         # Generate code for profiling
         if forFloat() and getTarget() == config.Target.x86:
@@ -2430,7 +2497,7 @@ class IRBuilder(ASTVisitor):
             self.varIntervals[expr_out.idf] = intv_out
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in_A.idf, expr_in_B.idf, expr_in_cond.idf, expr_out.idf])
+        self.updateLiveRange([expr_in_A, expr_in_B, expr_in_cond, expr_out])
 
         return (prog_out, expr_out)
 
@@ -2968,11 +3035,13 @@ class IRBuilder(ASTVisitor):
         else:
             assert False, "No root found"
 
-    def updateLiveRange(self, varNames):
-        if not isinstance(varNames, list):
-            varNames = [varNames]
-        for varName in varNames:
-            if varName in self.varLiveIntervals.keys():
-                self.varLiveIntervals[varName][1] = self.counter_inst
-            else:
-                self.varLiveIntervals[varName] = [self.counter_inst, self.counter_inst]
+    def updateLiveRange(self, exprs):
+        if not isinstance(exprs, list):
+            exprs = [exprs]
+        for expr in exprs:
+            if hasattr(expr, 'idf'):
+                varName = expr.idf
+                if varName in self.varLiveIntervals.keys():
+                    self.varLiveIntervals[varName][1] = self.counter_inst
+                else:
+                    self.varLiveIntervals[varName] = [self.counter_inst, self.counter_inst]

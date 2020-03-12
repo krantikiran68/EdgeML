@@ -9,13 +9,16 @@ import seedot.compiler.antlr.seedotParser as seedotParser
 import seedot.compiler.ast.ast as ast
 import seedot.compiler.ast.astVisitor as astVisitor
 
+import numpy as np
 
 class Type:
     pass
 
 
 class Int(Type):
-    pass
+
+    def isShapeOne(self):
+        return True
 
 
 class Tensor(Type):
@@ -87,6 +90,23 @@ class InferType(astVisitor.ASTVisitor):
 
         [m, n] = exprType.shape
         node.type = Tensor([n, m])
+
+        return node.type
+
+    def visitSplice(self, node: ast.Splice):
+        node.expr.gamma = dict(node.gamma)
+        exprType = self.visit(node.expr)
+
+        assert isTensor(exprType) and exprType.dim >= 1
+        # For splicing to be valid, the number of dimensions in input variable should match the 
+        # indices provided
+        assert exprType.dim == len(node.sizes)
+        # For splicing to be valid, all target dimensions must be lesser than the input variable
+        assert np.all(np.array(exprType.shape) >= np.array(node.sizes))
+        for var in node.vars:
+            var.gamma = dict(node.gamma)
+        assert np.all([self.visit(var).isShapeOne for var in node.vars])
+        node.type = Tensor(node.sizes)
 
         return node.type
 

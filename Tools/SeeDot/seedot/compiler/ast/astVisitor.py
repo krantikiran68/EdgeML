@@ -19,6 +19,8 @@ class ASTVisitor:
             return self.visitId(node)
         elif isinstance(node, AST.Decl):
             return self.visitDecl(node)
+        elif isinstance(node, AST.Splice):
+            return self.visitSplice(node)
         elif isinstance(node, AST.Init):
             return self.visitInit(node)
         elif isinstance(node, AST.Transp):

@@ -19,10 +19,13 @@ import seedot.compiler.type as Type
 from seedot.util import *
 from seedot.writer import Writer
 
+import functools
+import operator
+
 
 class Arduino(CodegenBase):
 
-    def __init__(self, outputDir, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals):
+    def __init__(self, outputDir, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals, notScratch):
         outputFile = os.path.join(outputDir, "predict.cpp")
         self.out = Writer(outputFile)
 
@@ -41,6 +44,7 @@ class Arduino(CodegenBase):
 
         self.varLiveIntervals = varLiveIntervals
         self.scratchSubs = {}
+        self.notScratch = notScratch
 
     def printPrefix(self):
         self.printArduinoIncludes()
@@ -150,7 +154,7 @@ class Arduino(CodegenBase):
 
     def printFor(self, ir):
         self.printForHeader(ir)
-        self.out.increaseIndent() #
+        self.out.increaseIndent()
         varToLiveRange = []
         for var in ir.varDecls.keys():
             size = np.prod(self.localDecls[var].shape)
@@ -159,6 +163,8 @@ class Arduino(CodegenBase):
         usedSpaceMap = {}
         totalScratchSize = -1
         for ([startIns, endIns], var, size, atomSize) in varToLiveRange:
+            if var in self.notScratch:
+                continue
             spaceNeeded = size * atomSize // 8
             varsToKill = []
             for activeVar in usedSpaceMap.keys():
@@ -189,7 +195,7 @@ class Arduino(CodegenBase):
             totalScratchSize = max(totalScratchSize, potentialEnd)
             self.scratchSubs[var] = potentialStart
         self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
-        self.printLocalVarDecls(ir) #
+        self.printLocalVarDecls(ir)
         for cmd in ir.cmd_l:
             self.print(cmd)
         self.out.decreaseIndent()
@@ -202,10 +208,19 @@ class Arduino(CodegenBase):
         if isinstance(ir.e, IR.Var) and ir.e.idf == "X":
             self.out.printf("", indent=True)
             self.print(ir.var)
+            indices = [index.idf for index in ir.e.idx]
+            sizes = self.localDecls[ir.e.idf].shape if ir.e.idf in self.localDecls else self.decls[ir.e.idf].shape
+            assert len(indices) == len(sizes), "Illegal state"
+            prod = functools.reduce(operator.mul, sizes)
+            dereferenceString = ""
+            for i in range(len(indices)):
+                prod = prod // sizes[i]
+                dereferenceString += ("%s * %d + " % (indices[i], prod))
+            dereferenceString = dereferenceString[:-3]
             if forFixed():
-                self.out.printf(" = getIntFeature(i0);\n")
+                self.out.printf(" = getIntFeature(%s);\n"%(dereferenceString))
             else:
-                self.out.printf(" = getFloatFeature(i0);\n")
+                self.out.printf(" = getFloatFeature(%s);\n"%(dereferenceString))
         else:
             super().printAssn(ir)
 

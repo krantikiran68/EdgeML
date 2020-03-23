@@ -298,7 +298,7 @@ class Main:
                 print("Scales computed in native bitwidth. Starting exploration over other bitwidths.")
 
                 attemptToDemote = [var for var in self.variableToBitwidthMap if (var[-3:] != "val" and var not in self.demotedVarsList)]
-                numCodes = 3 * len(attemptToDemote) + (3 if 'X' in attemptToDemote else 0) # 6 offsets tried for X while 3 tried for other variables
+                numCodes = 3 * len(attemptToDemote) + (6 if 'X' in attemptToDemote else 0) # 9 offsets tried for X while 3 tried for other variables
                 
                 self.partialCompile(config.Version.fixed, config.Target.x86, self.sf, True, None, -1 if len(attemptToDemote) > 0 else 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
                 codeId = 0
@@ -316,7 +316,7 @@ class Main:
                         demotedVarsOffsets[key] = self.demotedVarsOffsets[key]
 
                     contentToCodeIdMap[tuple(demotedVarsList)] = {}
-                    for demOffset in ([0, -1, -2] if demoteVar != 'X' else [0, -1, -2, -3, -4, -5]):
+                    for demOffset in ([0, -1, -2] if demoteVar != 'X' else [0, -1, -2, -3, -4, -5, -6, -7, -8]):
                         codeId += 1
                         for k in demotedVarsList:
                             if k not in self.demotedVarsList:
@@ -390,9 +390,9 @@ class Main:
             if self.maximisingMetric == config.MaximisingMetric.accuracy:
                 return (a[1][0], -a[1][1], -a[1][2]) if not config.higherOffsetBias else (a[1][0], -a[0])
             elif self.maximisingMetric == config.MaximisingMetric.disagreements:
-                return (-a[1][1], -a[1][2], a[1][0]) if not config.higherOffsetBias else (-a[1][1], -a[0])
+                return (-a[1][1], -a[1][2], a[1][0]) if not config.higherOffsetBias else (-max(5, a[1][1]), -a[0])
             elif self.maximisingMetric == config.MaximisingMetric.reducedDisagreements:
-                return (-a[1][2], -a[1][1], a[1][0]) if not config.higherOffsetBias else (-a[1][2], -a[0])
+                return (-a[1][2], -a[1][1], a[1][0]) if not config.higherOffsetBias else (-max(5, a[1][2]), -a[0])
         x = [(i, self.accuracy[i]) for i in self.accuracy]
         x.sort(key=getMaximisingMetricValue, reverse=True)
         sorted_accuracy = x[:5]

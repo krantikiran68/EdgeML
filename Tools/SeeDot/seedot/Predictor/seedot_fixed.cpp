@@ -55,8 +55,8 @@ int seedotFixed(MYINT **X)
 	return -1;
 }
 const int switches = 0;
-int seedotFixedSwitch(MYINT **X_temp, int i) {
+void seedotFixedSwitch(int i, MYINT **X_temp, int& res) {
 	switch(i) {
-		default: return -1;
+		default: res = -1; return;
 	}
 }

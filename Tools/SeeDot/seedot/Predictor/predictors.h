@@ -5,6 +5,6 @@
 
 int seedotFixed(MYINT **X);
 int seedotFloat(float **X);
-int seedotFixedSwitch(MYINT** X, int i);
+void seedotFixedSwitch(int i, MYINT** X, int& res);
 
 extern const int switches;

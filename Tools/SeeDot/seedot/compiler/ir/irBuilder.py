@@ -78,6 +78,7 @@ class IRBuilder(ASTVisitor):
         #
         # varDeclarations: Map of local variables (declared at the beginning) to their type used for declaring the variables in the generated C++ code
         # varDeclarationsLocal: Same as varDeclarations, for variables which are declared locally within a For loop
+        # notScratch: Variables which would not be assigned in the scratch space
         # varLiveIntervals: Map of variables to instructions across which the variable is used
         # varScales: Map of variables to their scaling factors
         # varIntervals: Map of variables to the range of values stored in the variable, which is obtained from range analysis
@@ -86,6 +87,7 @@ class IRBuilder(ASTVisitor):
         # floatConstants: Map of float constant variables to their value
         self.varDeclarations = {}
         self.varDeclarationsLocal = {}
+        self.notScratch = []
         self.varLiveIntervals = {}
         self.varScales = {}
         self.varIntervals = {}
@@ -258,6 +260,8 @@ class IRBuilder(ASTVisitor):
 
         expr_out = self.getTempVar()
 
+        self.notScratch.append(expr_out.idf)
+
         if forFixed():
             self.varsForBitwidth[expr_out.idf] = bw_out
             if self.varsForBitwidth[expr_out.idf] != config.wordLength:
@@ -334,6 +338,8 @@ class IRBuilder(ASTVisitor):
 
         # Declare variables
         expr_out = self.getTempVar()
+
+        self.notScratch.append(expr_out.idf)
 
         if forFixed():
             self.varsForBitwidth[expr_out.idf] = bw_out
@@ -2386,7 +2392,7 @@ class IRBuilder(ASTVisitor):
 
         forDecls = {}
         for key in self.varDeclarations.keys():
-            if key not in prevVarDecls and not(key in self.intConstants or key in self.floatConstants):
+            if key not in prevVarDecls and not(key in self.intConstants or key in self.floatConstants or key in self.internalVars):
                 forDecls[key] = self.varDeclarations[key]
 
         for key in forDecls.keys():

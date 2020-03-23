@@ -7,6 +7,8 @@
 #include <vector>
 #include <cstring>
 #include <cmath>
+#include <cstdlib>
+#include <thread>
 
 #include "datatypes.h"
 #include "predictors.h"
@@ -89,6 +91,29 @@ void populateFloatVector(float **features_float, vector<string> features)
 	for (int i = 0; i < features_size; i++)
 		features_float[i][0] = (float)(atof(features.at(i).c_str()));
 	return;
+}
+
+void launchThread() {
+	res = seedotFixed(features_int);
+	float_res = seedotFloat(features_float);
+
+	if (res != float_res) {
+		if (float_res == label) {
+			reduced_disagreements++;
+		}
+		disagreements++;
+	}
+
+	for (int i = 0; i < switches; i++) {
+		seedotFixedSwitch(i, features_intV[i], resV[i]);
+		if (resV[i] != float_res) {
+			if (float_res == label) {
+				reduced_disagreementsV[i]++;
+			}
+			disagreementsV[i]++;
+		}
+	}
+
 }
 
 int main(int argc, char *argv[])
@@ -211,25 +236,7 @@ int main(int argc, char *argv[])
 		else
 		{
 			if (version == Fixed) {
-				res = seedotFixed(features_int);
-				float_res = seedotFloat(features_float);
-
-				if (res != float_res) {
-					if (float_res == label) {
-						reduced_disagreements++;
-					}
-					disagreements++;
-				}
-
-				for (int i = 0; i < switches; i++) {
-					resV[i] = seedotFixedSwitch(features_intV[i], i);
-					if (resV[i] != float_res) {
-						if (float_res == label) {
-							reduced_disagreementsV[i]++;
-						}
-						disagreementsV[i]++;
-					}
-				}
+				launchThread();
 			}
 			else if (version == Float)
 				res = seedotFloat(features_float);
@@ -241,7 +248,8 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-			output << "Incorrect prediction for input " << total + 1 << ". Predicted " << res << " Expected " << label << endl;
+			if(logProgramOutput)
+				output << "Incorrect prediction for input " << total + 1 << ". Predicted " << res << " Expected " << label << endl;
 		}
 		total++;
 
@@ -252,9 +260,14 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
-				output << "Incorrect prediction for input " << totalV[i] + 1 << ". Predicted " << resV[i] << " Expected " << label << endl;
+				if(logProgramOutput)
+					output << "Incorrect prediction for input " << totalV[i] + 1 << ". Predicted " << resV[i] << " Expected " << label << endl;
 			}
 			totalV[i]++;
+		}
+
+		if(!logProgramOutput) {
+			output << "Inputs handled = " << total + 1 << endl;
 		}
 
 		flushProfile();

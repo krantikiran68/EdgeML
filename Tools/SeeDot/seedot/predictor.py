@@ -53,6 +53,8 @@ class Predictor:
             else:
                 file.write("const bool debugMode = false;\n")
 
+            file.write("const bool logProgramOutput = false;")
+
     def buildForWindows(self):
         '''
         Builds using the Predictor.vcxproj project file and creates the executable

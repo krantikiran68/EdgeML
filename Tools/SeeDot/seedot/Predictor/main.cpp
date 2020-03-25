@@ -27,6 +27,8 @@ enum DatasetType
 	Testing
 };
 
+bool profilingEnabled = false;
+
 // Split the CSV row into multiple values
 vector<string> readCSVLine(string line)
 {
@@ -93,27 +95,28 @@ void populateFloatVector(float **features_float, vector<string> features)
 	return;
 }
 
-void launchThread() {
-	res = seedotFixed(features_int);
-	float_res = seedotFloat(features_float);
-
-	if (res != float_res) {
-		if (float_res == label) {
-			reduced_disagreements++;
-		}
-		disagreements++;
-	}
+void launchThread(int features_size, MYINT **features_int, MYINT *** features_intV, float **features_float, int counter, vector<int>& float_res, vector<int>& res, vector<vector<int>>& resV) {
+	res[counter] = seedotFixed(features_int);
+	float_res[counter] = seedotFloat(features_float);
 
 	for (int i = 0; i < switches; i++) {
-		seedotFixedSwitch(i, features_intV[i], resV[i]);
-		if (resV[i] != float_res) {
-			if (float_res == label) {
-				reduced_disagreementsV[i]++;
-			}
-			disagreementsV[i]++;
-		}
+		while(!(counter < resV.size() && i < resV[counter].size()));
+		seedotFixedSwitch(i, features_intV[i], resV[counter][i]);
 	}
 
+	for(int i = 0; i < features_size; i++) {
+		delete features_int[i];
+		delete features_float[i];
+		for (int j = 0; j < switches; j++) {
+			delete features_intV[j][i];
+		}
+	}	
+	delete[] features_int;
+	delete[] features_float;
+	for (int j = 0; j < switches; j++) {
+		delete[] features_intV[j];
+	}
+	delete[] features_intV;
 }
 
 int main(int argc, char *argv[])
@@ -166,12 +169,6 @@ int main(int argc, char *argv[])
 	ofstream output(outputFile);
 	ofstream stats(statsFile);
 
-	int correct = 0, total = 0;
-	int disagreements = 0, reduced_disagreements = 0;
-
-	vector<int> correctV(switches, 0), totalV(switches, 0);
-	vector<int> disagreementsV(switches, 0), reduced_disagreementsV(switches, 0);
-
 	bool alloc = false;
 	int features_size = -1;
 	MYINT **features_int = NULL;
@@ -181,7 +178,20 @@ int main(int argc, char *argv[])
 	// Initialize variables used for profiling
 	initializeProfiling();
 
+	vector<int> vector_float_res;
+	vector<int> vector_int_res;
+	vector<int> labels;
+	vector<vector<int>> vector_int_resV;
+	vector<thread> threads;
+
+	MYINT*** features_intV_copy;
+
 	string line1, line2;
+	int counter = 0;
+
+	if(version == Float)
+		profilingEnabled = true;
+
 	while (getline(featuresFile, line1) && getline(lablesFile, line2))
 	{
 		// Read the feature vector and class ID
@@ -232,14 +242,81 @@ int main(int argc, char *argv[])
 			int res_fixed = seedotFixed(features_int);
 			//debug();
 			res = res_fixed;
+			vector_float_res.push_back(res_float);
+			vector_int_res.push_back(res_fixed);
+			labels.push_back(label);
+			vector_int_resV.push_back(vector<int>(0,-1));
 		}
 		else
 		{
 			if (version == Fixed) {
-				launchThread();
+				vector_float_res.push_back(-1);
+				vector_int_res.push_back(-1);
+				labels.push_back(label);
+				vector_int_resV.push_back(vector<int>(switches, -1));
+				MYINT** features_int_copy = new MYINT*[features_size];
+				for(int i = 0; i < features_size; i++) {
+					features_int_copy[i] = new MYINT[1];
+					features_int_copy[i][0] = features_int[i][0];
+				}
+				float** features_float_copy = new float*[features_size];
+				for(int i = 0; i < features_size; i++) {
+					features_float_copy[i] = new float[1];
+					features_float_copy[i][0] = features_float[i][0];
+				}
+				features_intV_copy = new MYINT**[switches];
+				for(int j = 0; j < switches; j++) {
+					features_intV_copy[j] = new MYINT*[features_size];
+					for(int i = 0; i < features_size; i++) {
+						features_intV_copy[j][i] = new MYINT[1];
+						features_intV_copy[j][i][0] = features_intV[j][i][0];
+					}
+				}
+				threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, ref(vector_float_res), ref(vector_int_res), ref(vector_int_resV)));
+				//threads.back().join();
 			}
-			else if (version == Float)
+			else if (version == Float) {
 				res = seedotFloat(features_float);
+				vector_float_res.push_back(res);
+				vector_int_res.push_back(-1);
+				labels.push_back(label);
+				vector_int_resV.push_back(vector<int>(0, -1));
+			}
+		}
+
+		if(!logProgramOutput) {
+			output << "Inputs handled = " << counter + 1 << endl;
+		}
+
+		flushProfile();
+		counter ++;
+	}
+
+	for(int i = 0; i < threads.size(); i++) {
+		threads[i].join();
+	}
+
+
+	int disagreements = 0, reduced_disagreements = 0;
+
+	vector<int> correctV(switches, 0), totalV(switches, 0);
+	vector<int> disagreementsV(switches, 0), reduced_disagreementsV(switches, 0);
+
+	int correct = 0, total = 0;
+	for(int i = 0; i < counter; i++) {
+		int res = vector_int_res[i];
+		int float_res = vector_float_res[i];
+		vector<int> &resV = vector_int_resV[i];
+		int label = labels[i];
+
+		if(version == Float)
+			res = float_res;
+
+		if (res != float_res) {
+			if (float_res == label) {
+				reduced_disagreements++;
+			}
+			disagreements++;
 		}
 
 		if (res == label)
@@ -254,6 +331,14 @@ int main(int argc, char *argv[])
 		total++;
 
 		for (int i = 0; i < switches; i++) {
+
+			if (resV[i] != float_res) {
+				if (float_res == label) {
+					reduced_disagreementsV[i]++;
+				}
+				disagreementsV[i]++;
+			}
+
 			if (resV[i] == label)
 			{
 				correctV[i]++;
@@ -266,11 +351,6 @@ int main(int argc, char *argv[])
 			totalV[i]++;
 		}
 
-		if(!logProgramOutput) {
-			output << "Inputs handled = " << total + 1 << endl;
-		}
-
-		flushProfile();
 	}
 
 	// Deallocate memory

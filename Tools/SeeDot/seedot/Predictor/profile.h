@@ -20,3 +20,5 @@ void Profile4(float* A, int I, int J, int K, int L, std::string name);
 void Profile2(float* A, int I, int J, std::string name);
 void flushProfile();
 void dumpProfile();
+
+extern bool profilingEnabled;

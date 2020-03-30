@@ -27,7 +27,7 @@ class Dataset:
               "usps-binary", "usps-multiclass", "ward-binary"]
     extra = ["cifar-multiclass", "dsa", "eye-binary", "farm-beats",
              "interactive-cane", "spectakoms", "usps10", "whale-binary",
-             "HAR-2"]
+             "HAR-2", "HAR-6", "MNIST-10", "Google-12", "Google-30", "Wakeword-2"]
     default = common
     all = common + extra
 

@@ -95,13 +95,12 @@ void populateFloatVector(float **features_float, vector<string> features)
 	return;
 }
 
-void launchThread(int features_size, MYINT **features_int, MYINT *** features_intV, float **features_float, int counter, vector<int>& float_res, vector<int>& res, vector<vector<int>>& resV) {
-	res[counter] = seedotFixed(features_int);
-	float_res[counter] = seedotFloat(features_float);
+void launchThread(int features_size, MYINT **features_int, MYINT *** features_intV, float **features_float, int counter, int* float_res, int* res, int* resV) {
+	*res = seedotFixed(features_int);
+	*float_res = seedotFloat(features_float);
 
 	for (int i = 0; i < switches; i++) {
-		while(!(counter < resV.size() && i < resV[counter].size()));
-		seedotFixedSwitch(i, features_intV[i], resV[counter][i]);
+		seedotFixedSwitch(i, features_intV[i], resV[i]);
 	}
 
 	for(int i = 0; i < features_size; i++) {
@@ -178,10 +177,10 @@ int main(int argc, char *argv[])
 	// Initialize variables used for profiling
 	initializeProfiling();
 
-	vector<int> vector_float_res;
-	vector<int> vector_int_res;
+	vector<int*> vector_float_res;
+	vector<int*> vector_int_res;
 	vector<int> labels;
-	vector<vector<int>> vector_int_resV;
+	vector<int*> vector_int_resV;
 	vector<thread> threads;
 
 	MYINT*** features_intV_copy;
@@ -238,22 +237,26 @@ int main(int argc, char *argv[])
 
 		if (debugMode)
 		{
-			int res_float = seedotFloat(features_float);
-			int res_fixed = seedotFixed(features_int);
+			int* res_float = new int(seedotFloat(features_float));
+			int* res_fixed = new int(seedotFixed(features_int));
 			//debug();
-			res = res_fixed;
+			res = *res_fixed;
 			vector_float_res.push_back(res_float);
 			vector_int_res.push_back(res_fixed);
 			labels.push_back(label);
-			vector_int_resV.push_back(vector<int>(0,-1));
+			vector_int_resV.push_back(NULL);
 		}
 		else
 		{
 			if (version == Fixed) {
-				vector_float_res.push_back(-1);
-				vector_int_res.push_back(-1);
+				vector_float_res.push_back(new int(-1));
+				vector_int_res.push_back(new int(-1));
 				labels.push_back(label);
-				vector_int_resV.push_back(vector<int>(switches, -1));
+				int* switchRes = new int[switches];
+				for(int i = 0; i < switches; i++) {
+					switchRes[i] = -1;
+				}
+				vector_int_resV.push_back(switchRes);
 				MYINT** features_int_copy = new MYINT*[features_size];
 				for(int i = 0; i < features_size; i++) {
 					features_int_copy[i] = new MYINT[1];
@@ -272,15 +275,14 @@ int main(int argc, char *argv[])
 						features_intV_copy[j][i][0] = features_intV[j][i][0];
 					}
 				}
-				threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, ref(vector_float_res), ref(vector_int_res), ref(vector_int_resV)));
-				//threads.back().join();
+				threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back()));
 			}
 			else if (version == Float) {
 				res = seedotFloat(features_float);
-				vector_float_res.push_back(res);
-				vector_int_res.push_back(-1);
+				vector_float_res.push_back(new int(res));
+				vector_int_res.push_back(new int(-1));
 				labels.push_back(label);
-				vector_int_resV.push_back(vector<int>(0, -1));
+				vector_int_resV.push_back(NULL);
 			}
 		}
 
@@ -304,9 +306,9 @@ int main(int argc, char *argv[])
 
 	int correct = 0, total = 0;
 	for(int i = 0; i < counter; i++) {
-		int res = vector_int_res[i];
-		int float_res = vector_float_res[i];
-		vector<int> &resV = vector_int_resV[i];
+		int res = *vector_int_res[i];
+		int float_res = *vector_float_res[i];
+		int *resV = vector_int_resV[i];
 		int label = labels[i];
 
 		if(version == Float)
@@ -351,6 +353,9 @@ int main(int argc, char *argv[])
 			totalV[i]++;
 		}
 
+		delete vector_int_res[i];
+		delete vector_float_res[i];
+		delete[] vector_int_resV[i];
 	}
 
 	// Deallocate memory
@@ -361,6 +366,12 @@ int main(int argc, char *argv[])
 	for (int i = 0; i < features_size; i++)
 		delete features_float[i];
 	delete[] features_float;
+
+	for (int i = 0; i < switches; i++) {
+		for (int j = 0; j < features_size; j++)
+			delete features_intV[i][j];
+		delete[] features_intV[i];
+	}
 
 	float accuracy = (float)correct / total * 100.0f;
 

@@ -18,7 +18,7 @@
                 "-v",
                 "fixed",
                 "-d",
-                "dsa",
+                "HAR-6",
                 "-m",
                 "red_disagree",
                 "-t",

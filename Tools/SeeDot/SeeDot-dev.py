@@ -344,7 +344,7 @@ class MainDriver:
 
     def loadResultsFile(self):
         results = {}
-        with open(os.path.join("Results", "Results.csv")) as csvFile:
+        with open("Results.csv") as csvFile:
             reader = csv.reader(csvFile)
             for row in reader:
                 algo, bitwidth, dataset = row[0], row[1], row[2]

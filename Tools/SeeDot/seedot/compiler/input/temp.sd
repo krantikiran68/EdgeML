@@ -1,0 +1,17 @@
+let X = (2, 1) in
+let W = (1, 2) in
+let B = (1, 1) in
+let WW = W * 16 in
+let WWW = round(W) in
+let XX = X * 2 in
+let XXX = round(X) in
+let BB = B * 32 in
+let BBB = round(BB) in
+let a = WWW >> 2 in
+let b = WWW >> 2 in
+let p = a * b in
+let q = BBB >> 4 in
+let r = p + q in
+let rr = unround(r) in
+let rrr = rr / 2 in
+rrr

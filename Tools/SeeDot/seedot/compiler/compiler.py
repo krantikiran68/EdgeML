@@ -3,6 +3,7 @@
 
 import antlr4 as antlr
 import argparse
+import numpy as np
 import os
 import pickle
 
@@ -11,6 +12,7 @@ import seedot.compiler.antlr.seedotParser as seedotParser
 
 import seedot.compiler.ast.ast as AST
 import seedot.compiler.ast.astBuilder as astBuilder
+import seedot.compiler.ast.evaluateAST as evaluateAST
 import seedot.compiler.ast.printAST as printAST
 
 import seedot.compiler.codegen.arduino as arduino
@@ -29,9 +31,9 @@ import seedot.writer as writer
 class Compiler:
 
     def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile):
-        if os.path.isfile(inputFile) == False:
-            print(inputFile)
-            raise Exception("Input file doesn't exist")
+        #if os.path.isfile(inputFile) == False:
+        #    print(inputFile)
+        #    raise Exception("Input file doesn't exist")
 
         util.setAlgo(algo)
         util.setVersion(version)
@@ -65,10 +67,34 @@ class Compiler:
             return ast
 
     def run(self):
+        dir = os.path.join("seedot", "compiler", "input")
+        ast_float = self.genAST(os.path.join(dir, "float.sd"))
+        ast_fixed = self.genAST(os.path.join(dir, "fixed.sd"))
+
+        X = np.load(os.path.join(dir, "X_train.npy"))
+        #X = [np.array([5.57, 5.936])]
+
+        eval = evaluateAST.EvaluateAST()
+
+        max_diff = 0
+        for x in X:
+            y_float = eval.visit(ast_float, {'X': x})
+            y_fixed = eval.visit(ast_fixed, {'X': x})
+            diff = abs(y_float - y_fixed)
+
+            if diff > max_diff:
+                max_diff = diff
+                max_x = x
+
+        print("\nResults")
+        print(max_x)
+        print(max_diff)
+
+    def runOld(self):
         ast = self.genAST(self.input)
 
         # Pretty printing AST
-        # printAST.PrintAST().visit(ast)
+        printAST.PrintAST().visit(ast)
 
         # Perform type inference
         type.InferType().visit(ast)

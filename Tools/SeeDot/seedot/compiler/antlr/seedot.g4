@@ -42,6 +42,7 @@ binOp	:	MUL
 		|	SPARSEMUL
 		|	MULCIR
 		|	CONV
+		|	DIV
 		|	ADDCIR
 		|	SUBCIR
 		;
@@ -51,11 +52,14 @@ specialFunc	:	RELU
 			|	SGN
 			|	TANH
 			|	SIGMOID
+			|	ROUND
+			|	UNROUND
 			;
 
 ADD		:	'+' ;
 SUB		:	'-' ;
 MUL		:	'*' ;
+DIV		:	'/' ;
 SPARSEMUL:	'|*|' ;
 MULCIR	:	'<*>' ;
 CONV	:	'#' ;
@@ -68,6 +72,8 @@ ARGMAX	:	'argmax' ;
 SGN		:	'sgn'    ;
 TANH	:	'tanh'   ;
 SIGMOID	:	'sigmoid';
+ROUND	:	'round';
+UNROUND	:	'unround';
 
 Reshape	:	'reshape' ;
 Maxpool	:	'maxpool' ;

@@ -33,6 +33,7 @@
     <Compile Include="seedot\compiler\ast\astBuilder.py" />
     <Compile Include="seedot\compiler\ast\astVisitor.py" />
     <Compile Include="seedot\compiler\ast\mtdAST.py" />
+    <Compile Include="seedot\compiler\ast\evaluateAST.py" />
     <Compile Include="seedot\compiler\ast\printAST.py" />
     <Compile Include="seedot\compiler\ast\__init__.py">
       <SubType>Code</SubType>

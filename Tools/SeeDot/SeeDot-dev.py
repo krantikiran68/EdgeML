@@ -12,6 +12,7 @@ import shutil
 import tempfile
 
 import seedot.config as config
+import seedot.compiler.compiler as compiler
 import seedot.main as main
 import seedot.predictor as predictor
 import seedot.util as util
@@ -237,16 +238,16 @@ class MainDriver:
 
             print("\nGenerating code for " + algo + " " + target + "...")
 
-            inputFile = os.path.join("input", algo + ".sd")
-            #inputFile = os.path.join("input", algo + ".pkl")
-            profileLogFile = os.path.join("input", "profile.txt")
+            inputFile = os.path.join("seedot", "compiler", "input", algo + ".sd")
+            profileLogFile = os.path.join("seedot", "compiler", "input", "profile.txt")
 
             outputDir = os.path.join("output")
             os.makedirs(outputDir, exist_ok=True)
 
-            outputFile = os.path.join(outputDir, algo + "-fixed.cpp")
-            obj = main.Main(algo, version, target, inputFile, outputFile,
-                            profileLogFile, self.args.max_scale_factor)
+            outputLogFile = os.path.join(outputDir, "log.txt")
+
+            obj = compiler.Compiler(algo, version, target, inputFile, outputDir,
+                            profileLogFile, self.args.max_scale_factor, outputLogFile)
             obj.run()
 
     def runConverterDriver(self):

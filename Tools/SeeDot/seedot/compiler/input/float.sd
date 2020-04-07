@@ -1,0 +1,6 @@
+let X = (2, 1) in [-1., 1.] in
+let W = (1, 2) in [-1., 1.] in
+let B = (1, 1) in [-1., 1.] in
+let p = W * X in
+let q = p + B in
+q

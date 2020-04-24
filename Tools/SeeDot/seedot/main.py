@@ -582,7 +582,7 @@ class Main:
         else:
             self.testingAccuracy = execMap["default"][0]
 
-        print("Accuracy is %.3f%%\n" % (acc))
+        print("Accuracy is %.3f%%\n" % (self.testingAccuracy))
 
         if self.target == config.Target.arduino:
             self.compileFloatForTarget()

@@ -53,7 +53,7 @@ class Predictor:
             else:
                 file.write("const bool debugMode = false;\n")
 
-            file.write("const bool logProgramOutput = false;")
+            file.write("const bool logProgramOutput = true;")
 
     def buildForWindows(self):
         '''

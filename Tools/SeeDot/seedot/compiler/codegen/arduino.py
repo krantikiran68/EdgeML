@@ -162,6 +162,10 @@ class Arduino(CodegenBase):
         varToLiveRange.sort()
         usedSpaceMap = {}
         totalScratchSize = -1
+        listOfDimensions = []
+        for ([_,_], var, size, atomSize) in varToLiveRange:
+            listOfDimensions.append(size)
+        mode = (lambda x: np.bincount(x).argmax())(listOfDimensions) if len(listOfDimensions) > 0 else None
         for ([startIns, endIns], var, size, atomSize) in varToLiveRange:
             if var in self.notScratch:
                 continue
@@ -174,11 +178,14 @@ class Arduino(CodegenBase):
             for tbk in varsToKill:
                 del usedSpaceMap[tbk]
             i = 0
-            blockSize = int(2**np.ceil(np.log2(spaceNeeded)))
+            if spaceNeeded >= mode:
+                blockSize = int(2**np.ceil(np.log2(spaceNeeded / mode))) * mode
+            else:
+                blockSize = mode / int(2**np.floor(np.log2(mode // spaceNeeded)))
             breakOutOfWhile = True
             while True:
-                potentialStart = blockSize * i
-                potentialEnd = blockSize * (i+1) - 1
+                potentialStart = int(blockSize * i)
+                potentialEnd = int(blockSize * (i+1)) - 1
                 for activeVar in usedSpaceMap.keys():
                     (locationOccupiedStart, locationOccupiedEnd) = usedSpaceMap[activeVar][1]
                     if not (locationOccupiedStart > potentialEnd or locationOccupiedEnd < potentialStart):

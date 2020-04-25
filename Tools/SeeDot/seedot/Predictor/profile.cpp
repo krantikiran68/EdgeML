@@ -69,6 +69,8 @@ unordered_map<string, pair<float, float>> statistics;
 bool range_exceeded = false;
 
 void dumpProfile() {
+	if(!profilingEnabled)
+		return;
 	if (min_all.size() == 0)
 		return;
 	ofstream outfile("dump.profile");
@@ -110,6 +112,8 @@ void dumpProfile() {
 }
 
 void flushProfile() {
+	if(!profilingEnabled)
+		return;
 	if (range_exceeded == false) {
 		for(auto it = min_temp.begin(); it != min_temp.end(); it ++) {
 			string name = it->first;
@@ -134,6 +138,8 @@ void flushProfile() {
 }
 
 void checkRange2(float* A, int I, int J) {
+	if(!profilingEnabled)
+		return;
 	for (int i = 0; i < I; i++) {
 		for (int j = 0; j < J; j++) {
 			if (fabs(A[i * J + j]) >= 32) {
@@ -144,10 +150,14 @@ void checkRange2(float* A, int I, int J) {
 }
 
 void Profile4(float* A, int I, int J, int K, int L, string name) {
+	if(!profilingEnabled)
+		return;
 	return;
 }
 
 void Profile2(float* A, int I, int J, string name) {
+	if(!profilingEnabled)
+		return;
 	if (min_temp.find(name) == min_temp.end()) {
 		min_temp[name] = FLT_MAX;
 		max_temp[name] = -FLT_MAX;

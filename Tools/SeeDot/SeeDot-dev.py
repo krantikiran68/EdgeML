@@ -27,8 +27,9 @@ class Dataset:
               "usps-binary", "usps-multiclass", "ward-binary"]
     extra = ["cifar-multiclass", "dsa", "eye-binary", "farm-beats",
              "interactive-cane", "spectakoms", "usps10", "whale-binary",
-             "HAR-2"]
-    default = common
+             "HAR-2", "HAR-6", "MNIST-10", "Google-12", "Google-30", "Wakeword-2"]
+    #default = common
+    default = ["spectakoms", "usps10", "HAR-2", "HAR-6", "dsa", "MNIST-10", "Google-12", "Google-30", "Wakeword-2"]
     all = common + extra
 
     datasetDir = os.path.join("..", "datasets", "datasets")

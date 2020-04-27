@@ -172,3 +172,10 @@ class Let(ASTNode):
         self.name = name
         self.decl = decl
         self.expr = expr
+
+class Reverse(ASTNode):
+
+    def __init__(self, expr, axis):
+        super().__init__()
+        self.expr = expr
+        self.axis = axis

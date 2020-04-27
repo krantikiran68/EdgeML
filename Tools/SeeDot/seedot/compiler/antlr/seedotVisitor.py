@@ -1,4 +1,4 @@
-# Generated from .\seedot.g4 by ANTLR 4.7
+# Generated from .\seedot.g4 by ANTLR 4.8
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .seedotParser import seedotParser
@@ -51,6 +51,11 @@ class seedotVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by seedotParser#float.
     def visitFloat(self, ctx:seedotParser.FloatContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by seedotParser#reverse.
+    def visitReverse(self, ctx:seedotParser.ReverseContext):
         return self.visitChildren(ctx)
 
 

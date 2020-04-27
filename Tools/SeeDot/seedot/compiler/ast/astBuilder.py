@@ -62,6 +62,11 @@ class ASTBuilder(SeeDotVisitor):
         dim = int(ctx.IntConst().getText())
         return AST.Maxpool(expr, dim)
 
+    def visitReverse(self, ctx: SeeDotParser.MaxpoolContext):
+        expr = self.visit(ctx.expr())
+        axis = int(ctx.IntConst().getText())
+        return AST.Reverse(expr, axis)    
+
     def visitIndex(self, ctx: SeeDotParser.IndexContext):
         expr = self.visit(ctx.expr(0))
         index = self.visit(ctx.expr(1))

@@ -433,6 +433,22 @@ void TanH(float *A, MYINT I, MYINT J, float scale_in, float scale_out, float *B)
 	return;
 }
 
+// B = reverse(A, axis)
+void Reverse2(float *A, MYINT axis, MYINT I, MYINT J, float *B)
+{
+	for (MYITE i = 0; i < I; i++)
+	{
+		for (MYITE j = 0; j < J; j++)
+		{	
+			MYINT i_prime = (axis == 0 ? (I-1-i) : i);
+			MYINT j_prime = (axis == 1 ? (J-1-j) : j); 
+
+			B[i * J + j] = A[i_prime*J + j_prime];
+		}
+	}
+	return;
+}
+
 // index = argmax(A)
 void ArgMax(float *A, MYINT I, MYINT J, MYINT *index)
 {

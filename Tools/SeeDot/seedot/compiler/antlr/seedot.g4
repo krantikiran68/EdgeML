@@ -18,6 +18,7 @@ expr:	IntConst								# int
 	|	expr '[' expr ':+' IntConst ']' 
 		('[' expr ':+' IntConst ']')*			# splice
 	|	Maxpool '(' expr ',' IntConst ')'		# maxpool
+	|	Reverse '(' expr ',' IntConst ')'		# reverse
 	|	expr '[' expr ']'						# index
 	|	Id '(' expr (',' expr)* ')'				# funcCall
 
@@ -73,6 +74,7 @@ SIGMOID	:	'sigmoid';
 
 Reshape	:	'reshape' ;
 Maxpool	:	'maxpool' ;
+Reverse :   'reverse' ;
 Sum		:	'$'       ;
 Loop	:	'loop'    ;
 

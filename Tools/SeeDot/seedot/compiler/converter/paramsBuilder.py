@@ -51,6 +51,9 @@ class ParamsBuilder(ASTVisitor):
     def visitMaxpool(self, node: AST.Maxpool):
         self.visit(node.expr)
 
+    def visitReverse(self, node: AST.Reverse):
+        self.visit(node.expr)    
+
     def visitIndex(self, node: AST.Index):
         self.visit(node.expr)
         self.visit(node.index)

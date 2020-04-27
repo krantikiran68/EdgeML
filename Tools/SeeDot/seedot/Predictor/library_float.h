@@ -50,3 +50,5 @@ void Sigmoid(float *A, MYINT I, MYINT J, float div, float add, float sigmoid_lim
 
 void AdjustScaleShr(float *A, MYINT I, MYINT J, MYINT scale);
 void AdjustScaleShl(float *A, MYINT I, MYINT J, MYINT scale);
+
+void Reverse2(float *A, MYINT axis, MYINT I, MYINT J, float *B);

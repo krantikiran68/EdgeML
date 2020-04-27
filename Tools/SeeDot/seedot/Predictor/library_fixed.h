@@ -58,6 +58,8 @@ void Sigmoid(MYINT *A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_lim
 void AdjustScaleShr(MYINT *A, MYINT I, MYINT J, MYINT scale);
 void AdjustScaleShl(MYINT *A, MYINT I, MYINT J, MYINT scale);
 
+void Reverse2(MYINT *A, MYINT axis, MYINT I, MYINT J, MYINT *B);
+
 //Templated Operations: For cases when Variable BitWidth is enabled
 
 template<class TypeA>
@@ -918,6 +920,24 @@ void AdjustScaleShlSaturate(TypeA* A, MYINT I, MYINT J, MYINT scale, MYINT satur
 			TypeA a = A[i * J + j];
 			a = (a < saturate && a > -saturate) ? a : (a > 0 ? saturate : -saturate);
 			A[i * J + j] = a * scale;
+		}
+	}
+	return;
+}
+
+
+// B = reverse(A, axis)
+template<class TypeA>
+void Reverse2(TypeA *A, MYINT axis, MYINT I, MYINT J, TypeA *B)
+{
+	for (MYITE i = 0; i < I; i++)
+	{
+		for (MYITE j = 0; j < J; j++)
+		{	
+			MYINT i_prime = (axis == 0 ? (I-1-i) : i);
+			MYINT j_prime = (axis == 1 ? (J-1-j) : j); 
+
+			B[i * J + j] = A[i_prime*J + j_prime];
 		}
 	}
 	return;

@@ -78,21 +78,16 @@ class Main:
         elif target == config.Target.x86:
             outputDir = os.path.join(config.tempdir, "Predictor")
 
-        try:
-            obj = Compiler(self.algo, version, target, inputFile, outputDir,
-                           profileLogFile, sf, outputLogFile, 
-                           generateAllFiles, id, printSwitch, self.variableSubstitutions, 
-                           scaleForX,
-                           variableToBitwidthMap, self.sparseMatrixSizes, demotedVarsList, demotedVarsOffsets)
-            obj.run()
-            self.allScales = dict(obj.varScales)
-            if version == config.Version.floatt:
-                self.variableSubstitutions = obj.substitutions
-                self.variableToBitwidthMap = dict.fromkeys(obj.independentVars, config.wordLength)
-        except:
-            print("failed!\n")
-            #traceback.print_exc()
-            return False
+        obj = Compiler(self.algo, version, target, inputFile, outputDir,
+                        profileLogFile, sf, outputLogFile, 
+                        generateAllFiles, id, printSwitch, self.variableSubstitutions, 
+                        scaleForX,
+                        variableToBitwidthMap, self.sparseMatrixSizes, demotedVarsList, demotedVarsOffsets)
+        obj.run()
+        self.allScales = dict(obj.varScales)
+        if version == config.Version.floatt:
+            self.variableSubstitutions = obj.substitutions
+            self.variableToBitwidthMap = dict.fromkeys(obj.independentVars, config.wordLength)
 
         if id is None:
             self.scaleForX = obj.scaleForX
@@ -228,10 +223,13 @@ class Main:
                 if highestValidScale == end:
                     print("Compilation not possible for any Scale Factor. Abort")
                     return False
+                
+                # Refactor and remove this try/catch block in the futur 
                 try:
                     firstCompileSuccess = self.partialCompile(config.Version.fixed, config.Target.x86, highestValidScale, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
-                except:
+                except:	
                     firstCompileSuccess = False
+
                 if firstCompileSuccess:
                     break
                 highestValidScale -= 1

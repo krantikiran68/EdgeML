@@ -1513,7 +1513,7 @@ class IRBuilder(ASTVisitor):
         elif node.op == SeeDotParser.SGN:
             return self.visitSgn(node)
         elif node.op == SeeDotParser.TANH:
-            if useNewTableExp() and forFixed():
+            if useNewTableExp() and forFixed() and self.vbwEnabled:
                 return self.visitNewTableTanH(node)
             else:
                 return self.visitTanh(node)

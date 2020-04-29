@@ -50,6 +50,12 @@ class PrintAST(ASTVisitor):
         self.visit(node.expr)
         print(indent * node.printLevel, node.dim)
 
+    def visitReverse(self, node: AST.Reverse):
+        node.expr.printLevel = node.printLevel + 1
+        print(indent * node.printLevel, "reverse")
+        self.visit(node.expr)
+        print(indent * node.printLevel, node.axis)    
+
     def visitIndex(self, node: AST.Index):
         node.expr.printLevel = node.index.printLevel = node.printLevel + 1
         self.visit(node.expr)

@@ -589,6 +589,22 @@ void ArgMax(MYINT *A, MYINT I, MYINT J, MYINT *index)
 	return;
 }
 
+// B = reverse(A, axis)
+void Reverse2(MYINT *A, MYINT axis, MYINT I, MYINT J, MYINT *B)
+{
+	for (MYITE i = 0; i < I; i++)
+	{
+		for (MYITE j = 0; j < J; j++)
+		{	
+			MYINT i_prime = (axis == 0 ? (I-1-i) : i);
+			MYINT j_prime = (axis == 1 ? (J-1-j) : j); 
+
+			B[i * J + j] = A[i_prime*J + j_prime];
+		}
+	}
+	return;
+}
+
 // A = A^T
 void Transpose(MYINT *A, MYINT *B, MYINT I, MYINT J)
 {

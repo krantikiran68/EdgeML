@@ -29,6 +29,8 @@ class ASTVisitor:
             return self.visitReshape(node)
         elif isinstance(node, AST.Maxpool):
             return self.visitMaxpool(node)
+        elif isinstance(node, AST.Reverse):
+            return self.visitReverse(node)    
         elif isinstance(node, AST.Index):
             return self.visitIndex(node)
         elif isinstance(node, AST.FuncCall):

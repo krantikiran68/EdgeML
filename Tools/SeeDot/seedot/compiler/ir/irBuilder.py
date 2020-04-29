@@ -535,6 +535,56 @@ class IRBuilder(ASTVisitor):
 
         return (prog_out, expr_out)
 
+    def visitReverse(self, node: AST.Reverse):
+        (prog_in, expr_in) = self.visit(node.expr)
+
+        prog_out = IR.Prog([])
+        prog_out = IRUtil.concatPrograms(prog_out, prog_in)
+
+        expr_out = self.getTempVar()
+
+        # Scale of the output is the scale of the first argument
+        scale_out = self.varScales[expr_in.idf]
+        intv_out = self.varIntervals[expr_in.idf]
+        bitwidth_in, scale_in = self.getBitwidthAndScale(expr_in.idf)
+        bw_out, scale_out = self.getBitwidthAndScale(expr_in.idf)
+
+        args = dict()
+        args[expr_in] = 'A'
+        args[IR.Int(node.axis)] = 'axis'
+
+        ch = 'I'
+        for i in node.type.shape:
+            args[IR.Int(i)] = ch
+            ch = chr(ord(ch) + 1)
+        
+        args[expr_out] = expr_out.idf
+
+        comment = IR.Comment(
+            "reverse" + '(' + expr_in.idf + ',' + str(node.axis) + ')')
+
+
+        funcCall = IR.FuncCall('Reverse' + str(len(node.type.shape)), args) if not self.vbwEnabled else IR.FuncCall('Reverse' + str(len(node.type.shape)) + '<int' + str(bitwidth_in) + '_t>', args)                    
+
+        prog_funcCall = IR.Prog([comment, funcCall])
+
+        if forFixed():
+            self.varsForBitwidth[expr_out.idf] = bw_out
+            if self.varsForBitwidth[expr_out.idf] != config.wordLength:
+                self.demotedVarsList.append(expr_out.idf)
+                self.demotedVarsOffsets[expr_out.idf] = self.getOffsetForDemotedVariable(expr_in.idf)
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in, expr_out])
+
+        prog_out = IRUtil.concatPrograms(prog_out, prog_funcCall)
+
+        self.varDeclarations[expr_out.idf] = node.type
+        self.varScales[expr_out.idf] = scale_out
+        self.varIntervals[expr_out.idf] = intv_out
+
+        return (prog_out, expr_out)    
+
     # out = +- in
     def visitUop(self, node: AST.Uop):
 

@@ -27,6 +27,10 @@ class MtdAST(ASTVisitor):
         node.metadata.update(mtd)
         self.visit(node.expr, mtd)
 
+    def visitReverse(self, node: AST.Reverse, mtd: dict):
+        node.metadata.update(mtd)
+        self.visit(node.expr, mtd)    
+
     def visitIndex(self, node: AST.Index, mtd: dict):
         node.metadata.update(mtd)
         self.visit(node.expr, mtd)

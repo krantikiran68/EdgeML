@@ -231,10 +231,9 @@ class MainDriver:
             obj = main.Main(algo, version, target, trainingInput,
                             testingInput, modelDir, sf, maximisingMetric, dataset)
             obj.run()
-            try:
-                acc = obj.testingAccuracy
-            except:
-                print("CODE FAILED TO COMPILE AND/OR EXECUTE")
+
+            acc = obj.testingAccuracy
+
             if acc != expectedAcc:
                 print("FAIL: Expected accuracy %f%%" % (expectedAcc))
                 # return

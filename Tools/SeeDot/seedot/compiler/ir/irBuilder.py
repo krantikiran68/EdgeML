@@ -2320,6 +2320,55 @@ class IRBuilder(ASTVisitor):
 
         return (prog_out, expr_out)
 
+    def visitLeftSplice(self, node: AST.LeftSplice, expr_in):
+        
+        vars_in = []
+        progs_in = []
+        for var in node.vars:
+            part_prog_in, part_expr_in = self.visit(var)
+            progs_in.append(part_prog_in)
+            vars_in.append(part_expr_in)
+
+        expr_out = IR.Var(node.expr) 
+
+        # self.notScratch.append(expr_out.idf) # what is this?
+
+        loop_dim = len(node.sizes)
+
+        iters_in = self.getTempIterators(loop_dim) 
+        iters_out = self.getTempVars(loop_dim)      
+
+        loopShape = []
+        loopIters = []
+        loopAssns = []
+        for order in range(loop_dim):
+            loopShape.append(node.sizes[order])
+            loopIters.append(iters_in[order])
+            loopAssns.append(IR.Assn(iters_out[order], IRUtil.add(iters_in[order], vars_in[order])))
+
+        # compared to right splice iters_out is the index for lhs
+        loop = IRUtil.loop(loopShape, loopIters, loopAssns + [
+                IR.Assn(IRUtil.addIndex(expr_out, iters_out), IRUtil.addIndex(expr_in, iters_in))
+            ])
+
+        comment = IR.Comment("Left splice")
+        prog_splice = IR.Prog([comment] + loop)
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in, expr_out])
+
+        prog_out = IR.Prog([])
+        for prog in progs_in:
+            prog_out = IRUtil.concatPrograms(prog_out, prog)
+        prog_out = IRUtil.concatPrograms(prog_out, prog_splice)
+
+        # Update declarations
+        for var in iters_out:
+            self.varDeclarations[var.idf] = Type.Int()
+            self.internalVars.append(var.idf)
+
+        return (prog_out, expr_out)
+
 
     # out = $x[start:end] in
     def visitSum(self, node: AST.Sum):
@@ -2557,7 +2606,7 @@ class IRBuilder(ASTVisitor):
 
         return (prog_out, expr_out)
 
-    # let idf = decl 'in' in
+    # let lhs = decl 'in' in
     def visitLet(self, node: AST.Let):
 
         (prog_decl, expr_decl) = self.visit(node.decl)
@@ -2579,6 +2628,14 @@ class IRBuilder(ASTVisitor):
 
             return (prog_out, expr_in)
 
+        # Left Splice case
+        elif node.leftSplice is not None:
+            (prog_in, expr_in) = self.visit(node.expr)
+            (prog_splice, expr_splice) = self.visitLeftSplice(node.leftSplice, expr_decl)
+
+            prog_out = IRUtil.concatPrograms(prog_decl, prog_splice, prog_in)
+            
+            return (prog_out, expr_in)
         # e1 : Tensor{(),(..)}
         else:
             self.varScales[idf] = self.varScales[expr_decl.idf] + (config.wordLength//2 + self.demotedVarsOffsets.get(idf, 0) if idf in self.demotedVarsList else 0)

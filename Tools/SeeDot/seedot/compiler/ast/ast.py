@@ -67,6 +67,14 @@ class Splice(ASTNode):
         self.vars = vars
         self.sizes = sizes
 
+class LeftSplice(ASTNode):
+
+    def __init__(self, expr, vars, sizes):
+        super().__init__()
+        self.expr = expr
+        self.vars = vars
+        self.sizes = sizes
+
 class Reshape(ASTNode):
 
     def __init__(self, expr, shape, order):
@@ -167,11 +175,12 @@ class Cond(ASTNode):
 
 class Let(ASTNode):
 
-    def __init__(self, name, decl, expr):
+    def __init__(self, name, decl, expr, leftSplice = None):
         super().__init__()
         self.name = name
         self.decl = decl
         self.expr = expr
+        self.leftSplice = leftSplice
 
 class Reverse(ASTNode):
 

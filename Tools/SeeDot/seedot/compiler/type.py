@@ -110,6 +110,24 @@ class InferType(astVisitor.ASTVisitor):
 
         return node.type
 
+    # currently not visited while type checking
+    def visitLeftSplice(self, node: ast.LeftSplice):
+        node.expr.gamma = dict(node.gamma)
+        exprType = self.visit(node.expr)
+
+        assert isTensor(exprType) and exprType.dim >= 1
+        # For splicing to be valid, the number of dimensions in input variable should match the 
+        # indices provided
+        assert exprType.dim == len(node.sizes)
+        # For splicing to be valid, all target dimensions must be lesser than the input variable
+        assert np.all(np.array(exprType.shape) >= np.array(node.sizes))
+        for var in node.vars:
+            var.gamma = dict(node.gamma)
+        assert np.all([self.visit(var).isShapeOne for var in node.vars])
+        node.type = Tensor(node.sizes)
+
+        return node.type    
+
     # Reshape the tensor with custom dimensions
     def visitReshape(self, node: ast.Reshape):
         node.expr.gamma = dict(node.gamma)
@@ -381,14 +399,16 @@ class InferType(astVisitor.ASTVisitor):
         node.decl.gamma = dict(node.gamma)
         eType = self.visit(node.decl)
 
-        if node.name not in self.mutableVars:
+        if node.name not in self.mutableVars and node.leftSplice is None:
             assert node.name not in node.gamma, "%s defined more than once" % (
                 node.name)
 
         node.expr.gamma = dict(node.gamma)
-        node.expr.gamma[node.name] = eType
-        fType = self.visit(node.expr)
 
+        if not node.leftSplice: 
+            node.expr.gamma[node.name] = eType
+                
+        fType = self.visit(node.expr)
         node.type = fType
         return node.type
 

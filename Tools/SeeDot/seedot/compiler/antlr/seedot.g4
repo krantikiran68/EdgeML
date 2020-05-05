@@ -34,8 +34,12 @@ expr:	IntConst								# int
 		',' expr ')' expr						# loop
 
 	|	expr '>=' IntConst '?' expr ':' expr	# cond
-	|	Let Id '=' expr In expr					# let
+	|	Let lhs '=' expr In expr	 			# let
 	|	'(' expr ')'							# paren
+	;
+
+lhs : 	Id   				 											 # name
+	|	Id ('[' expr ':+' IntConst ']') ('[' expr ':+' IntConst ']')*    # leftSplice
 	;
 
 addOp	:	ADD

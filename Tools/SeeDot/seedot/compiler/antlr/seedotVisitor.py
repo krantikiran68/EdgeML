@@ -114,6 +114,16 @@ class seedotVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by seedotParser#name.
+    def visitName(self, ctx:seedotParser.NameContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by seedotParser#leftSplice.
+    def visitLeftSplice(self, ctx:seedotParser.LeftSpliceContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by seedotParser#addOp.
     def visitAddOp(self, ctx:seedotParser.AddOpContext):
         return self.visitChildren(ctx)

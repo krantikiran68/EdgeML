@@ -159,9 +159,6 @@ class IRBuilder(ASTVisitor):
         else:
             minVal, maxVal = node.value, node.value
 
-        # Have to use loops to initialize non-zero values instead of memset
-        assert node.value == 0, "'init' operator currently only supports initialization to 0"
-
         expr = self.getTempVar()
 
         if forFixed() and self.ddsEnabled:
@@ -173,11 +170,29 @@ class IRBuilder(ASTVisitor):
         comment = IR.Comment('init([%s], %.6f)' % (
             ', '.join(map(str, node.shape)), node.value))
 
-        memset = IR.Memset(expr, node.type.size())
+        # using loops to initialize non-zero values instead of memset
+        if node.value == 0:
+            memset = IR.Memset(expr, node.type.size())
+            prog_init = IR.Prog([comment, memset])
+
+        else:
+            iters_in = self.getTempIterators(len(node.shape))
+
+            loopShape = []
+            loopIters = []
+
+            for order in range(len(node.shape)):
+                loopShape.append(node.shape[order])
+                loopIters.append(iters_in[order])
+                loop = IRUtil.loop(loopShape, loopIters, [
+                IR.Assn(IRUtil.addIndex(expr, iters_in), 
+                IR.Float(node.value) if forFloat() else self.getNumInFixedPoint(node.value, scale))
+            ])
+
+            prog_init = IR.Prog([comment] + loop)
+
         self.counter_inst += 1
         self.updateLiveRange(expr)
-
-        prog_init = IR.Prog([comment, memset])
 
         prog_out = prog_init
         expr_out = expr

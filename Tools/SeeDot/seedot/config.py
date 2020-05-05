@@ -18,7 +18,7 @@ msbuildPathOptions = [r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Comm
                       r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\MSBuild\Current\Bin\MSBuild.exe"
                       ]
 
-# Curresntly not supported (ddsEnabled = False and vbwEnabled = True) 
+# Currently not supported (ddsEnabled = False and vbwEnabled = True) 
 ddsEnabled = True
 vbwEnabled = True
 functionReducedProfiling = True

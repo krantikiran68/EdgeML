@@ -13,6 +13,15 @@ class Config:
     codegen = "funcCall"  # "funcCall" "inline"
     debug = False
     debugCompiler = True
+    saturateArithmetic = False
+    fastApproximations = False
+
+def isSaturate():
+    return Config.saturateArithmetic
+
+
+def isfastApprox():
+    return Config.fastApproximations
 
 
 def windows():

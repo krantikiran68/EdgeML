@@ -15,18 +15,7 @@
 //#define ACCURACY
 #define PREDICTIONTIME
 
-
-// The datatype of the fixed-point representation is specified below.
-// The selection below should be equal to the Common.wordLength variable in Common.py
-// Uncomment the below #define to choose the datatype. Default is INT16.
-
-//define INT8
-#define INT16
-//#define INT32
-
-#define XFLOAT
-//#define XINT8
-//#define XINT16
+#include "compileConfig.h"
 
 #ifdef INT8
 typedef int8_t MYINT;

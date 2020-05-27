@@ -13,3 +13,7 @@ const bool debugMode = false;
 const bool logProgramOutput = false;
 
 const int scalesForX[16] = {-12, -12, -12, -12, -12, -12, -12, -12, -12, -12, -12, -12};
+
+//#define SATURATE
+//#define FASTAPPROX
+#define FLOATEXP

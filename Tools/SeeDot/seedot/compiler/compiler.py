@@ -133,10 +133,11 @@ class Compiler:
 
     def readDataDrivenScales(self):
         tempScales = {}
+        error = 0.01
         with open('temp/Predictor/dump.profile', 'r') as f:
             for line in f:
                 entries = line.strip().split(",")
                 var, m, M = entries
                 m, M = float(m), float(M)
-                tempScales[var] = util.computeScalingFactor(max(abs(m), abs(M))) 
+                tempScales[var] = util.computeScalingFactor(max(abs(m) + error, abs(M) + error)) 
         return tempScales

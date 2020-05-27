@@ -53,7 +53,22 @@ class Predictor:
             else:
                 file.write("const bool debugMode = false;\n")
 
-            file.write("const bool logProgramOutput = true;")
+            file.write("const bool logProgramOutput = true;\n")
+
+            if Util.isSaturate():
+                file.write("#define SATURATE\n")
+            else:
+                file.write("//#define SATURATE\n")
+            
+            if Util.isfastApprox():
+                file.write("#define FASTAPPROX\n")
+            else:
+                file.write("//#define FASTAPPROX\n")
+            
+            if Util.useMathExp():
+                file.write("#define FLOATEXP\n")
+            else:
+                file.write("//#define FLOATEXP\n")
 
     def buildForWindows(self):
         '''

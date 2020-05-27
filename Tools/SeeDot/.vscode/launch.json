@@ -14,11 +14,11 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "rnn",
+                "bonsai",
                 "-v",
                 "fixed",
                 "-d",
-                "HAR-6",
+                "cr-binary",
                 "-m",
                 "red_disagree",
                 "-t",

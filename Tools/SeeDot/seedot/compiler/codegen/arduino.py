@@ -27,6 +27,7 @@ class Arduino(CodegenBase):
 
     def __init__(self, outputDir, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals, notScratch):
         outputFile = os.path.join(outputDir, "predict.cpp")
+        self.outputDir = outputDir
         self.out = Writer(outputFile)
 
         self.decls = decls
@@ -46,7 +47,23 @@ class Arduino(CodegenBase):
         self.scratchSubs = {}
         self.notScratch = notScratch
 
+    def printCompilerConfig(self):
+        configFile = os.path.join(self.outputDir, "compileConfig.h")
+        with open(configFile, "w") as file:
+            file.write("// The datatype of the fixed-point representation is specified below\n")
+            file.write("#define INT%d\n" % config.wordLength)
+            if forFloat():
+                file.write("#define XFLOAT\n")
+            else:
+                if config.vbwEnabled:
+                    file.write("#define XINT%d\n" % self.varsForBitwidth['X'])
+                else:
+                    file.write("#define XINT%d\n" % config.wordLength)
+
+
     def printPrefix(self):
+        self.printCompilerConfig()
+
         self.printArduinoIncludes()
 
         self.printExpTables()

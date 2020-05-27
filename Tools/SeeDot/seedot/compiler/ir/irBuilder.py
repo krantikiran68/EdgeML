@@ -559,7 +559,6 @@ class IRBuilder(ASTVisitor):
         expr_out = self.getTempVar()
 
         # Scale of the output is the scale of the first argument
-        scale_out = self.varScales[expr_in.idf]
         intv_out = self.varIntervals[expr_in.idf]
         bitwidth_in, scale_in = self.getBitwidthAndScale(expr_in.idf)
         bw_out, scale_out = self.getBitwidthAndScale(expr_in.idf)
@@ -2344,9 +2343,12 @@ class IRBuilder(ASTVisitor):
             progs_in.append(part_prog_in)
             vars_in.append(part_expr_in)
 
+        #assert expr_in.idf in self.varDeclarations #variable must have been declared before
+
         expr_out = IR.Var(node.expr) 
 
-        # self.notScratch.append(expr_out.idf) # what is this?
+        bw_in, scale_in = self.getBitwidthAndScale(expr_in.idf)
+        bw_out, scale_out = self.getBitwidthAndScale(expr_out.idf)
 
         loop_dim = len(node.sizes)
 
@@ -2361,9 +2363,19 @@ class IRBuilder(ASTVisitor):
             loopIters.append(iters_in[order])
             loopAssns.append(IR.Assn(iters_out[order], IRUtil.add(iters_in[order], vars_in[order])))
 
+        expr_in_idx = IRUtil.addIndex(expr_in, iters_in)
+        expr_out_idx = IRUtil.addIndex(expr_out, iters_out)
+
+        if scale_in > scale_out:
+            cmd2 = IR.Assn(expr_out_idx, IRUtil.shl(expr_in_idx, scale_in - scale_out))
+        elif scale_in < scale_out:
+            cmd2 = IR.Assn(expr_out_idx, IRUtil.shr(expr_in_idx, scale_out - scale_in))
+        else:
+            cmd2 = IR.Assn(expr_out_idx, expr_in_idx)
+
         # compared to right splice iters_out is the index for lhs
         loop = IRUtil.loop(loopShape, loopIters, loopAssns + [
-                IR.Assn(IRUtil.addIndex(expr_out, iters_out), IRUtil.addIndex(expr_in, iters_in))
+                cmd2
             ])
 
         comment = IR.Comment("Left splice")
@@ -2648,7 +2660,18 @@ class IRBuilder(ASTVisitor):
             (prog_in, expr_in) = self.visit(node.expr)
             (prog_splice, expr_splice) = self.visitLeftSplice(node.leftSplice, expr_decl)
 
-            prog_out = IRUtil.concatPrograms(prog_decl, prog_splice, prog_in)
+            profile = IR.Prog([])
+            if forFloat():
+                profile = IR.Prog([IR.FuncCall("Profile2", {
+                    expr_decl: "Var",
+                    IR.Int(node.decl.type.shape[0]): "I",
+                    IR.Int(node.decl.type.shape[1]): "J",
+                    IR.String(expr_splice): "VarName"
+                })])
+            if forFloat():
+                self.independentVars.append(expr_splice.idf)
+
+            prog_out = IRUtil.concatPrograms(prog_decl, prog_splice, profile, prog_in)
             
             return (prog_out, expr_in)
         # e1 : Tensor{(),(..)}

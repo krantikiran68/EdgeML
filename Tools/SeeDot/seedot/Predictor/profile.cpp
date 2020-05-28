@@ -7,6 +7,8 @@
 #include <cmath>
 #include <unordered_map>
 #include <algorithm>
+#include <vector>
+#include <cfloat>
 
 #include "datatypes.h"
 #include "profile.h"

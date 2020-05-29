@@ -13,7 +13,7 @@ import seedot.config as config
 
 class Converter:
 
-    def __init__(self, algo, version, datasetType, target, datasetOutputDir, outputDir, varsForBitwidth={}, allScales={}, numOutputs=1):
+    def __init__(self, algo, version, datasetType, target, source, datasetOutputDir, outputDir, varsForBitwidth={}, allScales={}, numOutputs=1):
         setAlgo(algo)
         setVersion(version)
         setDatasetType(datasetType)
@@ -27,6 +27,7 @@ class Converter:
         self.varsForBitwidth = varsForBitwidth
         self.allScales = allScales
         self.numOutputs = numOutputs
+        self.source = source
 
     def setInput(self, inputFile, modelDir, trainingInput, testingInput):
         setInputFile(inputFile)
@@ -44,6 +45,6 @@ class Converter:
         elif getVersion() == config.Version.floatt:
             obj = QuantizerFloat(self.numOutputs)
 
-        obj.run()
+        obj.run(self.source)
 
         self.sparseMatrixSizes = obj.sparseMatSizes

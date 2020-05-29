@@ -51,7 +51,7 @@ class Quantizer:
         self.params = paramsBuilder.params.values()
 
     def readDataset(self):
-        self.X, self.Y = readXandY()
+        self.X, self.Y = readXandY(numOutputs=self.numOutputs)
 
     def writeDataset(self):
         writeMatAsCSV(self.X, os.path.join(getDatasetOutputDir(), "X.csv"))
@@ -214,10 +214,11 @@ class Quantizer:
 
 class QuantizerFixed(Quantizer):
 
-    def __init__(self, varsForBitwidth, allScales):
+    def __init__(self, varsForBitwidth, allScales, numOutputs):
         super().__init__()
         self.varsForBitwidth = varsForBitwidth
         self.allScales = allScales
+        self.numOutputs = numOutputs
 
     # The X matrix is quantized using a scale factor computed from the training dataset.
     # The range of X_train is used to compute the scale factor.
@@ -279,6 +280,10 @@ class QuantizerFixed(Quantizer):
 
 
 class QuantizerFloat(Quantizer):
+
+    def __init__(self, numOutputs):
+        super().__init__()
+        self.numOutputs = numOutputs
 
     # Float model is generated for for training dataset to profile the prediction
     # Hence, X is trimmed down to remove outliers. Prediction profiling is performed on the trimmed X to generate more precise profile data

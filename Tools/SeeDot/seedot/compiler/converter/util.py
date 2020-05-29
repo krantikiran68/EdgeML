@@ -192,12 +192,14 @@ def listRange(list):
     return min(list), max(list)
 
 
-def readXandY(useTrainingSet=False):
+def readXandY(useTrainingSet=False, numOutputs=1):
     train_ext = os.path.splitext(Config.trainingFile)[1]
     test_ext = os.path.splitext(Config.testingFile)[1]
 
     if train_ext == test_ext == ".npy":
-        return readXandYasNPY(useTrainingSet)
+        return readXandYasNPY(useTrainingSet, numOutputs)
+    elif numOutputs != 1:
+        assert False, "Multiple outputs only supported for .npy"
     elif train_ext == test_ext == ".tsv":
         return readXandYasTSV(useTrainingSet)
     elif train_ext == test_ext == ".csv":
@@ -210,8 +212,9 @@ def readXandY(useTrainingSet=False):
 
 def zeroIndexLabels(Y):
     lab = np.array(Y)
-    lab = lab.astype('uint8')
-    lab = np.array(lab) - min(lab)
+    if not lab.dtype == float:
+        lab = lab.astype('uint8')
+        lab = np.array(lab) - min(lab)
     return lab.tolist()
 
 
@@ -251,21 +254,23 @@ def readXandYasTSV(trainingDataset):
     return X, Y
 
 
-def extractXandYfromMat(mat):
+def extractXandYfromMat(mat, numOutputs):
     '''
-    The first entry is cast to int (since it is the class ID) and used as Y
+    The first numOutputs entries are used as Y
     The remaining entries are part of X
     '''
     X = []
     Y = []
     for i in range(len(mat)):
-        classID = int(mat[i][0])
+        ys = [float(x) for x in mat[i][0:numOutputs]]
 
-        temp = mat[i]
-        temp.pop(0)
+        isInt = all(element.is_integer() for element in ys)
 
-        X.append(temp)
-        Y.append([classID])
+        if isInt:
+            Y.append([int(x) for x in mat[i][0:numOutputs]])
+        else:
+            Y.append(ys)
+        X.append(mat[i][numOutputs:])
     return X, Y
 
 
@@ -290,7 +295,7 @@ def readXandYasCSV(trainingDataset):
     return X, Y
 
 
-def readXandYasNPY(trainingDataset):
+def readXandYasNPY(trainingDataset, numOutputs):
     '''
     In TSV format, the input is a file containing tab seperated values.
     In each row of the TSV file, the class ID will be the first entry followed by the feature vector of the data point
@@ -300,7 +305,7 @@ def readXandYasNPY(trainingDataset):
         mat = np.load(Config.trainingFile).tolist()
     else:
         mat = np.load(Config.testingFile).tolist()
-    X, Y = extractXandYfromMat(mat)
+    X, Y = extractXandYfromMat(mat, numOutputs)
 
     Y = zeroIndexLabels(Y)
 

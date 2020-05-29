@@ -791,8 +791,10 @@ void ExpNew16(int16_t *A, MYINT I, MYINT J, MYINT adjust, TypeB *B) {
 
 template<class TypeA>
 void Sigmoid(TypeA* A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_limit, MYINT scale_in, MYINT scale_out, TypeA* B) {
+	TypeA scale_diff = scale_out / scale_in;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+		#ifdef FLOATEXP
 			float x = float(A[i * J + j]) / scale_in;
 
 			float y = 1 / (1 + exp(-x));
@@ -800,6 +802,23 @@ void Sigmoid(TypeA* A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_lim
 			TypeA z = (TypeA)(y * scale_out);
 
 			B[i * J + j] = z;
+		#else
+			TypeA x = A[i * J + j];
+
+			x = (x / div) + add;
+
+			TypeA y;
+			if (x >= sigmoid_limit)
+				y = sigmoid_limit;
+			else if (x <= 0)
+				y = 0;
+			else
+				y = x;
+
+			y = y * scale_diff;
+
+			B[i * J + j] = y;
+		#endif
 		}
 	}
 
@@ -843,6 +862,7 @@ template<class TypeA>
 void TanH(TypeA* A, MYINT I, MYINT J, TypeA scale_in, TypeA scale_out, TypeA* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+		#ifdef FLOATEXP
 			float x = float(A[i * J + j]) / scale_in;
 
 			float y = tanh(x);
@@ -850,6 +870,22 @@ void TanH(TypeA* A, MYINT I, MYINT J, TypeA scale_in, TypeA scale_out, TypeA* B)
 			MYINT z = (TypeA)(y * scale_out);
 
 			B[i * J + j] = z;
+		#else
+			TypeA x = A[i * J + j], y;
+
+			if (x >= scale_in)
+				y = scale_in;
+			else if (x <= -scale_in)
+				y = -scale_in;
+			else
+				y = x;
+
+			TypeA scale_diff = scale_out / scale_in;
+
+			y *= scale_diff;
+
+			B[i * J + j] = y;
+		#endif
 		}
 	}
 	return;

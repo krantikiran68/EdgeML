@@ -2163,7 +2163,7 @@ class IRBuilder(ASTVisitor):
 
         # y = max(min( x/4 + 2/4 , 1), 0), 1)
 
-        denominator = 4
+        denominator = 2
         addition = 0.5
         sigmoid_limit = 1
 

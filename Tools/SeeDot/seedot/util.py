@@ -9,7 +9,7 @@ import seedot.config as config
 
 class Config:
     expBigLength = 6
-    exp = "new table"  # "table" "math" "new table"
+    exp = "table"  # "table" "math" "new table"
     codegen = "funcCall"  # "funcCall" "inline"
     debug = False
     debugCompiler = True

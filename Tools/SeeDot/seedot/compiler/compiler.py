@@ -50,6 +50,8 @@ class Compiler:
         self.intermediateScales = {}
         self.substitutions = substitutions
         self.scaleForX = scaleForX
+        self.scaleForY = 0
+        self.problemType = config.ProblemType.default
 
         self.variableToBitwidthMap = variableToBitwidthMap
         self.sparseMatrixSizes = sparseMatrixSizes
@@ -128,6 +130,8 @@ class Compiler:
         self.substitutions = compiler.substitutions # for profiling code, substitutions get updated and this variable is then read by main.py
 
         self.scaleForX = compiler.varScales['X']
+        self.scaleForY = compiler.varScales[res[1].idf] if res[1].idf in compiler.varScales else 0
+        self.problemType = config.ProblemType.classification if res[1].idf not in compiler.varScales else config.ProblemType.regression
 
         return res, state
 

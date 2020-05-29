@@ -59,6 +59,11 @@ class DatasetType:
     default = testing
     all = [training, testing]
 
+class ProblemType:
+    classification = "classification"
+    regression = "regression"
+    default = classification
+    all = [classification, regression]
 
 class Target:
     arduino = "arduino"

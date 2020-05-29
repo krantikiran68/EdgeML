@@ -21,15 +21,18 @@ import seedot.util as Util
 
 class Main:
 
-    def __init__(self, algo, version, target, trainingFile, testingFile, modelDir, sf, maximisingMetric, dataset):
+    def __init__(self, algo, version, target, trainingFile, testingFile, modelDir, sf, maximisingMetric, dataset, numOutputs):
         self.algo, self.version, self.target = algo, version, target
         self.trainingFile, self.testingFile, self.modelDir = trainingFile, testingFile, modelDir
         self.sf = sf
         self.dataset = dataset
         self.accuracy = {}
         self.maximisingMetric = maximisingMetric
+        self.numOutputs = numOutputs
         self.variableSubstitutions = {} #evaluated during profiling code run
         self.scalesForX = {} #populated for multiple code generation
+        self.scalesForY = {} #populated for multiple code generation
+        self.problemType = config.ProblemType.default
         self.variableToBitwidthMap = {} #Populated during profiling code run
         self.sparseMatrixSizes = {} #Populated during profiling code run
         self.varDemoteDetails = [] #Populated during variable demotion in VBW mode
@@ -89,10 +92,13 @@ class Main:
             self.variableSubstitutions = obj.substitutions
             self.variableToBitwidthMap = dict.fromkeys(obj.independentVars, config.wordLength)
 
+        self.problemType = obj.problemType
         if id is None:
             self.scaleForX = obj.scaleForX
+            self.scaleForY = obj.scaleForY
         else:
             self.scalesForX[id] = obj.scaleForX
+            self.scalesForY[id] = obj.scaleForY
 
         print("completed")
         return True
@@ -123,7 +129,7 @@ class Main:
             for var in demotedVarsOffsets:
                 varsForBitwidth[var] = config.wordLength // 2
             obj = Converter(self.algo, version, datasetType, target,
-                            datasetOutputDir, outputDir, varsForBitwidth, self.allScales)
+                            datasetOutputDir, outputDir, varsForBitwidth, self.allScales, self.numOutputs)
             obj.setInput(inputFile, self.modelDir,
                          self.trainingFile, self.testingFile)
             obj.run()
@@ -144,7 +150,7 @@ class Main:
         os.chdir(os.path.join(config.tempdir, "Predictor"))
 
         obj = Predictor(self.algo, version, datasetType,
-                        outputDir, self.scaleForX, self.scalesForX)
+                        outputDir, self.scaleForX, self.scalesForX, self.scaleForY, self.scalesForY, self.problemType, self.numOutputs)
         execMap = obj.run()
 
         os.chdir(curDir)
@@ -470,6 +476,8 @@ class Main:
 
         self.flAccuracy = execMap["default"][0]
         print("Accuracy is %.3f%%\n" % (execMap["default"][0]))
+        print("Disagreement is %.3f%%\n" % (execMap["default"][1]))
+        print("Reduced Disagreement is %.3f%%\n" % (execMap["default"][2]))
 
     # Generate code for Arduino
     def compileFixedForTarget(self):

@@ -50,13 +50,13 @@ MYINT vars_fixed::tmp35[1][1];
 MYINT vars_fixed::tmp36[1][1];
 MYINT vars_fixed::tmp37;
 
-int seedotFixed(MYINT **X)
+void seedotFixed(MYINT **X, int32_t* res)
 {
-	return -1;
+	res[0] = -1;
 }
 const int switches = 0;
-void seedotFixedSwitch(int i, MYINT **X_temp, int& res) {
+void seedotFixedSwitch(int i, MYINT **X_temp, int32_t* res) {
 	switch(i) {
-		default: res = -1; return;
+		default: res[0] = -1; return;
 	}
 }

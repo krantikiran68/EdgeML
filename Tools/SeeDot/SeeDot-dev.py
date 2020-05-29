@@ -27,7 +27,8 @@ class Dataset:
               "usps-binary", "usps-multiclass", "ward-binary"]
     extra = ["cifar-multiclass", "dsa", "eye-binary", "farm-beats",
              "interactive-cane", "spectakoms", "usps10", "whale-binary",
-             "HAR-2", "HAR-6", "MNIST-10", "Google-12", "Google-30", "Wakeword-2"]
+             "HAR-2", "HAR-6", "MNIST-10", "Google-12", "Google-30", "Wakeword-2",
+             "wider-regression"]
     #default = common
     default = ["spectakoms", "usps10", "HAR-2", "HAR-6", "dsa", "MNIST-10", "Google-12", "Google-30", "Wakeword-2"]
     all = common + extra
@@ -52,6 +53,8 @@ class MainDriver:
                             default=Dataset.default, metavar='', help="Dataset to use")
         parser.add_argument("-m", "--maximisingMetric", choices=config.MaximisingMetric.all, metavar='', 
                             help="What metric to maximise during exploration",default=config.MaximisingMetric.default)
+        parser.add_argument("-n", "--numOutputs", type=int, metavar='', 
+                            help="Number of simultaneous outputs of the inference procedure",default=1)
         parser.add_argument("-dt", "--datasetType", choices=config.DatasetType.all,
                             default=config.DatasetType.default, metavar='', help="Training dataset or testing dataset")
         parser.add_argument("-t", "--target", choices=config.Target.all,
@@ -228,8 +231,10 @@ class MainDriver:
             else:
                 sf = self.args.max_scale_factor
 
+            numOutputs = self.args.numOutputs
+
             obj = main.Main(algo, version, target, trainingInput,
-                            testingInput, modelDir, sf, maximisingMetric, dataset)
+                            testingInput, modelDir, sf, maximisingMetric, dataset, numOutputs)
             obj.run()
 
             acc = obj.testingAccuracy

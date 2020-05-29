@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <thread>
+#include <algorithm>
 
 #include "datatypes.h"
 #include "predictors.h"
@@ -25,6 +26,11 @@ enum DatasetType
 {
 	Training,
 	Testing
+};
+enum ProblemType
+{
+	Classification,
+	Regression
 };
 
 bool profilingEnabled = false;
@@ -58,7 +64,7 @@ vector<string> getFeatures(string line)
 	return features;
 }
 
-int getLabel(string line)
+vector<string> getLabel(string line)
 {
 	static int labelLength = -1;
 
@@ -67,10 +73,10 @@ int getLabel(string line)
 	if (labelLength == -1)
 		labelLength = (int)labels.size();
 
-	if ((int)labels.size() != labelLength || labels.size() != 1)
+	if ((int)labels.size() != labelLength)
 		throw "Number of row entries in Y is inconsistent";
 
-	return (int)atoi(labels.front().c_str());
+	return labels;
 }
 
 void populateFixedVector(MYINT **features_int, vector<string> features, int scale)
@@ -95,9 +101,9 @@ void populateFloatVector(float **features_float, vector<string> features)
 	return;
 }
 
-void launchThread(int features_size, MYINT **features_int, MYINT *** features_intV, float **features_float, int counter, int* float_res, int* res, int* resV) {
-	*res = seedotFixed(features_int);
-	*float_res = seedotFloat(features_float);
+void launchThread(int features_size, MYINT **features_int, MYINT *** features_intV, float **features_float, int counter, float* float_res, int* res, int** resV) {
+	seedotFixed(features_int, res);
+	seedotFloat(features_float, float_res);
 
 	for (int i = 0; i < switches; i++) {
 		seedotFixedSwitch(i, features_intV[i], resV[i]);
@@ -150,6 +156,20 @@ int main(int argc, char *argv[])
 	}
 	string datasetTypeStr = argv[2];
 
+	ProblemType problem;
+	if (strcmp(argv[3], "classification") == 0)
+		problem = Classification;
+	else if (strcmp(argv[3], "regression") == 0)
+		problem = Regression;
+	else
+	{
+		cout << "Argument mismatch for problem type\n";
+		return 1;
+	}
+	string problemTypeStr = argv[3];
+
+	int numOutputs = atoi(argv[4]);
+
 	// Reading the dataset
 	string inputDir = "input/";
 
@@ -177,10 +197,11 @@ int main(int argc, char *argv[])
 	// Initialize variables used for profiling
 	initializeProfiling();
 
-	vector<int*> vector_float_res;
-	vector<int*> vector_int_res;
-	vector<int> labels;
-	vector<int*> vector_int_resV;
+	vector<float*> vector_float_res;
+	vector<int32_t*> vector_int_res;
+	vector<int32_t**> vector_int_resV;
+	vector<int32_t*> labelsInt;
+	vector<float*> labelsFloat;
 	vector<thread> threads;
 
 	MYINT*** features_intV_copy;
@@ -195,7 +216,19 @@ int main(int argc, char *argv[])
 	{
 		// Read the feature vector and class ID
 		vector<string> features = getFeatures(line1);
-		int label = getLabel(line2);
+		vector<string> labelString = getLabel(line2);
+		int32_t* labelInt = new int32_t[numOutputs];
+		float* labelFloat = new float[numOutputs];
+
+		if (problem == Classification) {
+			for (int i = 0; i < numOutputs; i++) {
+				labelInt[i] = atoi(labelString[i].c_str());
+			}
+		} else if (problem == Regression) {
+			for (int i = 0; i < numOutputs; i++) {
+				labelFloat[i] = atof(labelString[i].c_str());
+			}
+		}
 
 		// Allocate memory to store the feature vector as arrays
 		if (alloc == false)
@@ -232,29 +265,37 @@ int main(int argc, char *argv[])
 			populateFloatVector(features_float, features);
 
 		// Invoke the predictor function
-		int res = -1, float_res = -1;
+		int* fixed_res = NULL;
+		float* float_res = NULL;
 		vector <int> resV(switches, -1);
 
 		if (debugMode)
 		{
-			int* res_float = new int(seedotFloat(features_float));
-			int* res_fixed = new int(seedotFixed(features_int));
+			float_res = new float[numOutputs];
+			seedotFloat(features_float, float_res);
+			fixed_res = new int32_t[numOutputs];
+			seedotFixed(features_int, fixed_res);
 			//debug();
-			res = *res_fixed;
-			vector_float_res.push_back(res_float);
-			vector_int_res.push_back(res_fixed);
-			labels.push_back(label);
+			vector_float_res.push_back(float_res);
+			vector_int_res.push_back(fixed_res);
+			if (problem == Classification)
+				labelsInt.push_back(labelInt);
+			else if (problem == Regression)
+				labelsFloat.push_back(labelFloat);
 			vector_int_resV.push_back(NULL);
 		}
 		else
 		{
 			if (version == Fixed) {
-				vector_float_res.push_back(new int(-1));
-				vector_int_res.push_back(new int(-1));
-				labels.push_back(label);
-				int* switchRes = new int[switches];
+				vector_float_res.push_back(new float[numOutputs]);
+				vector_int_res.push_back(new int32_t[numOutputs]);
+				if (problem == Classification)
+					labelsInt.push_back(labelInt);
+				else if (problem == Regression)
+					labelsFloat.push_back(labelFloat);
+				int** switchRes = new int*[switches];
 				for(int i = 0; i < switches; i++) {
-					switchRes[i] = -1;
+					switchRes[i] = new int[numOutputs];
 				}
 				vector_int_resV.push_back(switchRes);
 				MYINT** features_int_copy = new MYINT*[features_size];
@@ -278,10 +319,14 @@ int main(int argc, char *argv[])
 				threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back()));
 			}
 			else if (version == Float) {
-				res = seedotFloat(features_float);
-				vector_float_res.push_back(new int(res));
-				vector_int_res.push_back(new int(-1));
-				labels.push_back(label);
+				float_res = new float[numOutputs];
+				seedotFloat(features_float, float_res);
+				vector_float_res.push_back(float_res);
+				vector_int_res.push_back(new int[numOutputs]);
+				if (problem == Classification)
+					labelsInt.push_back(labelInt);
+				else if (problem == Regression)
+					labelsFloat.push_back(labelFloat);
 				vector_int_resV.push_back(NULL);
 			}
 		}
@@ -299,62 +344,100 @@ int main(int argc, char *argv[])
 	}
 
 
-	int disagreements = 0, reduced_disagreements = 0;
+	float disagreements = 0.0, reduced_disagreements = 0.0;
 
 	vector<int> correctV(switches, 0), totalV(switches, 0);
 	vector<int> disagreementsV(switches, 0), reduced_disagreementsV(switches, 0);
 
+	vector<float> errors(0, 0), ferrors(0, 0);
+	vector<vector<float>> errorsV(switches, vector<float>(0, 0)), ferrorsV(switches, vector<float>(0, 0));
+
 	int correct = 0, total = 0;
 	for(int i = 0; i < counter; i++) {
-		int res = *vector_int_res[i];
-		int float_res = *vector_float_res[i];
-		int *resV = vector_int_resV[i];
-		int label = labels[i];
+		int* fixed_res = vector_int_res[i];
+		float* float_res = vector_float_res[i];
+		int** resV = vector_int_resV[i];
 
-		if(version == Float)
-			res = float_res;
-
-		if (res != float_res) {
-			if (float_res == label) {
-				reduced_disagreements++;
-			}
-			disagreements++;
-		}
-
-		if (res == label)
-		{
-			correct++;
-		}
-		else
-		{
-			if(logProgramOutput)
-				output << "Incorrect prediction for input " << total + 1 << ". Predicted " << res << " Expected " << label << endl;
-		}
-		total++;
-
-		for (int i = 0; i < switches; i++) {
-
-			if (resV[i] != float_res) {
-				if (float_res == label) {
-					reduced_disagreementsV[i]++;
+		if (problem == Classification) {
+			for(int j = 0; j < numOutputs; j++) {
+				float res;
+				if (version == Float) {
+					res = float_res[j];
+				} else {
+					res = (float) fixed_res[j];
 				}
-				disagreementsV[i]++;
-			}
 
-			if (resV[i] == label)
-			{
-				correctV[i]++;
-			}
-			else
-			{
-				if(logProgramOutput)
-					output << "Incorrect prediction for input " << totalV[i] + 1 << ". Predicted " << resV[i] << " Expected " << label << endl;
-			}
-			totalV[i]++;
+				if (res != float_res[j]) {
+					if (float_res[j] == labelsInt[i][j]) {
+						reduced_disagreements ++;
+					}
+					disagreements ++;
+				}
+
+				if (res == labelsInt[i][j]) {
+					correct ++;
+				}
+				else {
+					if(logProgramOutput)
+						output << "Main: Incorrect prediction for input " << total + 1 << " element " << j << ". Predicted " << res << " Expected " << labelsInt[i][j] << endl;
+				}
+				total ++;
+
+				for (int k = 0; k < switches; k++) {
+					if(version == Float)
+						throw "Multiple codes not expected in Floating point execution";
+
+					if (resV[k][j] != float_res[j]) {
+						if (float_res[j] == labelsInt[i][j]) {
+							reduced_disagreementsV[k] ++;
+						}
+						disagreementsV[k] ++;
+					}
+
+					if (resV[k][j] == labelsInt[i][j]) {
+						correctV[k] ++;
+					}
+					else {
+						if(logProgramOutput)
+							output << "Sub "<< k <<": Incorrect prediction for input " << total + 1 << " element " << j << ". Predicted " << resV[k][j] << " Expected " << labelsInt[i][j] << endl;
+					}
+					totalV[k] ++;
+				}
+			} 
+		} else {
+			for(int j = 0; j < numOutputs; j++) {
+				float res;
+				if (version == Float) {
+					res = float_res[j];
+				} else {
+					res = ((float) fixed_res[j]) / ldexp(1.0 , -scaleForY);
+				}
+
+				float error = 100.0 * fabs(res - labelsFloat[i][j]) / (0.01 + fabs(labelsFloat[i][j]));
+				float ferror = 100.0 * fabs(res - float_res[j]) / (0.01 + fabs(float_res[j]));
+				errors.push_back(error);
+				ferrors.push_back(ferror);
+				total ++;
+
+				for (int k = 0; k < switches; k++) {
+					if(version == Float)
+						throw "Multiple codes not expected in Floating point execution";
+					float normRes = ((float) resV[k][j]) / ldexp(1.0 , -scalesForY[k]);
+					float error = 100.0 * fabs(normRes - labelsFloat[i][j]) / (0.01 + fabs(labelsFloat[i][j]));
+					float ferror = 100.0 * fabs(normRes - float_res[j]) / (0.01 + fabs(float_res[j]));
+					errorsV[k].push_back(error);
+					ferrorsV[k].push_back(ferror);
+					totalV[k] ++;
+				}
+			} 
+
 		}
 
-		delete vector_int_res[i];
-		delete vector_float_res[i];
+		delete[] vector_int_res[i];
+		delete[] vector_float_res[i];
+		for(int k = 0; k < switches; k++) {
+			delete[] vector_int_resV[i][k];
+		}
 		delete[] vector_int_resV[i];
 	}
 
@@ -391,18 +474,40 @@ int main(int argc, char *argv[])
 	stats.precision(3);
 	stats << fixed;
 	stats << "default" << "\n";
-	stats << accuracy << "\n";
-	stats << disagreements << "\n";
-	stats << reduced_disagreements << "\n";
+	if (problem == Classification) {
+		stats << accuracy << "\n";
+		stats << ((float) disagreements) / numOutputs << "\n";
+		stats << ((float) reduced_disagreements) / numOutputs << "\n";
+	} else if (problem == Regression) {
+		sort(errors.begin(), errors.end());
+		sort(ferrors.begin(), ferrors.end());
+		int index = 0.95 * errors.size() - 1;
+		index = index > 0 ? index : 0;
+		stats << errors[index] << "\n";
+		stats << ferrors[index] << "\n";
+		stats << "0.000\n";
+	}
+	
 
 	if (version == Fixed) 
 	{
 		for (int i = 0; i < switches; i++) 
 		{
 			stats << i+1 << "\n";
-			stats << (float)correctV[i] / totalV[i] * 100.0f << "\n";
-			stats << disagreementsV[i] << "\n";
-			stats << reduced_disagreementsV[i] << "\n";
+			if (problem == Classification) {
+				stats << (float)correctV[i] / totalV[i] * 100.0f << "\n";
+				stats << ((float) disagreementsV[i]) / numOutputs << "\n";
+				stats << ((float) reduced_disagreementsV[i]) / numOutputs << "\n";
+			} else if (problem == Regression) {
+				sort(errorsV[i].begin(), errorsV[i].end());
+				sort(ferrorsV[i].begin(), ferrorsV[i].end());
+				int index = 0.95 * errorsV[i].size() - 1;
+				index = index > 0 ? index : 0;
+				stats << errorsV[i][index] << "\n";
+				stats << ferrorsV[i][index] << "\n";
+				stats << "0.000\n";
+			}
+
 		}
 	}
 

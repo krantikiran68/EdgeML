@@ -118,9 +118,9 @@ class X86(CodegenBase):
             func = "Fixed"
             type = "MYINT"
         if forFloat():
-            self.out.printf('int seedot%s(%s **X) {\n' % (func, type), indent=True)
+            self.out.printf('void seedot%s(%s **X, float* res) {\n' % (func, type), indent=True)
         else: 
-            self.out.printf('int seedot%s%s(%s **X%s) {\n' % (func, self.idStr if not self.generateAllFiles else "", type, "_temp" if config.vbwEnabled else ""), indent=True)
+            self.out.printf('void seedot%s%s(%s **X%s, int32_t* res) {\n' % (func, self.idStr if not self.generateAllFiles else "", type, "_temp" if config.vbwEnabled else ""), indent=True)
         self.out.increaseIndent()
 
     def printModelParamsWithBitwidth(self):
@@ -290,31 +290,57 @@ class X86(CodegenBase):
 
         type = self.decls[expr.idf]
 
-        if Type.isInt(type):
-            self.out.printf('return ', indent=True)
+        if Type.isInt(type) or (Type.isTensor(type) and type.dim == 0):
+            self.out.printf('res[0] = ', indent = True)
             self.print(expr)
             self.out.printf(';\n')
         elif Type.isTensor(type):
             idfr = expr.idf
-            exponent = self.scales[expr.idf]
-            num = 2 ** exponent
-
-            if type.dim == 0:
-                self.out.printf('cout << ', indent=True)
-                self.out.printf('float(' + idfr + ')*' + str(num))
-                self.out.printf(' << endl;\n')
-            else:
-                iters = []
-                for i in range(type.dim):
-                    s = chr(ord('i') + i)
-                    tempVar = IR.Var(s)
-                    iters.append(tempVar)
-                expr_1 = IRUtil.addIndex(expr, iters)
-                cmds = IRUtil.loop(type.shape, iters, [
-                                   IR.PrintAsFloat(expr_1, exponent)])
-                self.print(IR.Prog(cmds))
+            iters = []
+            resIndex = ''
+            remSize = np.prod(type.shape)
+            for i in range(type.dim):
+                s = chr(ord('i') + i)
+                remSize = remSize // type.shape[i]
+                resIndex += str(s) + '*' + str(remSize) + '+'
+                tempVar = IR.Var(s)
+                iters.append(tempVar)
+            resIndex = resIndex[:-1]
+            expr_1 = IRUtil.addIndex(expr, iters)
+            cmds = IRUtil.loop(type.shape, iters, [
+                IR.Assn(IRUtil.addIndex(IR.Var('res'), [IR.Var(resIndex)]), IRUtil.addIndex(expr, iters))
+            ])
+            self.print(IR.Prog(cmds))
         else:
-            assert False
+            assert False, "Illegal type of program output"
+
+
+
+        # if Type.isInt(type):
+        #     self.out.printf('return ', indent=True)
+        #     self.print(expr)
+        #     self.out.printf(';\n')
+        # elif Type.isTensor(type):
+        #     idfr = expr.idf
+        #     exponent = self.scales[expr.idf]
+        #     num = 2 ** exponent
+
+        #     if type.dim == 0:
+        #         self.out.printf('cout << ', indent=True)
+        #         self.out.printf('float(' + idfr + ')*' + str(num))
+        #         self.out.printf(' << endl;\n')
+        #     else:
+        #         iters = []
+        #         for i in range(type.dim):
+        #             s = chr(ord('i') + i)
+        #             tempVar = IR.Var(s)
+        #             iters.append(tempVar)
+        #         expr_1 = IRUtil.addIndex(expr, iters)
+        #         cmds = IRUtil.loop(type.shape, iters, [
+        #                            IR.PrintAsFloat(expr_1, exponent)])
+        #         self.print(IR.Prog(cmds))
+        # else:
+        #     assert False
 
         self.out.decreaseIndent()
         self.out.printf('}\n', indent=True)
@@ -329,13 +355,13 @@ class X86(CodegenBase):
         if forFixed():
             if (int(self.printSwitch) if isInt(self.printSwitch) else -2) > -1:
                 self.out.printf("const int switches = %d;\n" % (int(self.printSwitch)), indent = True)
-                self.out.printf('void seedotFixedSwitch(int i, MYINT **X_temp, int& res) {\n', indent=True)
+                self.out.printf('void seedotFixedSwitch(int i, MYINT **X_temp, int32_t* res) {\n', indent=True)
                 self.out.increaseIndent()
                 self.out.printf('switch(i) {\n', indent = True)
                 self.out.increaseIndent()
                 for i in range(int(self.printSwitch)):
-                    self.out.printf('case %d: res = seedotFixed%d(X_temp); return;\n' % (i,i+1), indent = True)
-                self.out.printf('default: res = -1; return;\n', indent = True)
+                    self.out.printf('case %d: seedotFixed%d(X_temp, res); return;\n' % (i,i+1), indent = True)
+                self.out.printf('default: res[0] = -1; return;\n', indent = True)
                 self.out.decreaseIndent()
                 self.out.printf('}\n', indent=True)
                 self.out.decreaseIndent()

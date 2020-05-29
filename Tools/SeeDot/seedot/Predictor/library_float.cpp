@@ -425,7 +425,12 @@ void TanH(float *A, MYINT I, MYINT J, float scale_in, float scale_out, float *B)
 		{
 			float x = A[i * J + j], y;
 
+			#ifdef FLOATEXP
 			y = tanh(x);
+			#else
+			y = x > -1 ? x : -1;
+			y = y < 1 ? y : 1;
+			#endif
 
 			B[i * J + j] = y;
 		}
@@ -746,8 +751,13 @@ void Sigmoid(float *A, MYINT I, MYINT J, float div, float add, float sigmoid_lim
 		for (MYITE j = 0; j < J; j++)
 		{
 			float x = A[i * J + j], y;
-
+			#ifdef FLOATEXP
 			y = 1 / (1 + exp(-x));
+			#else
+			y = (x + 1) / 2;
+			y = y > 0 ? y : 0;
+			y = y < 1 ? y : 1;
+			#endif
 
 			B[i * J + j] = y;
 		}

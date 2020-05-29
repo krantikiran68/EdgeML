@@ -13,7 +13,7 @@ import seedot.util as Util
 
 class Predictor:
 
-    def __init__(self, algo, version, datasetType, outputDir, scaleForX, scalesForX):
+    def __init__(self, algo, version, datasetType, outputDir, scaleForX, scalesForX, scaleForY, scalesForY, problemType, numOutputs):
         self.algo, self.version, self.datasetType = algo, version, datasetType
 
         self.outputDir = outputDir
@@ -21,6 +21,11 @@ class Predictor:
 
         self.scaleForX = scaleForX
         self.scalesForX = scalesForX
+        self.scaleForY = scaleForY
+        self.scalesForY = scalesForY
+
+        self.problemType = problemType
+        self.numOutputs = numOutputs
 
         self.genHeaderFile()
 
@@ -47,6 +52,13 @@ class Predictor:
                 file.write("const int scalesForX[%d] = {%s};\n" % (len(self.scalesForX), ', '.join([str(self.scalesForX[i+1]) for i in range(len(self.scalesForX))])))
             else:
                 file.write("const int scalesForX[1] = {100}; //junk, needed for compilation\n")
+
+            file.write("const int scaleForY = %d;\n\n" % (self.scaleForY))
+            if len(self.scalesForY) > 0:
+                assert len(self.scalesForY) == max(list(self.scalesForY.keys())), "Malformed array scalesForY"
+                file.write("const int scalesForY[%d] = {%s};\n" % (len(self.scalesForY), ', '.join([str(self.scalesForY[i+1]) for i in range(len(self.scalesForY))])))
+            else:
+                file.write("const int scalesForY[1] = {100}; //junk, needed for compilation\n")
 
             if Util.debugMode():
                 file.write("const bool debugMode = true;\n")
@@ -121,7 +133,7 @@ class Predictor:
         print("Execution...", end='')
 
         exeFile = os.path.join("x64", "Release", "Predictor.exe")
-        args = [exeFile, self.version, self.datasetType]
+        args = [exeFile, self.version, self.datasetType, self.problemType, str(self.numOutputs)]
 
         logFile = os.path.join(self.outputDir, "exec.txt")
         with open(logFile, 'w') as file:
@@ -139,7 +151,7 @@ class Predictor:
         print("Execution...", end='')
 
         exeFile = os.path.join("./Predictor")
-        args = [exeFile, self.version, self.datasetType]
+        args = [exeFile, self.version, self.datasetType, self.problemType, str(self.numOutputs)]
 
         logFile = os.path.join(self.outputDir, "exec.txt")
         with open(logFile, 'w') as file:
@@ -173,7 +185,7 @@ class Predictor:
         
         for i in range(len(stats) // 4):
             key = stats[4*i]
-            value = (float(stats[4*i + 1]), int(stats[4*i + 2]), int(stats[4*i + 3]))
+            value = (float(stats[4*i + 1]), float(stats[4*i + 2]), float(stats[4*i + 3]))
             executionOutput[key] = value
 
         return executionOutput

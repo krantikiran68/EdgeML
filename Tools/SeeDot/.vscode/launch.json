@@ -14,15 +14,17 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "bonsai",
+                "rnnpool",
                 "-v",
                 "fixed",
                 "-d",
-                "cr-binary",
+                "wider-regression",
                 "-m",
-                "red_disagree",
-                "-t",
-                "arduino"
+                "disagree",
+                // "-t",
+                // "arduino",
+                "-n",
+                "32"
             ]
         }
     ]

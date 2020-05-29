@@ -70,3 +70,10 @@ class Target:
     x86 = "x86"
     default = x86
     all = [arduino, x86]
+
+class Source:
+    seedot = "seedot"
+    tf = "tf"
+    onnx = "onnx"
+    default = seedot
+    all = [seedot, tf, onnx]

@@ -14,6 +14,7 @@ import seedot.compiler.ast.astBuilder as ASTBuilder
 import seedot.compiler.converter.paramsBuilder as ParamsBuilder
 from seedot.compiler.converter.util import *
 
+import seedot.compiler.ONNX.process_onnx as process_onnx
 
 class Quantizer:
 
@@ -31,18 +32,21 @@ class Quantizer:
         ast = ASTBuilder.ASTBuilder().visit(tree)
         return ast
 
-    def genAST(self, inputFile):
+    def genAST(self, inputFile, source):
         ext = os.path.splitext(inputFile)[1]
 
-        if ext == ".sd":
+        if source == config.Source.seedot:
             return self.genASTFromFile(inputFile)
-        elif ext == ".pkl":
-            with open(inputFile, 'rb') as file:
-                ast = pickle.load(file)
+        elif source == config.Source.onnx:
+            ast = process_onnx.get_seedot_ast(inputFile)
             return ast
+        else:    
+            ast = TFMain.main()
+            # with open(inputFile, 'rb') as file:
+            #	ast = pic    
 
-    def buildParams(self):
-        ast = self.genAST(getInputFile())
+    def buildParams(self, source):
+        ast = self.genAST(getInputFile(), source)
 
         # Generate params
         paramsBuilder = ParamsBuilder.ParamsBuilder()
@@ -194,8 +198,8 @@ class Quantizer:
 
                 self.trainDatasetRange = matRange(self.X_train)
 
-    def run(self):
-        self.buildParams()
+    def run(self, source):
+        self.buildParams(source)
 
         self.headerFile = os.path.join(
             getOutputDir(), "model_%s.h" % (getVersion()))

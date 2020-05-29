@@ -21,13 +21,14 @@ import seedot.util as Util
 
 class Main:
 
-    def __init__(self, algo, version, target, trainingFile, testingFile, modelDir, sf, maximisingMetric, dataset):
+    def __init__(self, algo, version, target, trainingFile, testingFile, modelDir, sf, maximisingMetric, dataset, source):
         self.algo, self.version, self.target = algo, version, target
         self.trainingFile, self.testingFile, self.modelDir = trainingFile, testingFile, modelDir
         self.sf = sf
         self.dataset = dataset
         self.accuracy = {}
         self.maximisingMetric = maximisingMetric
+        self.source = source
         self.variableSubstitutions = {} #evaluated during profiling code run
         self.scalesForX = {} #populated for multiple code generation
         self.variableToBitwidthMap = {} #Populated during profiling code run
@@ -48,6 +49,14 @@ class Main:
             destFile = os.path.join(config.outdir, fileName)
             shutil.copyfile(srcFile, destFile)
 
+    def get_input_file(self):
+        if self.source == config.Source.seedot:
+            return os.path.join(self.modelDir, "input.sd")
+        elif self.source == config.Source.onnx:
+            return os.path.join(self.modelDir, "input.onnx")
+        else:    
+            return os.path.join(self.modelDir, "input.pb")          
+
     # Generate the fixed-point code using the input generated from the
     # Converter project
     def compile(self, version, target, sf, generateAllFiles=True, id=None, printSwitch=-1, scaleForX=None, variableToBitwidthMap=None, demotedVarsList=[], demotedVarsOffsets={}):
@@ -57,7 +66,7 @@ class Main:
             variableToBitwidthMap = dict(self.variableToBitwidthMap)
 
         # Set input and output files
-        inputFile = os.path.join(self.modelDir, "input.sd")
+        inputFile = self.get_input_file()
         profileLogFile = os.path.join(
             config.tempdir, "Predictor", "output", "float", "profile.txt")
 
@@ -79,7 +88,7 @@ class Main:
             outputDir = os.path.join(config.tempdir, "Predictor")
 
         obj = Compiler(self.algo, version, target, inputFile, outputDir,
-                        profileLogFile, sf, outputLogFile, 
+                        profileLogFile, sf, self.source, outputLogFile, 
                         generateAllFiles, id, printSwitch, self.variableSubstitutions, 
                         scaleForX,
                         variableToBitwidthMap, self.sparseMatrixSizes, demotedVarsList, demotedVarsOffsets)
@@ -116,13 +125,13 @@ class Main:
         os.makedirs(datasetOutputDir, exist_ok=True)
         os.makedirs(outputDir, exist_ok=True)
 
-        inputFile = os.path.join(self.modelDir, "input.sd")
+        inputFile = self.get_input_file()
 
         try:
             varsForBitwidth = dict(varsForBitwidth)
             for var in demotedVarsOffsets:
                 varsForBitwidth[var] = config.wordLength // 2
-            obj = Converter(self.algo, version, datasetType, target,
+            obj = Converter(self.algo, version, datasetType, target, self.source,
                             datasetOutputDir, outputDir, varsForBitwidth, self.allScales)
             obj.setInput(inputFile, self.modelDir,
                          self.trainingFile, self.testingFile)

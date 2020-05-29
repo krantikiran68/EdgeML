@@ -56,7 +56,8 @@ class MainDriver:
                             default=config.DatasetType.default, metavar='', help="Training dataset or testing dataset")
         parser.add_argument("-t", "--target", choices=config.Target.all,
                             default=config.Target.default, metavar='', help="X86 code or Arduino sketch")
-
+        parser.add_argument("-s", "--source", metavar='', choices=config.Source.all, 
+                            default=config.Source.default, help="model source type seedot/onnx/tf")                    
         parser.add_argument("-sf", "--max-scale-factor", type=int,
                             metavar='', help="Max scaling factor for code generation")
         parser.add_argument("--load-sf", action="store_true",
@@ -229,7 +230,7 @@ class MainDriver:
                 sf = self.args.max_scale_factor
 
             obj = main.Main(algo, version, target, trainingInput,
-                            testingInput, modelDir, sf, maximisingMetric, dataset)
+                            testingInput, modelDir, sf, maximisingMetric, dataset, self.args.source)
             obj.run()
 
             acc = obj.testingAccuracy

@@ -6,6 +6,9 @@ import argparse
 import os
 import pickle
 
+
+import seedot
+
 import seedot.compiler.antlr.seedotLexer as seedotLexer
 import seedot.compiler.antlr.seedotParser as seedotParser
 
@@ -20,6 +23,7 @@ import seedot.compiler.ir.irBuilder as irBuilder
 import seedot.compiler.ir.irUtil as irUtil
 
 import seedot.compiler.TF.ProcessTFGraph as TFMain
+import seedot.compiler.ONNX.process_onnx as process_onnx
 
 import seedot.compiler.type as type
 import seedot.util as util
@@ -29,7 +33,7 @@ import seedot.config as config
 
 class Compiler:
 
-    def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile, generateAllFiles=True, id=None, printSwitch=-1, substitutions={}, scaleForX=None, variableToBitwidthMap={}, sparseMatrixSizes={}, demotedVarsList=[], demotedVarsOffsets={}):
+    def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, source, outputLogFile, generateAllFiles=True, id=None, printSwitch=-1, substitutions={}, scaleForX=None, variableToBitwidthMap={}, sparseMatrixSizes={}, demotedVarsList=[], demotedVarsOffsets={}):
         if os.path.isfile(inputFile) == False:
             print(inputFile)
             raise Exception("Input file doesn't exist")
@@ -42,7 +46,7 @@ class Compiler:
         util.setProfileLogFile(profileLogFile)
         self.outputLogFile = outputLogFile
         util.setMaxScale(maxScale)
-
+        self.source = source
         self.generateAllFiles = generateAllFiles
         self.id = str(id) if id is not None else ""
         self.printSwitch = printSwitch
@@ -71,9 +75,12 @@ class Compiler:
     def genAST(self, inputFile):
         ext = os.path.splitext(inputFile)[1]
 
-        if ext == ".sd":
+        if self.source == config.Source.seedot:
             return self.genASTFromFile(inputFile)
-        elif ext == ".pkl":
+        elif self.source == config.Source.onnx:
+            ast = process_onnx.get_seedot_ast(inputFile)
+            return ast
+        else:    
             ast = TFMain.main()
             # with open(inputFile, 'rb') as file:
             #	ast = pickle.load(file)

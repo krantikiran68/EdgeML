@@ -15,6 +15,7 @@ import seedot.compiler.converter.paramsBuilder as ParamsBuilder
 from seedot.compiler.converter.util import *
 
 import seedot.compiler.ONNX.process_onnx as process_onnx
+import seedot.compiler.ONNX.paramsBuilderOnnx as paramsBuilderOnnx
 
 class Quantizer:
 
@@ -122,7 +123,7 @@ class Quantizer:
             writeListAsArray(self.X[0], 'X', self.headerFile, None, self.varsForBitwidth['X'])
             writeListAsArray(Xint, 'Xint', self.headerFile, None, self.varsForBitwidth['X'])
             writeVars({'scaleOfX': scaleOfX}, self.headerFile)
-            writeVars({'Y': self.Y[0][0]}, self.headerFile)
+            writeVars({'Y': self.Y[0][0]}, self.headerFile) 
 
         for param in self.params:
             if param.sparse:
@@ -198,9 +199,18 @@ class Quantizer:
 
                 self.trainDatasetRange = matRange(self.X_train)
 
-    def run(self, source):
-        self.buildParams(source)
+    def generateParamFilesForOnnx(self):
+        self.params = paramsBuilderOnnx.getParams(getInputFile())
+        self.writeHeader()
+        for param in self.params:
+            print(param.name)
+            print(param.shape)
+            print(param.range)
+            print('\n')
+            writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape))
+        self.writeFooter()              
 
+    def run(self, source):
         self.headerFile = os.path.join(
             getOutputDir(), "model_%s.h" % (getVersion()))
         self.infoFile = os.path.join(getOutputDir(), "info.txt")
@@ -211,11 +221,14 @@ class Quantizer:
         if dumpDataset():
             self.processDataset()
 
-        self.processModel()
+        if source == config.Source.seedot:    
+            self.buildParams(source)
+            self.processModel()
+        elif source == config.Source.onnx:
+            self.generateParamFilesForOnnx()    
 
         # self.printDataRange()
-
-
+        
 class QuantizerFixed(Quantizer):
 
     def __init__(self, varsForBitwidth, allScales, numOutputs):

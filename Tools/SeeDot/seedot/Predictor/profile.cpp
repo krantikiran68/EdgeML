@@ -154,7 +154,23 @@ void checkRange2(float* A, int I, int J) {
 void Profile4(float* A, int I, int J, int K, int L, string name) {
 	if(!profilingEnabled)
 		return;
-	return;
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+			for (int k = 0; k < K; k++) {
+				for(int l = 0; l < L; l++) {
+					min_temp[name] = min_temp[name] < A[i * J * K * L + j * K * L + k * L + l] ? min_temp[name] : A[i * J * K * L + j * K * L + k * L + l];
+					max_temp[name] = max_temp[name] > A[i * J * K * L + j * K * L + k * L + l] ? max_temp[name] : A[i * J * K * L + j * K * L + k * L + l];
+					all_values[name].push_back(A[i * J * K * L + j * K * L + k * L + l]);
+				}
+			}
+
+		}
+	}
 }
 
 void Profile2(float* A, int I, int J, string name) {

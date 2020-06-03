@@ -39,9 +39,9 @@ void ScalarMul(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT
 
 void Conv(MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
 
-void AddOrSubCir4D(MYINT *A, const MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
+void AddOrSubCir4D(MYINT *A, const MYINT *B, MYINT *X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
 
-void AddOrSubCir2D(MYINT *A, const MYINT *B, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
+void AddOrSubCir2D(MYINT *A, const MYINT *B, MYINT *X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
 
 void Relu4D(MYINT *A, MYINT N, MYINT H, MYINT W, MYINT C);
 
@@ -55,6 +55,9 @@ void Sigmoid(MYINT *A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_lim
 
 void AdjustScaleShr(MYINT *A, MYINT I, MYINT J, MYINT scale);
 void AdjustScaleShl(MYINT *A, MYINT I, MYINT J, MYINT scale);
+
+void AdjustScaleShr(MYINT *A, MYINT I, MYINT J, MYINT K, MYINT L, MYINT scale);
+void AdjustScaleShl(MYINT *A, MYINT I, MYINT J, MYINT K, MYINT L, MYINT scale);
 
 void Reverse2(MYINT *A, MYINT axis, MYINT I, MYINT J, MYINT *B);
 
@@ -633,8 +636,8 @@ void Conv(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYINT H, M
 	return;
 }
 
-template<class TypeA, class TypeB, class TypeTemp>
-void AddOrSubCir4D(TypeA* A, const TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
+template<class TypeA, class TypeB, class TypeTemp, class TypeC>
+void AddOrSubCir4D(TypeA* A, const TypeB* B, TypeC* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add, MYINT demote) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -651,15 +654,15 @@ void AddOrSubCir4D(TypeA* A, const TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C,
 					else
 						res = a / shrC - b / shrC;
 
-					A[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeA>(res);
+					X[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeC>(res / demote);
 				}
 			}
 		}
 	}
 	return;
 }
-template<class TypeA, class TypeB, class TypeTemp>
-void AddOrSubCir2D(TypeA* A, const TypeB* B, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
+template<class TypeA, class TypeB, class TypeTemp, class TypeC>
+void AddOrSubCir2D(TypeA* A, const TypeB* B, TypeC* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add, MYINT demote) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			TypeTemp a = (TypeTemp)A[h * W + w];
@@ -674,7 +677,7 @@ void AddOrSubCir2D(TypeA* A, const TypeB* B, MYINT H, MYINT W, MYINT shrA, MYINT
 			else
 				res = a / shrC - b / shrC;
 
-			A[h * W + w] = Saturate<TypeA>(res);
+			X[h * W + w] = Saturate<TypeC>(res / demote);
 		}
 	}
 
@@ -938,11 +941,39 @@ void AdjustScaleShr(TypeA* A, MYINT I, MYINT J, MYINT scale) {
 	return;
 }
 template<class TypeA>
+void AdjustScaleShr(TypeA* A, MYINT I, MYINT J, MYINT K, MYINT L, MYINT scale) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			for(MYITE k = 0; k < K; k++) {
+				for(MYITE l = 0; l < L; l++) {
+					TypeA a = A[i * J * K * L + j * K * L + k * L + l];
+					A[i * J * K * L + j * K * L + k * L + l] = a / scale;
+				}
+			}
+		}
+	}
+	return;
+}
+template<class TypeA>
 void AdjustScaleShl(TypeA* A, MYINT I, MYINT J, MYINT scale) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeA a = A[i * J + j];
 			A[i * J + j] = a * scale;
+		}
+	}
+	return;
+}
+template<class TypeA>
+void AdjustScaleShl(TypeA* A, MYINT I, MYINT J, MYINT K, MYINT L, MYINT scale) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			for(MYITE k = 0; k < K; k++) {
+				for(MYITE l = 0; l < L; l++) {
+					TypeA a = A[i * J * K * L + j * K * L + k * L + l];
+					A[i * J * K * L + j * K * L + k * L + l] = a * scale;
+				}
+			}
 		}
 	}
 	return;
@@ -958,7 +989,21 @@ void AdjustScaleShlSaturate(TypeA* A, MYINT I, MYINT J, MYINT scale, MYINT satur
 	}
 	return;
 }
-
+template<class TypeA>
+void AdjustScaleShlSaturate(TypeA* A, MYINT I, MYINT J, MYINT K, MYINT L, MYINT scale, MYINT saturate) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			for(MYITE k = 0; k < K; k++) {
+				for(MYITE l = 0; l < L; l++) {
+					TypeA a = A[i * J * K * L + j * K * L + k * L + l];
+					a = (a < saturate && a > -saturate) ? a : (a > 0 ? saturate : -saturate);
+					A[i * J * K * L + j * K * L + k * L + l] = a * scale;
+				}
+			}
+		}
+	}
+	return;
+}
 
 // B = reverse(A, axis)
 template<class TypeA>

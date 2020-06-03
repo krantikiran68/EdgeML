@@ -126,6 +126,7 @@ void launchThread(int features_size, MYINT **features_int, MYINT *** features_in
 
 int main(int argc, char *argv[])
 {
+	float epsilon = 0.00001;
 	if (argc == 1)
 	{
 		cout << "No arguments supplied" << endl;
@@ -413,8 +414,8 @@ int main(int argc, char *argv[])
 					res = ((float) fixed_res[j]) / ldexp(1.0 , -scaleForY);
 				}
 
-				float error = 100.0 * fabs(res - labelsFloat[i][j]) / (0.01 + fabs(labelsFloat[i][j]));
-				float ferror = 100.0 * fabs(res - float_res[j]) / (0.01 + fabs(float_res[j]));
+				float error = 100.0 * fabs(res - labelsFloat[i][j]) / (epsilon + fabs(labelsFloat[i][j]));
+				float ferror = 100.0 * fabs(res - float_res[j]) / (epsilon + fabs(float_res[j]));
 				errors.push_back(error);
 				ferrors.push_back(ferror);
 				total ++;
@@ -423,8 +424,8 @@ int main(int argc, char *argv[])
 					if(version == Float)
 						throw "Multiple codes not expected in Floating point execution";
 					float normRes = ((float) resV[k][j]) / ldexp(1.0 , -scalesForY[k]);
-					float error = 100.0 * fabs(normRes - labelsFloat[i][j]) / (0.01 + fabs(labelsFloat[i][j]));
-					float ferror = 100.0 * fabs(normRes - float_res[j]) / (0.01 + fabs(float_res[j]));
+					float error = 100.0 * fabs(normRes - labelsFloat[i][j]) / (epsilon + fabs(labelsFloat[i][j]));
+					float ferror = 100.0 * fabs(normRes - float_res[j]) / (epsilon + fabs(float_res[j]));
 					errorsV[k].push_back(error);
 					ferrorsV[k].push_back(ferror);
 					totalV[k] ++;

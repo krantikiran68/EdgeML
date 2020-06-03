@@ -586,7 +586,7 @@ void Conv(float *A, const float *B, float *C, float *tmp, MYINT N, MYINT H, MYIN
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir4D(float *A, const float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add)
+void AddOrSubCir4D(float *A, const float *B, float *X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add)
 {
 
 	for (MYITE n = 0; n < N; n++)
@@ -607,7 +607,7 @@ void AddOrSubCir4D(float *A, const float *B, MYINT N, MYINT H, MYINT W, MYINT C,
 					else
 						res = a - b;
 
-					A[n * H * W * C + h * W * C + w * C + c] = res;
+					X[n * H * W * C + h * W * C + w * C + c] = res;
 				}
 			}
 		}
@@ -618,7 +618,7 @@ void AddOrSubCir4D(float *A, const float *B, MYINT N, MYINT H, MYINT W, MYINT C,
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir2D(float *A, const float *B, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add)
+void AddOrSubCir2D(float *A, const float *B, float *X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add)
 {
 
 	for (MYITE h = 0; h < H; h++)
@@ -635,7 +635,7 @@ void AddOrSubCir2D(float *A, const float *B, MYINT H, MYINT W, MYINT shrA, MYINT
 			else
 				res = a - b;
 
-			A[h * W + w] = res;
+			X[h * W + w] = res;
 		}
 	}
 

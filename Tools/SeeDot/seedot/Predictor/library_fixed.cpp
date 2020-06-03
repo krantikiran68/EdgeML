@@ -729,7 +729,7 @@ void Conv(MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT N, MYINT H, MYIN
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir4D(MYINT *A, const MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add)
+void AddOrSubCir4D(MYINT *A, const MYINT *B, MYINT *X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add)
 {
 
 	for (MYITE n = 0; n < N; n++)
@@ -752,7 +752,7 @@ void AddOrSubCir4D(MYINT *A, const MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C,
 					else
 						res = Saturate<MYINT>(a / shrC - b / shrC);
 
-					A[n * H * W * C + h * W * C + w * C + c] = res;
+					X[n * H * W * C + h * W * C + w * C + c] = res;
 				}
 			}
 		}
@@ -763,7 +763,7 @@ void AddOrSubCir4D(MYINT *A, const MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C,
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir2D(MYINT *A, const MYINT *B, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add)
+void AddOrSubCir2D(MYINT *A, const MYINT *B, MYINT *X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add)
 {
 
 	for (MYITE h = 0; h < H; h++)
@@ -782,7 +782,7 @@ void AddOrSubCir2D(MYINT *A, const MYINT *B, MYINT H, MYINT W, MYINT shrA, MYINT
 			else
 				res = Saturate<MYINT>(a / shrC - b / shrC);
 
-			A[h * W + w] = res;
+			X[h * W + w] = res;
 		}
 	}
 
@@ -928,9 +928,28 @@ void Sigmoid(MYINT *A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_lim
 }
 
 // A = AdjustScaleShr(A)
+void AdjustScaleShr(MYINT *A, MYINT I, MYINT J, MYINT K, MYINT L, MYINT scale)
+{
+	for (MYITE i = 0; i < I; i++)
+	{
+		for (MYITE j = 0; j < J; j++)
+		{
+			for(MYITE k = 0; k < K; k++) 
+			{
+				for(MYITE l = 0; l < L; l++) 
+				{
+					MYINT a = A[i * J * K * L + j * K * L + k * L + l];
+					A[i * J * K * L + j * K * L + k * L + l] = a / scale;
+				}
+			}
+		}
+	}
+	return;
+}
+
+// A = AdjustScaleShr(A)
 void AdjustScaleShr(MYINT *A, MYINT I, MYINT J, MYINT scale)
 {
-
 	for (MYITE i = 0; i < I; i++)
 	{
 		for (MYITE j = 0; j < J; j++)
@@ -939,7 +958,6 @@ void AdjustScaleShr(MYINT *A, MYINT I, MYINT J, MYINT scale)
 			A[i * J + j] = a / scale;
 		}
 	}
-
 	return;
 }
 
@@ -953,6 +971,27 @@ void AdjustScaleShl(MYINT *A, MYINT I, MYINT J, MYINT scale)
 		{
 			MYINT a = A[i * J + j];
 			A[i * J + j] = a * scale;
+		}
+	}
+
+	return;
+}
+
+// A = AdjustScaleShl(A)
+void AdjustScaleShl(MYINT *A, MYINT I, MYINT J, MYINT K, MYINT L, MYINT scale)
+{
+	for (MYITE i = 0; i < I; i++)
+	{
+		for (MYITE j = 0; j < J; j++)
+		{
+			for(MYITE k = 0; k < K; k++) 
+			{
+				for(MYITE l = 0; l < L; l++) 
+				{
+					MYINT a = A[i * J * K * L + j * K * L + k * L + l];
+					A[i * J * K * L + j * K * L + k * L + l] = a * scale;
+				}
+			}
 		}
 	}
 

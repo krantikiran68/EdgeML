@@ -25,53 +25,46 @@ SOFTWARE.
 
 import numpy.random
 import numpy as np
-import common
 import os, sys
 import onnx
 from onnx import helper
 import math
 from onnx import numpy_helper
 
-def main():
-	if (len(sys.argv) < 3):
-		print("Model file or scaling factor unspecified.", file=sys.stderr)
-		exit(1)
-	
-	file_name = sys.argv[1]
-	scaling_factor = int(sys.argv[2])
-	file_path = 'models/' + file_name
-	model_name = file_name[:-5] # name without the '.onnx' extension
+import seedot.compiler.ONNX.common as common
+
+#refactor this later. Also part of paramBuilder file.
+class Param:
+
+    def __init__(self, name, shape, range):
+        self.name = name
+        self.shape = shape
+        self.range = range
+
+        self.sparse = False
+
+# shift to common
+def get_range(np_array):
+	return (np.min(np_array), np.max(np_array))      
+
+def getParams(file_path):	
+
 	model = onnx.load(file_path)
 	graph_def = model.graph
 	
-	# Generating input
-	input_dims = common.proto_val_to_dimension_tuple(model.graph.input[0])
-	if(input_dims[0] == 0):
-		input_dims = list(input_dims) 
-		input_dims[0] = 1  # when batch size is not defined
-		input_dims = tuple(input_dims)
-	input_array = numpy.random.random(input_dims)
-	# input_array = numpy.ones(input_dims, dtype=float)	
-	print('Generated random input of dimension ' + str(input_dims))
-	np.save('debug/' + model_name + '/' + model_name + '_input', input_array)
-
-	(chunk, cnt) = common.numpy_float_array_to_fixed_point_val_str(input_array, scaling_factor)
-
 	model_name_to_val_dict = { init_vals.name: numpy_helper.to_array(init_vals).tolist() for init_vals in model.graph.initializer}
 
-	preprocess_batch_normalization(graph_def, model_name_to_val_dict)
+	paramList = []
 
 	for init_vals in model.graph.initializer:
-		(chunk_1, cnt_1) = common.numpy_float_array_to_fixed_point_val_str(
-			np.asarray(model_name_to_val_dict[init_vals.name], dtype=np.float32), scaling_factor)
-		chunk += chunk_1
-		cnt += cnt_1
+		name = 	init_vals.name	
+		shape = numpy_helper.to_array(init_vals).shape
+		range = get_range(numpy_helper.to_array(init_vals))
+		param = Param(name, shape, range)
+		param.data = numpy_helper.to_array(init_vals).reshape((1,-1)).tolist()
+		paramList.append(param) 
 
-	f = open('debug/' + model_name + '/' + model_name + '_input.h', 'w') 
-	f.write(chunk)
-	f.close()
-
-	print('Total ' + str(cnt) + ' integers were written in ' + model_name + '_input.h')
+	return paramList	
 
 def preprocess_batch_normalization(graph_def, model_name_to_val_dict):
 	# set names to graph nodes if not present

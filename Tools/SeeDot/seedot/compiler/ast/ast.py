@@ -134,6 +134,18 @@ class Bop2(ASTNode):
         self.expr2 = expr2
 
 
+class Convolution(ASTNode):
+
+    def __init__(self, expr1, expr2, stride, padding, dilation, groups):
+        super().__init__()
+        self.expr1 = expr1
+        self.expr2 = expr2
+        self.stride = stride
+        self.padding = padding
+        self.dilation = dilation
+        self.groups = groups
+
+
 class Func(ASTNode):
 
     def __init__(self, op, expr):

@@ -78,6 +78,10 @@ class ParamsBuilder(ASTVisitor):
         self.visit(node.expr1)
         self.visit(node.expr2)
 
+    def visitConvolution(self, node: AST.Convolution):
+        self.visit(node.expr1)
+        self.visit(node.expr2)
+
     def visitFunc(self, node: AST.Func):
         self.visit(node.expr)
 

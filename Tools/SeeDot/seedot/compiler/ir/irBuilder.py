@@ -1168,6 +1168,119 @@ class IRBuilder(ASTVisitor):
 
         return (prog_out, expr_out)
 
+    # out = conv(A, B, <params>)
+    def visitConvolution(self, node: AST.Convolution):
+        
+        (prog_in_A, expr_in_A) = self.visit(node.expr1)
+        (prog_in_B, expr_in_B) = self.visit(node.expr2)
+
+        [expr_treeSum, expr_out] = self.getTempVars(2)
+
+        [N, H, W, Cin] = node.expr1.type.shape
+        [G, Hf, Wf, CinF, CoutF] = node.expr2.type.shape
+
+        type_treeSum = Type.Tensor([Hf * Wf * CinF])
+        type_out = node.type
+
+        bitwidth_in_A, scale_in_A = self.getBitwidthAndScale(expr_in_A.idf)
+        bitwidth_in_B, scale_in_B = self.getBitwidthAndScale(expr_in_B.idf)
+        if self.ddsEnabled:
+            bitwidth_out, scale_out = self.getBitwidthAndScale(expr_out.idf)
+            bitwidth_temp, scale_temp = self.getBitwidthAndScale(expr_out.idf, native=True)
+        else:
+            bitwidth_out = config.wordLength // 2 if expr_out.idf in self.demotedVarsList else config.wordLength
+            scale_out, scale_temp = None, None
+            bitwidth_temp = bitwidth_out
+
+        intv_in_A, intv_in_B = (0, 0), (0, 0)
+        intv_out = (0, 0) 
+
+        shr_A, shr_B, H1, H2, demote, scale_out = self.getShrTreeSumAndDemoteParamsForMul(bitwidth_in_A, scale_in_A, bitwidth_in_B, scale_in_B, bitwidth_temp, scale_temp, bitwidth_out, scale_out, Hf * Wf * CinF)            
+
+        shr_A = self.formatShr(shr_A)
+        shr_B = self.formatShr(shr_B)
+
+        expr_in_A.inputVar = False
+        expr_in_B.inputVar = False
+        expr_out.inputVar = False
+        expr_treeSum.inputVar = False
+
+        if forFixed():
+            self.varsForBitwidth[expr_treeSum.idf] = bitwidth_temp
+
+        comment = IR.Comment('conv(%s, %s)' %(expr_in_A.idf,expr_in_B.idf))
+        bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
+        if self.vbwEnabled:
+            self.varsForBitwidth[expr_treeSum.idf] = bitwidth_mul
+
+        argMap = {
+            expr_in_A: "A",
+            expr_in_B: "B",
+            expr_out: "C",
+            expr_treeSum: "tmp",
+            IR.Int(N): "N",
+            IR.Int(H): "H",
+            IR.Int(W): "W",
+            IR.Int(Cin): "CIN",
+            IR.Int(Hf): "HF",
+            IR.Int(Wf): "WF",
+            IR.Int(CinF): "CINF",
+            IR.Int(CoutF): "COUTF",
+            IR.Int(type_out.shape[1]): "HOUT",
+            IR.Int(type_out.shape[2]): "WOUT",
+            IR.Int(node.padding[1]): "HPAD",
+            IR.Int(node.padding[2]): "WPAD",
+            IR.Int(node.stride[1]): "HSTR",
+            IR.Int(node.stride[2]): "WSTR",
+            IR.Int(node.dilation[1]): "HDL",
+            IR.Int(node.dilation[2]): "WDL",
+            IR.Int(G): "G",
+            shr_A: "shrA",
+            shr_B: "shrB",
+            IR.Int(H1): "H1",
+            IR.Int(H2): "H2"
+        }
+        if self.vbwEnabled:
+            argMap[IR.Int(demote)] = "demote"
+
+        if not self.vbwEnabled:
+            funcCall = IR.FuncCall("Convolution", argMap, {expr_treeSum.idf: type_treeSum})
+        else:
+            funcCall = IR.FuncCall("Convolution" + ("<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out)), argMap, {expr_treeSum.idf: type_treeSum})
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in_A, expr_in_B, expr_out, expr_treeSum])
+
+        profile = IR.FuncCall("Profile4", {
+            expr_out: "Var",
+            IR.Int(N): "I",
+            IR.Int(H): "J",
+            IR.Int(W): "K",
+            IR.Int(Cin): "L",
+            IR.String(expr_out): "VarName"
+        })
+        if forFloat():
+            self.independentVars.append(expr_out.idf)
+
+        prog_conv = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+
+        prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_conv)
+
+        # Update context for output variable
+        self.varDeclarations[expr_out.idf] = type_out
+        self.varScales[expr_out.idf] = scale_out
+        self.varIntervals[expr_out.idf] = intv_out
+
+        self.log.print(comment.msg)
+        self.log.print("\tInput1: scale = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_in_A.idf],) + self.varIntervals[expr_in_A.idf]))
+        self.log.print("\tInput2: scale = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_in_B.idf],) + self.varIntervals[expr_in_B.idf]))
+        self.log.print("\tOutput: scale = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_out.idf],) + self.varIntervals[expr_out.idf]))
+
+        return (prog_out, expr_out)
+
     # out = in_A # in_B
     def visitBopConv(self, node: AST.Bop1):
 

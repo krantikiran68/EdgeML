@@ -646,7 +646,7 @@ void ScalarMul(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT
 
 	return;
 }
-//TODO: introduce the saturatioon here
+
 // C = A # B
 // A[N][H][W][CI], B[HF][WF][CI][CO], C[N][H][W][CO]
 void Conv(MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2)
@@ -671,12 +671,17 @@ void Conv(MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT N, MYINT H, MYIN
 							for (MYITE ci = 0; ci < CI; ci++)
 							{
 								MYINT a = (((((h + hf) < padH) || ((h + hf) >= (H + padH))) || (((w + wf) < padW) || ((w + wf) >= (W + padW)))) ? 0 : A[n * H * W * CI + ((h + hf) - padH) * W * CI + ((w + wf) - padW) * CI + ci]);
-								a = a / shrA;
-
 								MYINT b = B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co];
+
+							#ifdef FASTAPPROX
+								a = a / shrA;
 								b = b / shrB;
 
 								tmp[counter] = a * b;
+							#else
+								int64_t temp = (((int64_t) a) * ((int64_t)b)) / (((int64_t)shrA) * ((int64_t)shrB));
+								tmp[counter] = Saturate<MYINT>(temp);
+							#endif
 								counter++;
 							}
 						}
@@ -726,6 +731,82 @@ void Conv(MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT N, MYINT H, MYIN
 
 	return;
 }
+
+// C = conv(A, B, <params>)
+// A[N][H][W][CIN], B[G][HF][WF][CINF][COUTF], C[N][HOUT][WOUT][COUTF*G]
+void Convolution(MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPAD, MYINT WPAD, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	MYITE HOffset = HDL*(HF/2) - HPAD;
+	MYITE WOffset = WDL*(WF/2) - WPAD;
+
+	for(MYITE n = 0; n < N; n++) {
+		for(MYITE h = HOffset, hout = 0; h < H - HOffset; h += HSTR, hout++) {
+			for(MYITE w = WOffset, wout = 0; w < W - WOffset; w += WSTR, wout++) {
+				for(MYITE g = 0; g < G; g++) {
+					for(MYITE co = 0; co < COUTF; co ++) {
+
+						MYITE counter = 0;
+						for(MYITE hf = -(HF/2); hf <= HF/2; hf++) {
+							for(MYITE wf = -(WF/2); wf <= WF/2; wf++) {
+								for(MYITE ci = 0; ci < CINF; ci++) {
+
+									MYINT a = (((h + HDL * hf) < 0) || ((h + HDL * hf) >= H) || ((w + WDL * wf) < 0) || ((w + WDL * wf) >= W)) ? 0 : A[n * H * W * CIN + (h + HDL * hf) * W * CIN + (w + WDL * wf) * CIN + (ci + g * CINF)];
+									MYINT b = B[g * HF * WF * CINF * COUTF + (hf + HF/2) * WF * CINF * COUTF + (wf + WF/2) * CINF * COUTF + ci * COUTF + co];
+
+								#ifdef FASTAPPROX
+									a = a / shrA;
+									b = b / shrB;
+
+									tmp[counter] = a * b;
+								#else
+									int64_t temp = (((int64_t) a) * ((int64_t)b)) / (((int64_t)shrA) * ((int64_t)shrB));
+									tmp[counter] = Saturate<MYINT>(temp);
+								#endif
+
+									counter++;
+								}
+							}
+						}
+
+						MYITE totalEle = HF * WF * CINF;
+						MYITE count = HF * WF * CINF, depth = 0;
+						bool shr = true;
+
+						while (depth < (H1 + H2)) {
+							if (depth >= H1)
+								shr = false;
+
+							for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
+								MYINT sum;
+								if (p < (count >> 1)) {
+									if (shr)
+										sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
+									else
+										sum = tmp[2 * p] + tmp[(2 * p) + 1];
+								}
+								else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+									if (shr)
+										sum = tmp[2 * p] / 2;
+									else
+										sum = tmp[2 * p];
+								}
+								else
+									sum = 0;
+
+								tmp[p] = sum;
+							}
+							count = (count + 1) >> 1;
+
+							depth++;
+						}
+
+						C[n * HOUT * WOUT * (COUTF * G) + hout * WOUT * (COUTF * G) + wout * (COUTF * G) + (co + g * COUTF)] = tmp[0];
+					}
+				}
+			}
+		}
+	}
+}
+
 
 // A = A <+> B
 // A[N][H][W][C], B[C]

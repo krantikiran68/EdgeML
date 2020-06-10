@@ -92,6 +92,12 @@ class PrintAST(ASTVisitor):
         print(indent * node.printLevel, SeeDotParser.literalNames[node.op])
         self.visit(node.expr2)
 
+    def visitConvolution(self, node: AST.Convolution):
+        node.expr1.printLevel = node.expr2.printLevel = node.printLevel + 1
+        self.visit(node.expr1)
+        print(indent * node.printLevel, "CONVOLUTION GENERIC")
+        self.visit(node.expr2)
+
     def visitFunc(self, node: AST.Func):
         print(indent * node.printLevel, SeeDotParser.literalNames[node.op])
         node.expr.printLevel = node.printLevel + 1

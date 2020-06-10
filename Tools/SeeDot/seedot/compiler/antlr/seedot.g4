@@ -25,6 +25,10 @@ expr:	IntConst								# int
 	|	addOp expr								# uop
 	|	expr binOp expr							# bop1
 	|	expr addOp expr							# bop2
+	|	expr CONV '{s' IntConst IntConst IntConst IntConst'}'
+		'{p' IntConst IntConst IntConst IntConst'}'
+		'{d' IntConst IntConst IntConst IntConst'}'
+		'{g'IntConst'}'CONV expr				# convolution
 
 	|	specialFunc '(' expr ')'				# func
 	|	Sum '(' Id '='

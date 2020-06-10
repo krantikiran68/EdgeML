@@ -102,6 +102,15 @@ class ASTBuilder(SeeDotVisitor):
         expr2 = self.visit(ctx.expr(1))
         return AST.Bop2(expr1, op, expr2)
 
+    def visitConvolution(self, ctx: SeeDotParser.ConvolutionContext):
+        expr1 = self.visit(ctx.expr(0))
+        expr2 = self.visit(ctx.expr(1))
+        stride = [int(ctx.IntConst(i).getText()) for i in range(0, 4)]
+        padding = [int(ctx.IntConst(i).getText()) for i in range(4, 8)]
+        dilation = [int(ctx.IntConst(i).getText()) for i in range(8, 12)]
+        groups = int(ctx.IntConst(12).getText())
+        return AST.Convolution(expr1, expr2, stride, padding, dilation, groups)
+
     def visitFunc(self, ctx: SeeDotParser.FuncContext):
         op = ctx.specialFunc().getChild(0).symbol.type
         expr = self.visit(ctx.expr())

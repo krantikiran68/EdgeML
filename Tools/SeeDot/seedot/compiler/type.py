@@ -279,6 +279,41 @@ class InferType(astVisitor.ASTVisitor):
         node.type = Tensor(shape)
         return node.type
 
+    # c = conv(a, b, <params>)
+    def visitConvolution(self, node: ast.Convolution):
+        node.expr1.gamma = dict(node.gamma)
+        eType = self.visit(node.expr1)
+
+        assert eType.dim == 4
+        [n, h, w, cin] = eType.shape
+
+        node.expr2.gamma = dict(node.gamma)
+        fType = self.visit(node.expr2)
+
+        assert fType.dim == 5
+        [g, hf, wf, cin_, cout] = fType.shape
+
+        assert cin_ * g == cin
+        assert g == node.groups
+        assert cout % g == 0
+
+        assert hf % 2 == wf % 2 == 1, "Odd filter sizes supported"
+
+        assert node.padding[0] == node.padding[3] == 0, "Illegal padding parameters"
+        assert node.padding[1] >= 0 and node.padding[2] >= 0, "Padding cannot be negative"
+        assert node.stride[0] == node.stride[3] == 1, "Illegal stride parameters"
+        assert node.stride[1] > 0 and node.stride[2] > 0, "Stride must be positive"
+        assert node.dilation[0] == node.dilation[3] == 1, "Illegal dilation parameters"
+        assert node.dilation[1] > 0 and node.dilation[2] > 0, "Dilation must be positive"
+
+        hout = (h + 2 * node.padding[1] - node.dilation[1] * (hf - 1) - 1) // node.stride[1] + 1
+        wout = (w + 2 * node.padding[2] - node.dilation[2] * (wf - 1) - 1) // node.stride[2] + 1
+        shape = [n, hout, wout, g * cout]
+
+        node.type = Tensor(shape)
+        return node.type
+        
+
     # e + f OR e - f
     def visitBop2(self, node: ast.Bop2):
         node.expr1.gamma = dict(node.gamma)

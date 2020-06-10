@@ -513,6 +513,69 @@ void ScalarMul(float *A, float *B, float *C, MYINT I, MYINT J, MYINT shrA, MYINT
 	return;
 }
 
+// C = conv(A, B, <params>)
+// A[N][H][W][CIN], B[G][HF][WF][CINF][COUTF], C[N][HOUT][WOUT][COUTF*G]
+void Convolution(float *A, const float *B, float *C, float *tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPAD, MYINT WPAD, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	MYITE HOffset = HDL*(HF/2) - HPAD;
+	MYITE WOffset = WDL*(WF/2) - WPAD;
+
+	for(MYITE n = 0; n < N; n++) {
+		for(MYITE h = HOffset, hout = 0; h < H - HOffset; h += HSTR, hout++) {
+			for(MYITE w = WOffset, wout = 0; w < W - WOffset; w += WSTR, wout++) {
+				for(MYITE g = 0; g < G; g++) {
+					for(MYITE co = 0; co < COUTF; co ++) {
+
+						MYITE counter = 0;
+						for(MYITE hf = -(HF/2); hf <= HF/2; hf++) {
+							for(MYITE wf = -(WF/2); wf <= WF/2; wf++) {
+								for(MYITE ci = 0; ci < CINF; ci++) {
+
+									float a = (((h + HDL * hf) < 0) || ((h + HDL * hf) >= H) || ((w + WDL * wf) < 0) || ((w + WDL * wf) >= W)) ? 0 : A[n * H * W * CIN + (h + HDL * hf) * W * CIN + (w + WDL * wf) * CIN + (ci + g * CINF)];
+
+									float b = B[g * HF * WF * CINF * COUTF + (hf + HF/2) * WF * CINF * COUTF + (wf + WF/2) * CINF * COUTF + ci * COUTF + co];
+
+									tmp[counter] = a * b;
+									counter++;
+								}
+							}
+						}
+
+						MYITE totalEle = HF * WF * CINF;
+						MYITE count = HF * WF * CINF, depth = 0;
+						bool shr = true;
+
+						while (depth < (H1 + H2)) {
+							if (depth >= H1)
+								shr = false;
+
+							for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
+								float sum;
+								if (p < (count >> 1))
+									sum = tmp[2 * p] + tmp[(2 * p) + 1];
+								else if ((p == (count >> 1)) && ((count & 1) == 1))
+									sum = tmp[2 * p];
+								else
+									sum = 0;
+
+								if (shr)
+									tmp[p] = sum;
+								else
+									tmp[p] = sum;
+							}
+							count = (count + 1) >> 1;
+
+							depth++;
+						}
+
+						C[n * HOUT * WOUT * (COUTF * G) + hout * WOUT * (COUTF * G) + wout * (COUTF * G) + (co + g * COUTF)] = tmp[0];
+					}
+				}
+			}
+		}
+	}
+}
+
+
 // C = A # B
 // A[N][H][W][CI], B[HF][WF][CI][CO], C[N][H][W][CO]
 void Conv(float *A, const float *B, float *C, float *tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2)

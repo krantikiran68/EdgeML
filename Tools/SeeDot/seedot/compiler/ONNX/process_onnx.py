@@ -60,14 +60,14 @@ def process_input_variables(program, innermost_let_ast_node, node_name_to_out_va
 
 	if program:
 		assert(type(innermost_let_ast_node) is AST.Let)
-		newNode = AST.Let(cur_out_var_ast_node, curAst, cur_out_var_ast_node)
-		mtdAST.visit(newNode, mtdForCurAST)
+		newNode = AST.Let(node.name, curAst, cur_out_var_ast_node)
+		# mtdAST.visit(newNode, mtdForCurAST)
 		# Updating the innermost Let AST node and the expression for previous Let Node 
 		innermost_let_ast_node.expr = newNode
 		innermost_let_ast_node = newNode
 	else:
-		innermost_let_ast_node = AST.Let(cur_out_var_ast_node, curAst, cur_out_var_ast_node)
-		mtdAST.visit(innermost_let_ast_node, mtdForCurAST)
+		innermost_let_ast_node = AST.Let(node.name, curAst, cur_out_var_ast_node)
+		# mtdAST.visit(innermost_let_ast_node, mtdForCurAST)
 		innermost_let_ast_node.depth = 0
 		program = innermost_let_ast_node
 
@@ -78,7 +78,7 @@ def process_input_variables(program, innermost_let_ast_node, node_name_to_out_va
 			print("Node information")
 			print(node)	
 	
-		curAst = ONNXNodesAST.Input(node, value_info, node_name_to_out_var_dict)
+		curAst = ONNXNodesAST.Input(node, value_info, node_name_to_out_var_dict, node)
 		mtdForCurAST = {AST.ASTNode.mtdKeyTFOpName : 'Input',
 							AST.ASTNode.mtdKeyTFNodeName : node.name}
 		if (curAst is None):
@@ -88,14 +88,14 @@ def process_input_variables(program, innermost_let_ast_node, node_name_to_out_va
 
 		if program:
 			assert(type(innermost_let_ast_node) is AST.Let)
-			newNode = AST.Let(cur_out_var_ast_node, curAst, cur_out_var_ast_node)
-			mtdAST.visit(newNode, mtdForCurAST)
+			newNode = AST.Let(node.name, curAst, cur_out_var_ast_node)
+			# mtdAST.visit(newNode, mtdForCurAST)
 			# Updating the innermost Let AST node and the expression for previous Let Node 
 			innermost_let_ast_node.expr = newNode
 			innermost_let_ast_node = newNode
 		else:
-			innermost_let_ast_node = AST.Let(cur_out_var_ast_node, curAst, cur_out_var_ast_node)
-			mtdAST.visit(innermost_let_ast_node, mtdForCurAST)
+			innermost_let_ast_node = AST.Let(node.name, curAst, cur_out_var_ast_node)
+			# mtdAST.visit(innermost_let_ast_node, mtdForCurAST)
 			innermost_let_ast_node.depth = 0
 			program = innermost_let_ast_node
 	
@@ -108,9 +108,7 @@ def process_onnx_nodes(innermost_let_ast_node, node_name_to_out_var_dict, out_va
 			print("Node information")
 			print(node)	
 
-		print("Processing " + node.name + "\n")	
-		mtdForCurAST = {AST.ASTNode.mtdKeyTFOpName : node.op_type,
-							AST.ASTNode.mtdKeyTFNodeName : node.name}
+		print("Processing " + node.op_type + "\n")	
 
 		func = getattr(ONNXNodesAST, node.op_type) 
 		(innermost_let_ast_node, out_var_count) = func(node, value_info, node_name_to_out_var_dict, innermost_let_ast_node, out_var_count, mtdAST)					
@@ -125,12 +123,12 @@ def get_seedot_ast(file_path):
 	model = onnx.load(file_path)
 	graph_def = model.graph
 
-	print(model.graph.value_info)
+	# print(model.graph.value_info)
 	# Before shape inference (model.graph.value_info) should have shapes of all the variables and constants 
 	model.graph.value_info.append(make_tensor_value_info(model.graph.input[0].name, TensorProto.FLOAT, common.proto_val_to_dimension_tuple(model.graph.input[0])))
 	model.graph.value_info.append(make_tensor_value_info(model.graph.output[0].name, TensorProto.FLOAT, common.proto_val_to_dimension_tuple(model.graph.output[0])))
 
-	print(model.graph.value_info)
+	# print(model.graph.value_info)
 
 	for init_vals in model.graph.initializer:
 		model.graph.value_info.append(make_tensor_value_info(init_vals.name, TensorProto.FLOAT, tuple(init_vals.dims)))	

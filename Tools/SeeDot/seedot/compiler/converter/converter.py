@@ -33,7 +33,6 @@ class Converter:
         setInputFile(inputFile)
         setModelDir(modelDir)
         setDatasetInput(trainingInput, testingInput)
-
         self.inputSet = True
 
     def run(self):

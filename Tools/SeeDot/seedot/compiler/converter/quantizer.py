@@ -202,11 +202,8 @@ class Quantizer:
     def generateParamFilesForOnnx(self):
         self.params = paramsBuilderOnnx.getParams(getInputFile())
         self.writeHeader()
+        self.transformModel()
         for param in self.params:
-            print(param.name)
-            print(param.shape)
-            print(param.range)
-            print('\n')
             writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape))
         self.writeFooter()              
 

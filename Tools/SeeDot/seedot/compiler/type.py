@@ -245,7 +245,7 @@ class InferType(astVisitor.ASTVisitor):
 
     # e <+> f OR e <-> f
     def visitBopAddOrSubCir(self, node: ast.Bop1, eType: Type, fType: Type):
-        assert isTensor(eType) and isTensor(fType)
+        assert isTensor(eType) and isTensor(fType)       
         assert eType.dim >= fType.dim
         assert fType.dim == 1
         assert eType.shape[-1] == fType.shape[-1]

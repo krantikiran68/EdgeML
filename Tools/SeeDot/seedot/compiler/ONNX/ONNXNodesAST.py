@@ -26,6 +26,11 @@ import seedot.compiler.ast.ast as AST
 from onnx import mapping
 from onnx import TensorProto
 from numbers import Number
+import numpy as np
+
+# we use operations from this 
+from seedot.compiler.antlr.seedotParser import seedotParser as SeeDotParser
+
 
 DEBUG = False
 out_var_prefix = 'J'
@@ -131,29 +136,32 @@ def get_seedot_shape_order(old_shape):
 	if(len(old_shape) == 4):
 		# Case when spatial dimension is 2
 		# inverse of [1, 3, 4, 2] is [1, 4, 2, 3]
-		return ([old_shape[0], old_shape[2], old_shape[3], old_shape[1]], [1, 4, 2, 3])	
+		# return ([old_shape[0], old_shape[2], old_shape[3], old_shape[1]], [1, 4, 2, 3])	
+		return ([old_shape[0], old_shape[2], old_shape[3], old_shape[1]], [1, 3, 4, 2])	
 	else:
-		# Casr when spatial dimension is 3 	
+		# Case when spatial dimension is 3 	
 		# inverse of [1, 3, 4, 5, 2] is [1, 5, 2, 3, 4]
-		return ([old_shape[0], old_shape[2], old_shape[3], old_shape[4], old_shape[1]], [1, 5, 2, 3, 4])
+		return ([old_shape[0], old_shape[2], old_shape[3], old_shape[4], old_shape[1]], [1, 3, 4, 5, 2])
 
 def get_seedot_filter_shape_order(filter_shape):
 	if(len(filter_shape) == 4):
 		# Case when spatial dimension is 2
 		# inverse of [3, 4, 2, 1] is [4, 3, 1, 2]
-		return ([filter_shape[2], filter_shape[3], filter_shape[1], filter_shape[0]], [4, 3, 1, 2])	
+		# return ([filter_shape[2], filter_shape[3], filter_shape[1], filter_shape[0]], [4, 3, 1, 2])	
+		return ([filter_shape[2], filter_shape[3], filter_shape[1], filter_shape[0]], [3, 4, 2, 1])			
 	else:
 		# Casr when spatial dimension is 3 	
 		# inverse of [3, 4, 5, 2, 1] is [5, 4, 1, 2, 3]
-		return ([filter_shape[2], filter_shape[3], filter_shape[4], filter_shape[1], filter_shape[0]], [5, 4, 1, 2, 3])		
+		return ([filter_shape[2], filter_shape[3], filter_shape[4], filter_shape[1], filter_shape[0]], [3, 4, 5, 2, 1])		
 
 def get_onnx_order(onnx_shape):
 	if(len(onnx_shape) == 4):
 		# inverse of [1, 4, 2, 3] is [1, 3, 4, 2]
-		return [1, 3, 4, 2]
+		# return [1, 3, 4, 2]
+		return [1, 4, 2, 3]
 	else:
 		# inverse of [1, 5, 2, 3, 4] is [1, 3, 4, 5, 2]
-		return [1, 3, 4, 5, 2]			
+		return [1, 5, 2, 3, 4]			
 
 def get_reshaped_input_ast(input_name, value_info, node_name_to_out_var_dict):
 	onnx_input_shape = list(value_info[input_name][1])
@@ -181,8 +189,8 @@ def get_new_var_name(out_var_count):
 	
 def update_program_with_new_node(innermost_let_ast_node, new_node, new_node_name, mtdAST):
 	cur_out_var_ast_node = AST.ID(new_node_name)
-	new_let_node = AST.Let(cur_out_var_ast_node, new_node, cur_out_var_ast_node)
-	mtdAST.visit(new_let_node, {AST.ASTNode.mtdKeyTFOpName : 'no', AST.ASTNode.mtdKeyTFNodeName : 'no'})
+	new_let_node = AST.Let(new_node_name, new_node, cur_out_var_ast_node)
+	# mtdAST.visit(new_let_node, {AST.ASTNode.mtdKeyTFOpName : 'no', AST.ASTNode.mtdKeyTFNodeName : 'no'})
 	# Updating the innermost Let AST node and the expression for previous Let Node 
 	innermost_let_ast_node.expr = new_let_node
 	innermost_let_ast_node = new_let_node
@@ -193,13 +201,22 @@ def update_program_with_new_node(innermost_let_ast_node, new_node, new_node_name
 class ONNXNodesAST:
 
 	# value_info: dictionary of name -> (type, dimension tuple)
-	def Input(node, value_info, node_name_to_out_var_dict):
+	def Input(node, value_info, node_name_to_out_var_dict, init_val=None):
 		if(DEBUG):
 			print(node.outputs[0])
 		# There are two types of inputs
 		dims = list(node.dims if hasattr(node, 'dims') else ([val.dim_value for val in  node.type.tensor_type.shape.dim]))	
 		data_type = node.data_type if hasattr (node, 'data_type') else node.type.tensor_type.elem_type
-		return AST.Input(dims, onnx2seedot(data_type))
+		# return AST.Input(dims, onnx2seedot(data_type))
+
+		from onnx import numpy_helper
+		range = (-3,3)
+		
+		if init_val is not None:
+			arr = numpy_helper.to_array(init_val)
+			range = (np.min(arr),np.max(arr))
+
+		return AST.Decl(dims, range)
 
 
 	def Cast(node, value_info, node_name_to_out_var_dict, innermost_let_ast_node, out_var_count, mtdAST):
@@ -335,29 +352,34 @@ class ONNXNodesAST:
 		inputsRef = node.inputs
 		assert(len(inputsRef)==1)
 		
+		spatial_size = len(value_info[inputsRef[0]][1])
 
-		reshaped_input_name = get_new_var_name(out_var_count)
-		reshaped_input = get_reshaped_input_ast(inputsRef[0], value_info, node_name_to_out_var_dict)
-		innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, reshaped_input, reshaped_input_name, mtdAST)
-		out_var_count += 1
+		relu_input_name = node_name_to_out_var_dict[inputsRef[0]]
+		if(spatial_size >= 4):
+			relu_input_name = get_new_var_name(out_var_count)
+			reshaped_input = get_reshaped_input_ast(inputsRef[0], value_info, node_name_to_out_var_dict)
+			innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, reshaped_input, relu_input_name, mtdAST)
+			out_var_count += 1
 
-		seedot_output_ast = AST.Func(getOperatorsIdx('relu'), AST.ID(reshaped_input_name))
+		seedot_output_ast = AST.Func(SeeDotParser.RELU, AST.ID(relu_input_name))
 		output_name = get_new_var_name(out_var_count)
 		innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, seedot_output_ast, output_name, mtdAST)
 		out_var_count += 1
 
-		reshaped_output_name = get_new_var_name(out_var_count)
-		onnx_output_ast = get_reshaped_output_ast(node.outputs[0], value_info, output_name)
-		innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, onnx_output_ast, reshaped_output_name, mtdAST)	
-		out_var_count += 1
-		node_name_to_out_var_dict[node.outputs[0]] = reshaped_output_name
+		final_output_name = output_name	
+		if(spatial_size >= 4):
+			final_output_name = get_new_var_name(out_var_count)
+			onnx_output_ast = get_reshaped_output_ast(node.outputs[0], value_info, output_name)
+			innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, onnx_output_ast, final_output_name, mtdAST)	
+			out_var_count += 1
+
+		node_name_to_out_var_dict[node.outputs[0]] = final_output_name
 
 		if(DEBUG):
 			print(node.outputs[0])
 			print(onnx_input_shape, '->', seedot_input_shape, '->', onnx_output_shape)
 
 		return (innermost_let_ast_node, out_var_count)	
-		# return AST.Func(getOperatorsIdx('relu'), AST.ID(node_name_to_out_var_dict[inputsRef[0]]))
 
 	def Add(node, value_info, node_name_to_out_var_dict, innermost_let_ast_node, out_var_count, mtdAST):
 		node = OnnxNode(node) 
@@ -411,7 +433,7 @@ class ONNXNodesAST:
 		if('transB' in node.attrs and node.attrs['transB']): input2AST = AST.Transp(input2AST)
 
 		# W*x + b
-		seedot_output_ast = AST.BOp(AST.BOp(input1AST, getOperatorsIdx('*'), input2AST), getOperatorsIdx('+'), AST.ID(node_name_to_out_var_dict[inputsRef[2]]))
+		seedot_output_ast = AST.Bop1(AST.Bop1(input1AST, SeeDotParser.MUL, input2AST), SeeDotParser.ADDCIR, AST.ID(node_name_to_out_var_dict[inputsRef[2]]))
 		output_name = get_new_var_name(out_var_count)
 		innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, seedot_output_ast, output_name, mtdAST)
 		out_var_count += 1
@@ -419,6 +441,21 @@ class ONNXNodesAST:
 		node_name_to_out_var_dict[node.outputs[0]] = output_name
 
 		return (innermost_let_ast_node, out_var_count)
+
+	def ArgMax(node, value_info, node_name_to_out_var_dict, innermost_let_ast_node, out_var_count, mtdAST):
+		node = OnnxNode(node)
+		if(DEBUG):
+			print(node)
+		inputsRef = node.inputs
+
+		seedot_output_ast = AST.Func(SeeDotParser.ARGMAX, AST.ID(node_name_to_out_var_dict[inputsRef[0]]))
+		output_name = get_new_var_name(out_var_count)
+		innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, seedot_output_ast, output_name, mtdAST)
+		out_var_count += 1
+
+		node_name_to_out_var_dict[node.outputs[0]] = output_name
+
+		return (innermost_let_ast_node, out_var_count)	
 
 	def Constant(node, value_info, node_name_to_out_var_dict, innermost_let_ast_node, out_var_count, mtdAST):
 		node = OnnxNode(node)
@@ -572,26 +609,15 @@ class ONNXNodesAST:
 		inputShape = value_info[inputsRef[0]][1]
 		filterShape = value_info[inputsRef[1]][1]
 
-		stridesUsed = node.attrs['strides']
+		stridesUsed = node.attrs['strides'] if 'strides' in node.attrs else [1,1]
 
 		assert(len(inputsRef)==2 or len(inputsRef)==3)
 		assert(len(stridesUsed)==2)
-		assert(value_info[node.inputs[1]][1][2:] == tuple(node.attrs['kernel_shape']))
-		
+
 		group = node.attrs['group'] if 'group' in node.attrs else 1
 		[zPadHLeft, zPadHRight, zPadWLeft, zPadWRight] = node.attrs['pads'] if 'pads' in node.attrs else [0,0,0,0]
 		# we assume VALID case when the padding is in string format
 
-		options = {}
-		options[AST.PaddingKeysDict.FH] = filterShape[2]
-		options[AST.PaddingKeysDict.FW] = filterShape[3]
-		options[AST.PaddingKeysDict.zPadHLeft] = zPadHLeft
-		options[AST.PaddingKeysDict.zPadHRight] = zPadHRight
-		options[AST.PaddingKeysDict.zPadWLeft] = zPadWLeft
-		options[AST.PaddingKeysDict.zPadWRight] = zPadWRight
-		options[AST.PaddingKeysDict.strideH] = stridesUsed[0]
-		options[AST.PaddingKeysDict.strideW] = stridesUsed[1]
-		options[AST.PaddingKeysDict.ConvDim] = 2
 		# options[AST.PaddingKeysDict.group] = group
 
 		# print(inputShape, filterShape)
@@ -612,19 +638,14 @@ class ONNXNodesAST:
 		innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, reshaped_filter, reshaped_filter_name, mtdAST)
 		out_var_count += 1
 
-		seedot_output_ast =  AST.BOp(AST.ID(reshaped_input_name), getOperatorsIdx('#'), AST.ID(reshaped_filter_name), options)
+		seedot_output_ast =  AST.Bop1(AST.ID(reshaped_input_name), SeeDotParser.CONV, AST.ID(reshaped_filter_name))
 		output_name = get_new_var_name(out_var_count)
 		innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, seedot_output_ast, output_name, mtdAST)
 		out_var_count += 1
 
 		# If there is bias to be added then reshape and add it 
 		if (len(inputsRef) == 3):
-			reshaped_bias_name = get_new_var_name(out_var_count)
-			reshaped_bias = get_reshaped_bias_ast(inputsRef[2], value_info, node_name_to_out_var_dict, 2)
-			innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, reshaped_bias, reshaped_bias_name, mtdAST)
-			out_var_count += 1	
-
-			seedot_output_ast =  AST.BOp(AST.ID(output_name), getOperatorsIdx('+'), AST.ID(reshaped_bias_name), options)
+			seedot_output_ast =  AST.Bop1(AST.ID(output_name), SeeDotParser.ADDCIR, AST.ID(inputsRef[2]))
 			output_name = get_new_var_name(out_var_count)
 			innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, seedot_output_ast, output_name, mtdAST)
 			out_var_count += 1
@@ -643,21 +664,6 @@ class ONNXNodesAST:
 		# verify this order
 		[zPadDLeft, zPadDRight, zPadHLeft, zPadHRight, zPadWLeft, zPadWRight] = node.attrs['pads']
 
-		options = {}
-		options[AST.PaddingKeysDict.FD] = filterShape[2]
-		options[AST.PaddingKeysDict.FH] = filterShape[3]
-		options[AST.PaddingKeysDict.FW] = filterShape[4]
-		options[AST.PaddingKeysDict.zPadDLeft] = zPadDLeft
-		options[AST.PaddingKeysDict.zPadDRight] = zPadDRight
-		options[AST.PaddingKeysDict.zPadHLeft] = zPadHLeft
-		options[AST.PaddingKeysDict.zPadHRight] = zPadHRight
-		options[AST.PaddingKeysDict.zPadWLeft] = zPadWLeft
-		options[AST.PaddingKeysDict.zPadWRight] = zPadWRight
-		options[AST.PaddingKeysDict.strideD] = stridesUsed[0]
-		options[AST.PaddingKeysDict.strideH] = stridesUsed[1]
-		options[AST.PaddingKeysDict.strideW] = stridesUsed[2]
-		options[AST.PaddingKeysDict.ConvDim] = 3
-
 		assert (inputShape[1] == filterShape[1])
 		# For Input:
 		# [N, CI, D, H, W] is the Onnx order it should be changed to 
@@ -675,7 +681,7 @@ class ONNXNodesAST:
 		innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, reshaped_filter, reshaped_filter_name, mtdAST)
 		out_var_count += 1
 
-		seedot_output_ast =  AST.BOp(AST.ID(reshaped_input_name), getOperatorsIdx('#'), AST.ID(reshaped_filter_name), options)
+		seedot_output_ast =  AST.Bop1(AST.ID(reshaped_input_name), getOperatorsIdx('#'), AST.ID(reshaped_filter_name))
 		output_name = get_new_var_name(out_var_count)
 		innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, seedot_output_ast, output_name, mtdAST)
 		out_var_count += 1
@@ -687,7 +693,7 @@ class ONNXNodesAST:
 			innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, reshaped_bias, reshaped_bias_name, mtdAST)
 			out_var_count += 1	
 
-			seedot_output_ast =  AST.BOp(AST.ID(output_name), getOperatorsIdx('+'), AST.ID(reshaped_bias_name), options)
+			seedot_output_ast =  AST.Bop1(AST.ID(output_name), getOperatorsIdx('+'), AST.ID(reshaped_bias_name))
 			output_name = get_new_var_name(out_var_count)
 			innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, seedot_output_ast, output_name, mtdAST)
 			out_var_count += 1
@@ -744,7 +750,7 @@ class ONNXNodesAST:
 		inputsRef = node.inputs
 		assert(len(inputsRef)==1)
 				
-		stridesUsed = node.attrs['strides']
+		stridesUsed = node.attrs['strides'] if 'strides' in node.attrs else [1,1]
 		strideH = stridesUsed[0]
 		strideW = stridesUsed[1]
 
@@ -759,7 +765,7 @@ class ONNXNodesAST:
 		imgW = inputShape[3]
 
 		# verify order
-		[zPadHLeft, zPadHRight, zPadWLeft, zPadWRight] = node.attrs['pads']
+		[zPadHLeft, zPadHRight, zPadWLeft, zPadWRight] = node.attrs['pads'] if 'pads' in node.attrs else [0,0,0,0]
 
 
 		reshaped_input_name = get_new_var_name(out_var_count)
@@ -768,23 +774,14 @@ class ONNXNodesAST:
 		out_var_count += 1
 
 		poolType = None
-		if typeOfPool=='MAXPOOL': poolType = AST.Pool.PoolType.MaxPool
-		elif typeOfPool=='AVGPOOL': poolType = AST.Pool.PoolType.AvgPool
+		if typeOfPool=='MAXPOOL': poolType = AST.Maxpool
+		elif typeOfPool=='AVGPOOL': poolType = AST.Avgpool
 		else: 
 			print("Unknown type of pooling layer.", file=sys.stderr)
 			assert(False)
-		seedot_output_ast = AST.Pool(poolType,
+		seedot_output_ast = poolType(
 							  AST.ID(reshaped_input_name),
-							  {
-							  	AST.PaddingKeysDict.FH: kSizeH,
-							  	AST.PaddingKeysDict.FW: kSizeW,
-							  	AST.PaddingKeysDict.zPadHLeft: zPadHLeft,
-							  	AST.PaddingKeysDict.zPadHRight: zPadHRight,
-							  	AST.PaddingKeysDict.zPadWLeft: zPadWLeft,
-							  	AST.PaddingKeysDict.zPadWRight: zPadWRight,
-							  	AST.PaddingKeysDict.strideH: strideH,
-							  	AST.PaddingKeysDict.strideW: strideW
-							  }
+							  2
 							)
 		output_name = get_new_var_name(out_var_count)
 		innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, seedot_output_ast, output_name, mtdAST)

@@ -384,6 +384,10 @@ class IRBuilder(ASTVisitor):
         # The iterators are selected based on the selection order specified by the user
         loopShape = []
         loopIters = []
+        
+        if node.order == None:
+            node.order = [i+1 for i in range(type_in.dim)]      
+
         for order in node.order:
             order = order - 1
             loopShape.append(type_in.shape[order])
@@ -1460,7 +1464,7 @@ class IRBuilder(ASTVisitor):
         self.log.print("\tOutput: scale = %d, interval = [%d, %d]" % (
             (self.varScales[expr_out.idf],) + self.varIntervals[expr_out.idf]))
 
-        return (prog_out, expr_in_A)
+        return (prog_out, expr_out)
 
     # out = in_A 'op' in_B
     def visitBop2(self, node: AST.Bop2):

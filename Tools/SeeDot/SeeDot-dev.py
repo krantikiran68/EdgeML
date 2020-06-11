@@ -191,8 +191,12 @@ class MainDriver:
                                           modelDir, datasetOutputDir, modelOutputDir)
                     obj.run()
 
-                trainingInput = os.path.join(datasetOutputDir, "train.npy")
-                testingInput = os.path.join(datasetOutputDir, "test.npy")
+                source_update = ""
+                if self.args.source == config.Source.onnx:
+                    source_update = "_onnx"
+
+                trainingInput = os.path.join(datasetOutputDir, "train"+source_update+".npy")
+                testingInput = os.path.join(datasetOutputDir, "test"+source_update+".npy")
                 modelDir = modelOutputDir
             else:
                 datasetDir = os.path.join(
@@ -200,8 +204,12 @@ class MainDriver:
                 modelDir = os.path.join(
                     Dataset.modelProcessedDir, algo, dataset)
 
-                trainingInput = os.path.join(datasetDir, "train.npy")
-                testingInput = os.path.join(datasetDir, "test.npy")
+                source_update = ""
+                if self.args.source == config.Source.onnx:
+                    source_update = "_onnx"
+
+                trainingInput = os.path.join(datasetDir, "train"+source_update+".npy")
+                testingInput = os.path.join(datasetDir, "test"+source_update+".npy")
 
             try:
                 if version == config.Version.floatt:

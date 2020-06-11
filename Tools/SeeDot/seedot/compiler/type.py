@@ -245,7 +245,7 @@ class InferType(astVisitor.ASTVisitor):
 
     # e <+> f OR e <-> f
     def visitBopAddOrSubCir(self, node: ast.Bop1, eType: Type, fType: Type):
-        assert isTensor(eType) and isTensor(fType)
+        assert isTensor(eType) and isTensor(fType)       
         assert eType.dim >= fType.dim
         assert fType.dim == 1
         assert eType.shape[-1] == fType.shape[-1]
@@ -290,24 +290,22 @@ class InferType(astVisitor.ASTVisitor):
         node.expr2.gamma = dict(node.gamma)
         fType = self.visit(node.expr2)
 
-        assert fType.dim == 5
-        [g, hf, wf, cin_, cout] = fType.shape
+        assert fType.dim == 4
+        [hf, wf, cin_, cout] = fType.shape
 
+        g = node.groups
         assert cin_ * g == cin
-        assert g == node.groups
         assert cout % g == 0
 
         assert hf % 2 == wf % 2 == 1, "Odd filter sizes supported"
 
-        assert node.padding[0] == node.padding[3] == 0, "Illegal padding parameters"
-        assert node.padding[1] >= 0 and node.padding[2] >= 0, "Padding cannot be negative"
-        assert node.stride[0] == node.stride[3] == 1, "Illegal stride parameters"
-        assert node.stride[1] > 0 and node.stride[2] > 0, "Stride must be positive"
-        assert node.dilation[0] == node.dilation[3] == 1, "Illegal dilation parameters"
-        assert node.dilation[1] > 0 and node.dilation[2] > 0, "Dilation must be positive"
+        for i in range(0,4): 
+            assert node.padding[i] >= 0, "Padding cannot be negative"
+        assert node.stride[0] > 0 and node.stride[1] > 0, "Stride must be positive"
+        assert node.dilation[0] > 0 and node.dilation[1] > 0, "Dilation must be positive"
 
-        hout = (h + 2 * node.padding[1] - node.dilation[1] * (hf - 1) - 1) // node.stride[1] + 1
-        wout = (w + 2 * node.padding[2] - node.dilation[2] * (wf - 1) - 1) // node.stride[2] + 1
+        hout = (h + node.padding[0] + node.padding[1] - node.dilation[0] * (hf - 1) - 1) // node.stride[0] + 1
+        wout = (w + node.padding[2] + node.padding[3] - node.dilation[1] * (wf - 1) - 1) // node.stride[1] + 1
         shape = [n, hout, wout, g * cout]
 
         node.type = Tensor(shape)

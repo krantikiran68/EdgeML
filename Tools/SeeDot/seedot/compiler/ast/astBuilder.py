@@ -105,10 +105,10 @@ class ASTBuilder(SeeDotVisitor):
     def visitConvolution(self, ctx: SeeDotParser.ConvolutionContext):
         expr1 = self.visit(ctx.expr(0))
         expr2 = self.visit(ctx.expr(1))
-        stride = [int(ctx.IntConst(i).getText()) for i in range(0, 4)]
-        padding = [int(ctx.IntConst(i).getText()) for i in range(4, 8)]
-        dilation = [int(ctx.IntConst(i).getText()) for i in range(8, 12)]
-        groups = int(ctx.IntConst(12).getText())
+        stride = [int(ctx.IntConst(i).getText()) for i in range(0, 2)]
+        padding = [int(ctx.IntConst(i).getText()) for i in range(2, 6)]
+        dilation = [int(ctx.IntConst(i).getText()) for i in range(6, 8)]
+        groups = int(ctx.IntConst(8).getText())
         return AST.Convolution(expr1, expr2, stride, padding, dilation, groups)
 
     def visitFunc(self, ctx: SeeDotParser.FuncContext):

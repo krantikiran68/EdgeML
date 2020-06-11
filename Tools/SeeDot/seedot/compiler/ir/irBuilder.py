@@ -384,6 +384,10 @@ class IRBuilder(ASTVisitor):
         # The iterators are selected based on the selection order specified by the user
         loopShape = []
         loopIters = []
+        
+        if node.order == None:
+            node.order = [i+1 for i in range(type_in.dim)]      
+
         for order in node.order:
             order = order - 1
             loopShape.append(type_in.shape[order])
@@ -660,8 +664,6 @@ class IRBuilder(ASTVisitor):
             return self.visitBopSparseMul(node)
         elif node.op == SeeDotParser.MULCIR:
             return self.visitBopMulCir(node)
-        elif node.op == SeeDotParser.CONV:
-            return self.visitBopConv(node)
         elif node.op == SeeDotParser.ADDCIR:
             return self.visitBopAddOrSubCir(node)
         elif node.op == SeeDotParser.SUBCIR:
@@ -1177,7 +1179,7 @@ class IRBuilder(ASTVisitor):
         [expr_treeSum, expr_out] = self.getTempVars(2)
 
         [N, H, W, Cin] = node.expr1.type.shape
-        [G, Hf, Wf, CinF, CoutF] = node.expr2.type.shape
+        [Hf, Wf, CinF, CoutF] = node.expr2.type.shape
 
         type_treeSum = Type.Tensor([Hf * Wf * CinF])
         type_out = node.type
@@ -1228,13 +1230,15 @@ class IRBuilder(ASTVisitor):
             IR.Int(CoutF): "COUTF",
             IR.Int(type_out.shape[1]): "HOUT",
             IR.Int(type_out.shape[2]): "WOUT",
-            IR.Int(node.padding[1]): "HPAD",
-            IR.Int(node.padding[2]): "WPAD",
-            IR.Int(node.stride[1]): "HSTR",
-            IR.Int(node.stride[2]): "WSTR",
-            IR.Int(node.dilation[1]): "HDL",
-            IR.Int(node.dilation[2]): "WDL",
-            IR.Int(G): "G",
+            IR.Int(node.padding[0]): "HPADL",
+            IR.Int(node.padding[1]): "HPADR",
+            IR.Int(node.padding[2]): "WPADL",
+            IR.Int(node.padding[3]): "WPADR",
+            IR.Int(node.stride[0]): "HSTR",
+            IR.Int(node.stride[1]): "WSTR",
+            IR.Int(node.dilation[0]): "HDL",
+            IR.Int(node.dilation[1]): "WDL",
+            IR.Int(node.groups): "G",
             shr_A: "shrA",
             shr_B: "shrB",
             IR.Int(H1): "H1",
@@ -1573,7 +1577,7 @@ class IRBuilder(ASTVisitor):
         self.log.print("\tOutput: scale = %d, interval = [%d, %d]" % (
             (self.varScales[expr_out.idf],) + self.varIntervals[expr_out.idf]))
 
-        return (prog_out, expr_in_A)
+        return (prog_out, expr_out)
 
     # out = in_A 'op' in_B
     def visitBop2(self, node: AST.Bop2):

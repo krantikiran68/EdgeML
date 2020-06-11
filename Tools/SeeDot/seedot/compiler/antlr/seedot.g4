@@ -17,7 +17,11 @@ expr:	IntConst								# int
 		'(' intConstList ')' ')'				# reshape
 	|	expr '[' expr ':+' IntConst ']' 
 		('[' expr ':+' IntConst ']')*			# splice
-	|	Maxpool '(' expr ',' IntConst ')'		# maxpool
+	|	Maxpool '(' expr ',' 
+		'{k' IntConst IntConst '}' ','
+		'{p' IntConst IntConst IntConst IntConst '}' ','
+		'{s' IntConst IntConst '}'  ')'			# maxpool
+		
 	|	Reverse '(' expr ',' IntConst ')'		# reverse
 	|	expr '[' expr ']'						# index
 	|	Id '(' expr (',' expr)* ')'				# funcCall

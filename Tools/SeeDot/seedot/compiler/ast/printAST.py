@@ -51,7 +51,7 @@ class PrintAST(ASTVisitor):
         node.expr.printLevel = node.printLevel + 1
         print(indent * node.printLevel, "maxpool")
         self.visit(node.expr)
-        print(indent * node.printLevel, node.dim)
+        print(indent * node.printLevel, node.kernelSize, node.stride, node.padding)
 
     def visitReverse(self, node: AST.Reverse):
         node.expr.printLevel = node.printLevel + 1

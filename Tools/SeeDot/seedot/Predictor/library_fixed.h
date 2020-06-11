@@ -49,7 +49,7 @@ void Relu4D(MYINT *A, MYINT N, MYINT H, MYINT W, MYINT C);
 
 void Relu2D(MYINT *A, MYINT H, MYINT W);
 
-void Maxpool(MYINT *A, MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT stride);
+void Maxpool(MYINT *A, MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADH, MYINT HPADR, MYINT WPADL, MYINT WPADR);
 
 void Exp(MYINT *A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT *B);
 
@@ -784,19 +784,19 @@ void Relu2D(TypeA* A, MYINT H, MYINT W) {
 	return;
 }
 template<class TypeA, class TypeB>
-void Maxpool(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT stride, MYINT demote) {
-	MYITE HO = H / stride;
-	MYITE WO = W / stride;
+void Maxpool(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADH, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT demote) {
+	MYITE HO = H / strideH;
+	MYITE WO = W / strideW;
 
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE ho = 0; ho < HO; ho++) {
 			for (MYITE wo = 0; wo < WO; wo++) {
 				for (MYITE c = 0; c < C; c++) {
 
-					TypeA max = A[n * H * W * C + (stride * ho) * W * C + (stride * wo) * C + c];
-					for (MYITE hs = 0; hs < stride; hs++) {
-						for (MYITE ws = 0; ws < stride; ws++) {
-							TypeA a = A[n * H * W * C + ((stride * ho) + hs) * W * C + ((stride * wo) + ws) * C + c];
+					TypeA max = A[n * H * W * C + (strideH * ho) * W * C + (strideW * wo) * C + c];
+					for (MYITE hs = 0; hs < FH; hs++) {
+						for (MYITE ws = 0; ws < FW; ws++) {
+							TypeA a = A[n * H * W * C + ((strideH * ho) + hs) * W * C + ((strideW * wo) + ws) * C + c];
 							if (a > max)
 								max = a;
 						}

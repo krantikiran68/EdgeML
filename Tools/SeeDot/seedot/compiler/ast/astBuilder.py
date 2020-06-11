@@ -67,8 +67,10 @@ class ASTBuilder(SeeDotVisitor):
 
     def visitMaxpool(self, ctx: SeeDotParser.MaxpoolContext):
         expr = self.visit(ctx.expr())
-        dim = int(ctx.IntConst().getText())
-        return AST.Maxpool(expr, dim)
+        kernelSize = [int(ctx.IntConst(i).getText()) for i in range(0, 2)]
+        padding = [int(ctx.IntConst(i).getText()) for i in range(2, 6)]
+        stride = [int(ctx.IntConst(i).getText()) for i in range(6, 8)]
+        return AST.Maxpool(expr, kernelSize, padding, stride)
 
     def visitReverse(self, ctx: SeeDotParser.MaxpoolContext):
         expr = self.visit(ctx.expr())

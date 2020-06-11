@@ -751,22 +751,10 @@ class ONNXNodesAST:
 		assert(len(inputsRef)==1)
 				
 		stridesUsed = node.attrs['strides'] if 'strides' in node.attrs else [1,1]
-		strideH = stridesUsed[0]
-		strideW = stridesUsed[1]
+		kernelSize = node.attrs['kernel_shape'] 
+		padding = node.attrs['pads'] if 'pads' in node.attrs else [0,0,0,0]
 
-		kSizeUsed = node.attrs['kernel_shape']
-		# assert((kSizeUsed[0] == 1) and (kSizeUsed[3] == 1))
-		kSizeH = kSizeUsed[0]
-		kSizeW = kSizeUsed[1]
-		
 		inputShape = value_info[inputsRef[0]][1]
-		# print(inputShape)
-		imgH = inputShape[2]
-		imgW = inputShape[3]
-
-		# verify order
-		[zPadHLeft, zPadHRight, zPadWLeft, zPadWRight] = node.attrs['pads'] if 'pads' in node.attrs else [0,0,0,0]
-
 
 		reshaped_input_name = get_new_var_name(out_var_count)
 		reshaped_input = get_reshaped_input_ast(inputsRef[0], value_info, node_name_to_out_var_dict)
@@ -781,7 +769,7 @@ class ONNXNodesAST:
 			assert(False)
 		seedot_output_ast = poolType(
 							  AST.ID(reshaped_input_name),
-							  2
+							  kernelSize, padding, stridesUsed
 							)
 		output_name = get_new_var_name(out_var_count)
 		innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, seedot_output_ast, output_name, mtdAST)

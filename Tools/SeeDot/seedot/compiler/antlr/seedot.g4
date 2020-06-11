@@ -25,10 +25,11 @@ expr:	IntConst								# int
 	|	addOp expr								# uop
 	|	expr binOp expr							# bop1
 	|	expr addOp expr							# bop2
-	|	expr CONV '{s' IntConst IntConst IntConst IntConst'}'
-		'{p' IntConst IntConst IntConst IntConst'}'
-		'{d' IntConst IntConst IntConst IntConst'}'
-		'{g'IntConst'}'CONV expr				# convolution
+	|	Conv2d '(' expr ',' expr ',' 
+		'{s' IntConst IntConst '}' ',' 
+		'{p' IntConst IntConst IntConst IntConst'}' ','
+		'{d' IntConst IntConst '}' ','
+		'{g'IntConst'}' ')' 					# convolution
 
 	|	specialFunc '(' expr ')'				# func
 	|	Sum '(' Id '='
@@ -52,7 +53,6 @@ addOp	:	ADD
 binOp	:	MUL
 		|	SPARSEMUL
 		|	MULCIR
-		|	CONV
 		|	ADDCIR
 		|	SUBCIR
 		;
@@ -69,7 +69,6 @@ SUB		:	'-' ;
 MUL		:	'*' ;
 SPARSEMUL:	'|*|' ;
 MULCIR	:	'<*>' ;
-CONV	:	'#' ;
 ADDCIR	:	'<+>' ;
 SUBCIR	:	'<->' ;
 
@@ -80,6 +79,7 @@ SGN		:	'sgn'    ;
 TANH	:	'tanh'   ;
 SIGMOID	:	'sigmoid';
 
+Conv2d	:	'conv2d' ;
 Reshape	:	'reshape' ;
 Maxpool	:	'maxpool' ;
 Reverse :   'reverse' ;

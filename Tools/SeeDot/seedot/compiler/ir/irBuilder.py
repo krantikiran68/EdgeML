@@ -664,8 +664,6 @@ class IRBuilder(ASTVisitor):
             return self.visitBopSparseMul(node)
         elif node.op == SeeDotParser.MULCIR:
             return self.visitBopMulCir(node)
-        elif node.op == SeeDotParser.CONV:
-            return self.visitBopConv(node)
         elif node.op == SeeDotParser.ADDCIR:
             return self.visitBopAddOrSubCir(node)
         elif node.op == SeeDotParser.SUBCIR:
@@ -1181,7 +1179,7 @@ class IRBuilder(ASTVisitor):
         [expr_treeSum, expr_out] = self.getTempVars(2)
 
         [N, H, W, Cin] = node.expr1.type.shape
-        [G, Hf, Wf, CinF, CoutF] = node.expr2.type.shape
+        [Hf, Wf, CinF, CoutF] = node.expr2.type.shape
 
         type_treeSum = Type.Tensor([Hf * Wf * CinF])
         type_out = node.type
@@ -1232,13 +1230,15 @@ class IRBuilder(ASTVisitor):
             IR.Int(CoutF): "COUTF",
             IR.Int(type_out.shape[1]): "HOUT",
             IR.Int(type_out.shape[2]): "WOUT",
-            IR.Int(node.padding[1]): "HPAD",
-            IR.Int(node.padding[2]): "WPAD",
-            IR.Int(node.stride[1]): "HSTR",
-            IR.Int(node.stride[2]): "WSTR",
-            IR.Int(node.dilation[1]): "HDL",
-            IR.Int(node.dilation[2]): "WDL",
-            IR.Int(G): "G",
+            IR.Int(node.padding[0]): "HPADL",
+            IR.Int(node.padding[1]): "HPADR",
+            IR.Int(node.padding[2]): "WPADL",
+            IR.Int(node.padding[3]): "WPADR",
+            IR.Int(node.stride[0]): "HSTR",
+            IR.Int(node.stride[1]): "WSTR",
+            IR.Int(node.dilation[0]): "HDL",
+            IR.Int(node.dilation[1]): "WDL",
+            IR.Int(node.groups): "G",
             shr_A: "shrA",
             shr_B: "shrB",
             IR.Int(H1): "H1",

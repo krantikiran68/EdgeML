@@ -610,15 +610,15 @@ class ONNXNodesAST:
 		filterShape = value_info[inputsRef[1]][1]
 
 		stridesUsed = node.attrs['strides'] if 'strides' in node.attrs else [1,1]
+		group = node.attrs['group'] if 'group' in node.attrs else 1
+		padding = node.attrs['pads'] if 'pads' in node.attrs else [0,0,0,0]
+		dilation = node.attrs['dilation'] if 'dilation' in node.attrs else [1,1]
+		
 
 		assert(len(inputsRef)==2 or len(inputsRef)==3)
 		assert(len(stridesUsed)==2)
 
-		group = node.attrs['group'] if 'group' in node.attrs else 1
-		[zPadHLeft, zPadHRight, zPadWLeft, zPadWRight] = node.attrs['pads'] if 'pads' in node.attrs else [0,0,0,0]
 		# we assume VALID case when the padding is in string format
-
-		# options[AST.PaddingKeysDict.group] = group
 
 		# print(inputShape, filterShape)
 		assert (inputShape[1] == filterShape[1]*group)
@@ -638,7 +638,7 @@ class ONNXNodesAST:
 		innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, reshaped_filter, reshaped_filter_name, mtdAST)
 		out_var_count += 1
 
-		seedot_output_ast =  AST.Bop1(AST.ID(reshaped_input_name), SeeDotParser.CONV, AST.ID(reshaped_filter_name))
+		seedot_output_ast =  AST.Convolution(AST.ID(reshaped_input_name), AST.ID(reshaped_filter_name), stridesUsed, padding, dilation, group)
 		output_name = get_new_var_name(out_var_count)
 		innermost_let_ast_node = update_program_with_new_node(innermost_let_ast_node, seedot_output_ast, output_name, mtdAST)
 		out_var_count += 1

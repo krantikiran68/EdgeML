@@ -94,9 +94,10 @@ class PrintAST(ASTVisitor):
 
     def visitConvolution(self, node: AST.Convolution):
         node.expr1.printLevel = node.expr2.printLevel = node.printLevel + 1
+        print(indent * node.printLevel, "conv(", )
         self.visit(node.expr1)
-        print(indent * node.printLevel, "CONVOLUTION GENERIC")
         self.visit(node.expr2)
+        print(indent * node.printLevel, node.stride, ',', node.padding, ',', node.dilation, ',',node.groups, ')')
 
     def visitFunc(self, node: AST.Func):
         print(indent * node.printLevel, SeeDotParser.literalNames[node.op])

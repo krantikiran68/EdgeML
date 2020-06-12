@@ -86,10 +86,12 @@ class Reshape(ASTNode):
 
 class Maxpool(ASTNode):
 
-    def __init__(self, expr, dim: int):
+    def __init__(self, expr, kernelSize: list, padding: list, stride: list):
         super().__init__()
         self.expr = expr
-        self.dim = dim
+        self.kernelSize = kernelSize
+        self.padding = padding
+        self.stride = stride
 
 
 class Index(ASTNode):

@@ -148,15 +148,22 @@ class InferType(astVisitor.ASTVisitor):
         node.expr.gamma = dict(node.gamma)
         exprType = self.visit(node.expr)
 
-        [n1, n2, n3, n4] = exprType.shape
+        [n1, H, W, n4] = exprType.shape
 
         # Implementation only performs maxpool over a 4D input
         assert isTensor(exprType) and exprType.dim == 4
 
-        # Implementation needs node.dim to exactly divide matrix dimensions
-        assert n2 % node.dim == 0 and n3 % node.dim == 0
+        FH = node.kernelSize[0]
+        FW = node.kernelSize[1]
+        HPADL = node.padding[0]
+        HPADR = node.padding[1]
+        WPADL = node.padding[2]    
+        WPADR = node.padding[3]
 
-        shape = [n1, n2 // node.dim, n3 // node.dim, n4]
+        outH =  ((H + HPADL + HPADR - FH)//node.stride[0]) + 1
+        outW = ((W + WPADL + WPADR - FW)//node.stride[1]) + 1
+
+        shape = [n1, outH, outW, n4]
         node.type = Tensor(shape)
 
         return node.type

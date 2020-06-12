@@ -753,10 +753,10 @@ void Relu2D(float *A, MYINT H, MYINT W)
 
 // B = maxpool(A)
 // A[N][H][W][C], B[N][H][W][C]
-void Maxpool(float *A, float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT stride)
+void Maxpool(float *A, float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADH, MYINT HPADR, MYINT WPADL, MYINT WPADR)
 {
-	MYITE HO = H / stride;
-	MYITE WO = W / stride;
+	MYITE HO = H / strideH;
+	MYITE WO = W / strideW;
 
 	for (MYITE n = 0; n < N; n++)
 	{
@@ -767,12 +767,12 @@ void Maxpool(float *A, float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT strid
 				for (MYITE c = 0; c < C; c++)
 				{
 
-					float max = A[n * H * W * C + (stride * ho) * W * C + (stride * wo) * C + c];
-					for (MYITE hs = 0; hs < stride; hs++)
+					float max = A[n * H * W * C + (strideH * ho) * W * C + (strideW * wo) * C + c];
+					for (MYITE hs = 0; hs < FH; hs++)
 					{
-						for (MYITE ws = 0; ws < stride; ws++)
+						for (MYITE ws = 0; ws < FW; ws++)
 						{
-							float a = A[n * H * W * C + ((stride * ho) + hs) * W * C + ((stride * wo) + ws) * C + c];
+							float a = A[n * H * W * C + ((strideH * ho) + hs) * W * C + ((strideW * wo) + ws) * C + c];
 							if (a > max)
 								max = a;
 						}

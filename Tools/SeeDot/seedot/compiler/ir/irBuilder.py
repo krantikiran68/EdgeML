@@ -427,7 +427,9 @@ class IRBuilder(ASTVisitor):
         (prog_in, expr_in) = self.visit(node.expr)
 
         type_out = node.type
-        stride = node.dim
+        kernelSize = node.kernelSize
+        stride = node.stride
+        padding = node.padding 
 
         # Declare variables
         expr_out = self.getTempVar()
@@ -454,7 +456,7 @@ class IRBuilder(ASTVisitor):
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
         comment = IR.Comment(
-            "maxpool(" + expr_in.idf + ", " + str(stride) + ")")
+            "maxpool(" + expr_in.idf + ", " + str(kernelSize) + ',' + str(padding) + ',' + str(stride) + ")")
 
         funcCall = IR.FuncCall("Maxpool", {
             expr_in: "A",
@@ -463,7 +465,14 @@ class IRBuilder(ASTVisitor):
             IR.Int(H): "H",
             IR.Int(W): "W",
             IR.Int(C): "C",
-            IR.Int(stride): "stride"
+            IR.Int(kernelSize[0]): "FH",
+            IR.Int(kernelSize[1]): "FW",
+            IR.Int(stride[0]): "stideH",
+            IR.Int(stride[1]): "strideW",
+            IR.Int(padding[0]): "HPADL",
+            IR.Int(padding[1]): "HPADR",
+            IR.Int(padding[2]): "WPADL",
+            IR.Int(padding[3]): "WPADR"
         }) if not self.vbwEnabled else IR.FuncCall("Maxpool<int%d_t, int%d_t>"%(bw_in, bw_out), {
             expr_in: "A",
             expr_out: "B",
@@ -471,7 +480,14 @@ class IRBuilder(ASTVisitor):
             IR.Int(H): "H",
             IR.Int(W): "W",
             IR.Int(C): "C",
-            IR.Int(stride): "stride",
+            IR.Int(kernelSize[0]): "FH",
+            IR.Int(kernelSize[1]): "FW",
+            IR.Int(stride[0]): "stideH",
+            IR.Int(stride[1]): "strideW",
+            IR.Int(padding[0]): "HPADL",
+            IR.Int(padding[1]): "HPADR",
+            IR.Int(padding[2]): "WPADL",
+            IR.Int(padding[3]): "WPADR",
             IR.Int(demote): "demote"
         })
 

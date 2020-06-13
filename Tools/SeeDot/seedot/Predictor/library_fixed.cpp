@@ -735,12 +735,14 @@ void Conv(MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT N, MYINT H, MYIN
 // C = conv(A, B, <params>)
 // A[N][H][W][CIN], B[HF][WF][CINF][COUTF], C[N][HOUT][WOUT][COUTF*G]
 void Convolution(MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
-	MYITE HOffset = HDL*(HF/2) - HPADL;
-	MYITE WOffset = WDL*(WF/2) - WPADR;
+	MYITE HOffsetL = HDL*(HF/2) - HPADL;
+	MYITE WOffsetL = WDL*(WF/2) - WPADL;
+	MYITE HOffsetR = HDL*(HF/2) - HPADR;
+	MYITE WOffsetR = WDL*(WF/2) - WPADR;
 
 	for(MYITE n = 0; n < N; n++) {
-		for(MYITE h = HOffset, hout = 0; h < H - HOffset; h += HSTR, hout++) {
-			for(MYITE w = WOffset, wout = 0; w < W - WOffset; w += WSTR, wout++) {
+		for(MYITE h = HOffsetL, hout = 0; h < H - HOffsetR; h += HSTR, hout++) {
+			for(MYITE w = WOffsetL, wout = 0; w < W - WOffsetR; w += WSTR, wout++) {
 				for(MYITE g = 0; g < G; g++) {
 					for(MYITE co = 0; co < COUTF; co ++) {
 

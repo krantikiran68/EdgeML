@@ -160,6 +160,8 @@ class InferType(astVisitor.ASTVisitor):
         WPADL = node.padding[2]    
         WPADR = node.padding[3]
 
+        assert HPADL == HPADR == WPADL == WPADR == 0, "Non zero paddings not supported currently"
+
         outH =  ((H + HPADL + HPADR - FH)//node.stride[0]) + 1
         outW = ((W + WPADL + WPADR - FW)//node.stride[1]) + 1
 

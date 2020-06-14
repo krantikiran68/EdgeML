@@ -5,62 +5,292 @@
 
 #include "datatypes.h"
 
+/**
+ * Notation used:
+ * 		By default, 'matrix' is to be interpreted as a matrix in fixed point representation
+ * 		dim(X) = dimension of matrix X
+ * 		bw(X) = number of bits each value of X uses
+ * 		sc(X) = scale of matrix X
+ * 		scale of a fixed point matrix X is an integer S such that
+ * 			Xq (floating point matrix) = (2 ^ -S) * X where 
+ * 				a ^ b (a and b are integers) is a raised to the power b, and 
+ * 				a * b (a is integer and b is a matrix) is a multiplied to each element of b
+ **/
+
+/**
+ * Dimensions: 	A, B, C are matrices, dim(A) = dim(B) = dim(C) = [I][J]; I, J, shrA, shrB, shrC are integers
+ * 
+ * Matrix Addition
+ * Compute A + B and store it in C
+ * shrA, shrB, shrC are scaling constants which are computed in irBuilder.py::getScaleForAddAndSub(sc(A), sc(B), sc(C))
+ * 		shrA, shrB are used to bring matrices A and B to the same scale for addition 
+ * 		shrC adjusts the output matrix if required to prevent overflows
+ * The last two letters, which can be either C or N, denote the following:
+ * 		If the last letter is N, it means the matrix B is an intermediate variable in RAM
+ * 		If the last letter is C, it means the matrix B is a read only parameter which must be extracted from flash 
+ * 		Similarly, the second last letter controls the input of matrix A
+ * 		On Arduino-like devices with Harvard architecture, the reading of RAM and flash variables is different, hence the different functions
+ **/
 void MatAddNN(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
 void MatAddCN(const MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
 void MatAddNC(MYINT *A, const MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
 void MatAddCC(const MYINT *A, const MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
 
+/**
+ * Dimensions: 	I, J, shrA, shrB, shrC are integers
+ * 				C is a matrix, dim(C) = [I][J]
+ * 				For MatAddBroadCastA, B is a matrix, dim(B) = [I][J], A represents a scalar
+ * 				For MatAddBroadCastB, A is a matrix, dim(A) = [I][J], B represents a scalar
+ *  
+ * Broadcasted Matrix Addition
+ * 		For MatAddBroadCastA, add scalar A to all elements of B and store result in C
+ * 		For MatAddBroadCastB, add scalar B to all elements of A and store result in C
+ * shrA, shrB, shrC are scaling constants which are computed in irBuilder.py::getScaleForAddAndSub(sc(A), sc(B), sc(C))
+ * 		shrA, shrB are used to bring matrices A and B to the same scale for addition 
+ * 		shrC adjusts the output matrix if required to prevent overflows
+ **/
 void MatAddBroadCastA(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
 void MatAddBroadCastB(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
 
+/**
+ * Dimensions: 	A, B, C are matrices, dim(A) = dim(B) = dim(C) = [I][J]; I, J, shrA, shrB, shrC are integers
+ * 
+ * Matrix Subtraction
+ * Compute A - B and store it in C
+ * shrA, shrB, shrC are scaling constants which are computed in irBuilder.py::getScaleForAddAndSub(sc(A), sc(B), sc(C))
+ * 		shrA, shrB are used to bring matrices A and B to the same scale for addition 
+ * 		shrC adjusts the output matrix if required to prevent overflows
+ * Mostly this operation is used for mean normalisation where the mean (matrix B) is known beforehand and hence stored on read only memory.
+ **/
 void MatSub(MYINT *A, const MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, int32_t shrB, MYINT shrC);
+
+/**
+ * Dimensions: 	I, J, shrA, shrB, shrC are integers
+ * 				C is a matrix, dim(C) = [I][J]
+ * 				For MatSubBroadCastA, B is a matrix, dim(B) = [I][J], A represents a scalar
+ * 				For MatSubBroadCastB, A is a matrix, dim(A) = [I][J], B represents a scalar
+ *  
+ * Broadcasted Matrix Subtraction
+ * 		For MatSubBroadCastA, add scalar A to all elements of B and store result in C
+ * 		For MatSubBroadCastB, add scalar B to all elements of A and store result in C
+ * shrA, shrB, shrC are scaling constants which are computed in irBuilder.py::getScaleForAddAndSub(sc(A), sc(B), sc(C))
+ * 		shrA, shrB are used to bring matrices A and B to the same scale for addition 
+ * 		shrC adjusts the output matrix if required to prevent overflows
+ **/
 void MatSubBroadCastA(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, int32_t shrB, MYINT shrC);
 void MatSubBroadCastB(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, int32_t shrB, MYINT shrC);
 
+/**
+ * Dimensions: 	A, B, C are matrices, dim(A) = [I][J], dim(B) = [J][K], dim(C) = [I][K]; tmp is a vector, dim(tmp) = [J] I, K, J, shrA, shrB, H1, H2 are integers
+ * 
+ * Matrix Multiplication
+ * Compute A * B and store it in C, using tmp as a buffer.
+ * 		To compute C[i][k], we have to compute summation_j[0:J](A[i][j]*B[j][k]). We store the J values in the vector tmp, 
+ * 		and carry out Tree Sum (described below) on the vector to ensure minimum loss of bits 
+ * shrA, shrB, H1, H2 are scaling constants which are computed in irBuilder.py::getShrTreeSumAndDemoteParamsForMul(bw(A), sc(A), bw(B), sc(B), bw(tmp), sc(tmp), bw(C), sc(C), J)
+ * 		shrA, shrB are used to alter the scales of matrices A and B so that the multiplication avoids overflows but maintains as many bits as possible
+ * 		H1, H2 are used for Tree Sum. Usage is described below
+ * The last two letters, which can be either C or N, denote the following:
+ * 		If the last letter is N, it means the matrix B is an intermediate variable in RAM
+ * 		If the last letter is C, it means the matrix B is a read only parameter which must be extracted from flash 
+ * 		Similarly, the second last letter controls the input of matrix A
+ * 		On Arduino-like devices with Harvard architecture, the reading of RAM and flash variables is different, hence the different functions
+ * 
+ * Tree Sum
+ * This is a technique used to sum up a long vector. To sum up a vector [a0, a1, a2, a3, a4, a5, a6...],
+ * in the first stage we first store a0 + a1 at index 0, a2 + a3 at index 2, a4 + a5 at index 4 and so on.
+ * Next stage we store index 0 + index 2 at index 0, index 4 + index 6 at index 4, and so on.
+ * We continue this till all elements are summed up at index 0.
+ * For fixed point arithmetic, in the first H1 (parameter) stages, we divide the addition result by 2 to avoid overflows,
+ * and in the next H2 (parameter) stages (assuming no overflows), we do not do the division to conserve prevision
+ **/
 void MatMulNN(MYINT *A, MYINT *B, MYINT *C, MYINT *tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
-
 void MatMulCN(const MYINT *A, MYINT *B, MYINT *C, MYINT *tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
-
 void MatMulNC(MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
-
 void MatMulCC(const MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
 
+/**
+ * Dimensions: 	A, B, C are matrices. dim(A) = [I][J], dim(B) = [J][1], dim(C)  [I][1]
+ * 				Aval, Aidx combined is a sparse representation of A. dim(Aval) = [K], dim(Aidx) = [K+J]
+ * 
+ * Representation:	Aval[i] is the i^th non-zero value of A, and Aidx[i] encodes the location of Aval[i].
+ * 					Number of zeroes before Aidx[i] : row of Aval[i]
+ * 					Aidx[i] + ... + Aidx[l] where l is the largest value less than i such that A[idx] = 0 : column of Aval[i]
+ * 
+ * Sparse Matrix Multiplication
+ * Compute A * B and store it in C.
+ * shrA, shrB, shrC are constants used to scale down the result of individual multiplications to not cause overflows. 
+ * 		Computed at irBuilder.py::getShrTreeSumAndDemoteParamsForMul(bw(A), sc(A), bw(B), sc(B), bw(C), sc(C), bw(C), sc(C), J)
+ */
 void SparseMatMul(const MYINT *Aidx, const MYINT *Aval, MYINT **B, MYINT *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC);
 
+/**
+ * Dimensions: 	A, B, C are matrices, dim(A) = dim(B) = dim(C) = [I][J]; I, J, shrA, shrB, shrC are integers
+ * 
+ * Hadamard Matrix Product
+ * Compute A * B element-wise and store it in C
+ * shrA, shrB are scaling constants which are computed in irBuilder.py::getShrTreeSumAndDemoteParamsForMul(bw(A), sc(A), bw(B), sc(B), bw(C), sc(C), bw(C), sc(C), 1)
+ * 		shrA, shrB are used to alter the scales of matrices A and B so that the multiplication avoids overflows but maintains as many bits as possible
+ **/
 void MulCir(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB);
 
+/**
+ * Dimensions:	A, B are matrices, dim(A) = dim(B) = [I][J]. I, J, scale_in, scale_out are integers
+ * 
+ * TanH
+ * Computes tanH(A) element-wise and stores the result in B
+ * scale_in is the scale of the input matrix A, and scale_out is the scale of the output matrix B
+ */
 void TanH(MYINT *A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out, MYINT *B);
 
+/**
+ * Dimensions:	A is a matrix, dim(A) = [I][J]. I, J are integers, index points to an integer.
+ * 				Currently assumes either I or J = 1
+ * 
+ * ArgMax
+ * Computes argmax(A) and stores the result in index
+ */
 void ArgMax(MYINT *A, MYINT I, MYINT J, MYINT *index);
 
+/**
+ * Dimensions:	A, B are matrices. dim(A) = [I][J], dim(B) = [J][I]
+ * 
+ * Transpose
+ * Computes transpose(A) and stores the result in B
+ */
 void Transpose(MYINT *A, MYINT *B, MYINT I, MYINT J);
 
+/**
+ * Dimensions: 	I, J, shrA, shrB are integers
+ * 				B, C is are matrices, dim(B) = dim(C) = [I][J]
+ * 				A represents a scalar
+ *  
+ * Scalar Matrix Addition
+ * 		Multiply scalar A to all elements of B and store result in C
+ * shrA, shrB are scaling constants which are computed in irBuilder.py::getShrTreeSumAndDemoteParamsForMul(bw(A), sc(A), bw(B), sc(B), bw(C), sc(C), bw(C), sc(C), 1)
+ * 		shrA, shrB are used to alter the scales of matrices A and B so that the multiplication avoids overflows but maintains as many bits as possible
+ */
 void ScalarMul(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB);
 
+/**
+ * (only second signature is described as it encompasses the first method)
+ * 
+ * Dimensions:	A, B, C are matrices, dim(A) = [N][H][W][CI], dim(B) = [G][HF][WF][CINF][COUTF], dim(C) = [N][HOUT][WOUT][COUTF*G]
+ * 				computation of HOUT and WOUT is in type.py::visitConvolution()
+ * 				tmp is a vector, dim(tmp) = [HF*WF*CINF]; all other parameters are integers
+ * 
+ * Convolution
+ * Computes the convolution of batched and multi-channeled 2D image A with filter B, and stores the result in C, using tmp as a buffer
+ * Precomputed parameters: (computed using irBuilder.py::getShrTreeSumAndDemoteParamsForMul(bw(A), sc(A), bw(B), sc(B), bw(tmp), sc(tmp), bw(C), sc(C), HF*WF*CINF))
+ * 		shrA, shrB: dividing input matrices' elements to prevent overflows
+ * 		H1, H2 : parameters for Tree Sum, described below
+ * Raw parameters (directly passed from input code to function):
+ * 		HPADL, HPADR : Thickness of padding on top, bottom of the image
+ * 		WPADL, WPADR : Thickness of padding on left, right of the image
+ * 		HSTR, WSTR : Convolution horizontal, vertical stride
+ * 		HDL, WDL : Convolution horizontal, vertical dilations
+ * 		G : Number of groups
+ * 
+ * Tree Sum
+ * This is a technique used to sum up a long vector. To sum up a vector [a0, a1, a2, a3, a4, a5, a6...],
+ * in the first stage we first store a0 + a1 at index 0, a2 + a3 at index 2, a4 + a5 at index 4 and so on.
+ * Next stage we store index 0 + index 2 at index 0, index 4 + index 6 at index 4, and so on.
+ * We continue this till all elements are summed up at index 0.
+ * For fixed point arithmetic, in the first H1 (parameter) stages, we divide the addition result by 2 to avoid overflows,
+ * and in the next H2 (parameter) stages (assuming no overflows), we do not do the division to conserve prevision
+ */
 void Conv(MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
-
 void Convolution(MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
 
+/**
+ * (only describing first signature. second signature is the same, just without N and C dimensions)
+ * 
+ * Dimensions: 	A, B, X are matrices, dim(A) = dim(X) = [N][H][W][C], dim(B) = [C]
+ * 				N, H, W, C, shrA, shrB are integers
+ * 				add is a boolean. If true, A + B is computed. If false, A - B is computed
+ * 
+ * Channel-wise addition/subtraction
+ * For c over all channel (C) dimensions, add/subtract scalar B[c] to all values of A[:][:][:][c] and store in X. 
+ * shrA, shrB, shrC are scaling constants which are computed in irBuilder.py::getScaleForAddAndSub(sc(A), sc(B), sc(X))
+ *		shrA, shrB are used to bring matrices A and B to the same scale for addition 
+ *		shrC adjusts the output matrix if required to prevent overflows
+ */
 void AddOrSubCir4D(MYINT *A, const MYINT *B, MYINT *X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
-
 void AddOrSubCir2D(MYINT *A, const MYINT *B, MYINT *X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
 
+/**
+ * (describing first signature. second signature is the same, just without the N and C dimensions)
+ * 
+ * Dimensions: A is a matrix, dim(A) = [N][H][W][C]; N, H, W, C are integers
+ * 
+ * Relu
+ * Computes relu(A) for all elements and stores the result back in A
+ */
 void Relu4D(MYINT *A, MYINT N, MYINT H, MYINT W, MYINT C);
-
 void Relu2D(MYINT *A, MYINT H, MYINT W);
 
-void Maxpool(MYINT *A, MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADH, MYINT HPADR, MYINT WPADL, MYINT WPADR);
+/**
+ * Dimensions:	A, B are matrices, dim(A) = dim(B) = [N][H][W][C]; N, H, W, C are integers
+ * 				FH, FW, strideH, strideW, HPADL, HPADR, WPADL, WPADR
+ * 
+ * Maxpool
+ * Computes the maxpool of A and stores the result in B
+ * Raw parameters (directly passed from input code to function):
+ * 		FH, FW : Size of filter amongst which max is taken
+ * 		HPADL, HPADR : Thickness of padding on top, bottom of the image
+ * 		WPADL, WPADR : Thickness of padding on left, right of the image
+ * 		strideH, strideW : Convolution horizontal, vertical stride
+ */
+void Maxpool(MYINT *A, MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR);
 
+/**
+ * Dimensions:	A, B are matrices. dim(A) = dim(B) = [I][J]
+ * 				shrA, shrB are integers
+ * 
+ * Exponentiation
+ * Computes exponentiation of all elements in A (interpreted as a floating point value) to the base e and stores the result in B
+ * shrA, shrB are integers which satisfy the following:
+ * 		Dividing (float division) each element of matrix A by shrA gives the floating point matrix of A
+ * 		Dividing (float division) each element of matrix B by shrB gives the floating point matrix of B
+ */
 void Exp(MYINT *A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT *B);
 
+/**
+ * Dimensions:	A, B are matrices, dim(A) = dim(B) = [I][J]; div, add, sigmoid_limit, scale_in, scale_out are integers
+ * 
+ * Sigmoid activation
+ * Computes the sigmoid activation for all elements of A and stores the result in B
+ * scale_in, scale_out are integers which satisfy the following:
+ * 		Dividing (float division) each element of matrix A by scale_in gives the floating point matrix of A
+ * 		Dividing (float division) each element of matrix B by scale_out gives the floating point matrix of B
+ * 
+ * Ifn some cases, a piecewise linear approximation is used for sigmoid: min(max((X+2.0)/4.0, 0.0), 1.0) in floating point version
+ * In this case, 
+ * 		div represents the fixed point version of 4.0 in the expression 
+ * 		add represents the fixed point version of 2.0 in the expression
+ * 		sigmoid_limit represents the fixed point version of 1.0 in the expression
+ * If flag FLOATEXP is disabled, and if new table exponentiation (Util.py::class Config) is not used, this piecewise approximation is used. Else, the above 3 parameters are not used
+ */
 void Sigmoid(MYINT *A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_limit, MYINT scale_in, MYINT scale_out, MYINT *B);
 
+/**
+ * Dimensions:	A is a matrix, dim(A) = [I][J][K][L] or [I][J]; scale, I, J, (K, L) are integers
+ * 
+ * Scale adjustment methods
+ * AdjustScaleShr divides all elements of A by scale and stores the result in A
+ * AdjustScaleShl multiplies all elements of A by scale and stores the result in A
+ */
 void AdjustScaleShr(MYINT *A, MYINT I, MYINT J, MYINT scale);
 void AdjustScaleShl(MYINT *A, MYINT I, MYINT J, MYINT scale);
-
 void AdjustScaleShr(MYINT *A, MYINT I, MYINT J, MYINT K, MYINT L, MYINT scale);
 void AdjustScaleShl(MYINT *A, MYINT I, MYINT J, MYINT K, MYINT L, MYINT scale);
 
+/**
+ * Dimensions:	A, B is a matrix, dim(A) = dim(B) = [I][J], axis, I, J are integers
+ * 
+ * Reverse a Matrix
+ * Reverses the matrix A along axis (can be 0 for axis I and 1 for axis J) and stores the result in B
+ */
 void Reverse2(MYINT *A, MYINT axis, MYINT I, MYINT J, MYINT *B);
 
 //Templated Operations: For cases when Variable BitWidth is enabled
@@ -786,7 +1016,7 @@ void Relu2D(TypeA* A, MYINT H, MYINT W) {
 	return;
 }
 template<class TypeA, class TypeB>
-void Maxpool(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADH, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT demote) {
+void Maxpool(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT demote) {
 	MYITE HO = H / strideH;
 	MYITE WO = W / strideW;
 

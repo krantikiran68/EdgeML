@@ -755,7 +755,7 @@ void Relu2D(float *A, MYINT H, MYINT W)
 
 // B = maxpool(A)
 // A[N][H][W][C], B[N][H][W][C]
-void Maxpool(float *A, float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADH, MYINT HPADR, MYINT WPADL, MYINT WPADR)
+void Maxpool(float *A, float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR)
 {
 	MYITE HO = H / strideH;
 	MYITE WO = W / strideW;

@@ -77,7 +77,7 @@ class Predictor:
             else:
                 file.write("//#define FASTAPPROX\n")
             
-            if Util.useMathExp():
+            if Util.useMathExp() or (Util.useNewTableExp() and self.version == config.Version.floatt):
                 file.write("#define FLOATEXP\n")
             else:
                 file.write("//#define FLOATEXP\n")

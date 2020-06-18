@@ -299,11 +299,11 @@ class InferType(astVisitor.ASTVisitor):
         node.expr2.gamma = dict(node.gamma)
         fType = self.visit(node.expr2)
 
-        assert fType.dim == 4
-        [hf, wf, cin_, cout] = fType.shape
+        assert fType.dim == 5
+        [g, hf, wf, cin_, cout] = fType.shape
 
-        g = node.groups
         assert cin_ * g == cin
+        assert g == node.groups
         assert cout % g == 0
 
         assert hf % 2 == wf % 2 == 1, "Odd filter sizes supported"

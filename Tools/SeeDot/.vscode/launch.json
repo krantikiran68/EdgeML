@@ -20,7 +20,7 @@
                 "-d",
                 "cifar-multiclass",
                 "-m",
-                "disagree",
+                "red_disagree",
                 // "-t",
                 // "arduino",
                 "-n",

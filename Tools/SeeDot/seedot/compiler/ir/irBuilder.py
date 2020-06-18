@@ -1195,7 +1195,7 @@ class IRBuilder(ASTVisitor):
         [expr_treeSum, expr_out] = self.getTempVars(2)
 
         [N, H, W, Cin] = node.expr1.type.shape
-        [Hf, Wf, CinF, CoutF] = node.expr2.type.shape
+        [G, Hf, Wf, CinF, CoutF] = node.expr2.type.shape
 
         type_treeSum = Type.Tensor([Hf * Wf * CinF])
         type_out = node.type
@@ -1254,7 +1254,7 @@ class IRBuilder(ASTVisitor):
             IR.Int(node.stride[1]): "WSTR",
             IR.Int(node.dilation[0]): "HDL",
             IR.Int(node.dilation[1]): "WDL",
-            IR.Int(node.groups): "G",
+            IR.Int(G): "G",
             shr_A: "shrA",
             shr_B: "shrB",
             IR.Int(H1): "H1",
@@ -2263,6 +2263,7 @@ class IRBuilder(ASTVisitor):
         if expr_in.idf in self.demotedVarsList:
             self.demotedVarsList.append(expr_out.idf)
             self.demotedVarsOffsets[expr_out.idf] = 0
+            self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
         if forFloat():
             tanh_limit = IR.Float(config.tanhLimit)
@@ -2411,6 +2412,7 @@ class IRBuilder(ASTVisitor):
         if expr_in.idf in self.demotedVarsList:
             self.demotedVarsList.append(expr_out.idf)
             self.demotedVarsOffsets[expr_out.idf] = 0
+            self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
         # Scale sigmoid limit and other constants
         addition_int = self.getNumInFixedPoint(addition, scale_in)
@@ -2542,7 +2544,7 @@ class IRBuilder(ASTVisitor):
                                             IR.Int(2 ** diff_scale): "scale"
                 })]
 
-        comm = IR.Comment('tanh(' + expr_in.idf + ')')
+        comm = IR.Comment('sigmoid(' + expr_in.idf + ')')
 
         funcCall = IR.FuncCall("SigmoidNew%d<0>" %(bitwidth_in_raw), {
             expr_in: "A",

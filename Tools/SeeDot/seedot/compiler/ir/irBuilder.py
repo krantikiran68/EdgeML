@@ -1777,8 +1777,73 @@ class IRBuilder(ASTVisitor):
                 return self.visitNewTableSigmoid(node)
             else:
                 return self.visitSigmoid(node)
+        elif node.op == SeeDotParser.NORMALISEL2:
+            return self.visitNormaliseL2(node)        
         else:
             assert False
+
+    def visitNormaliseL2(self, node:AST.Func):
+        (prog_in, expr_in) = self.visit(node.expr)
+        intv_out = (0, 0)
+
+        expr_out = self.getTempVar()
+        bw_in, scale_in = self.getBitwidthAndScale(expr_in.idf)
+
+        bw_out = bw_in
+
+        # Calculating scale
+
+        # we downscale by (bw_in//2) while taking calculating square
+        sum_square_scale = 2*(scale_in + bw_in//2) 
+        
+        # y in binary search converges to 1/sqrt(sum_square)
+        # we choose y to have bitwidth of (bw_in/2) and scale of (bw_in/2 -1)
+        
+        # for the binary search this is the scale of y*y*sum_square
+        # cmp_val_scale = sum_square_scale + bw_in - 2
+        
+        # scale_out = scale_in + bw_in/2 + y_scale
+        # since we assume y_scale = (bw_in/2 - 1)
+        scale_out = scale_in + 1 
+        
+        # we propagate the demotion of bitwidth
+        if forFixed() and bw_out != config.wordLength:
+            self.demotedVarsList.append(expr_out.idf)
+            self.demotedVarsOffsets[expr_out.idf] = 0
+            self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
+
+        expr_in.inputVar = False
+
+        comment = IR.Comment("normaliseL2(" + expr_in.idf + ")")
+
+        # since NormaliseL2 does not get profiled now. We do not demote the output.
+        if node.type.dim == 4:
+            [N, H, W, C] = node.type.shape
+            funcCall = IR.FuncCall("NormaliseL2", {
+                expr_in: "A",
+                IR.Int(N): "N",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Int(C): "C",
+                IR.Int(scale_in): "scaleA", 
+                IR.Int(bw_in/2): "shrA"
+            })
+        else:
+            assert False, "inverseL2Norm only supports 4D tensors."
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in])
+
+        prog_func = IR.Prog([comment, funcCall])
+
+        prog_out = IRUtil.concatPrograms(prog_in, prog_func)
+
+        self.varDeclarations[expr_out.idf] = node.type
+        self.varScales[expr_out.idf] = scale_out
+        self.varIntervals[expr_out.idf] = (0, 0)
+
+        return (prog_out, expr_in)
+
 
     # out = relu(in)
     def visitRelu(self, node: AST.Func):
@@ -3397,6 +3462,7 @@ class IRBuilder(ASTVisitor):
     def getBitwidthAndScale(self, varName, native=False):
         if forFloat():
             return 0,0
+
         if self.ddsEnabled or self.vbwEnabled: #If not enabled, all scales statically computed
             # while varName not in self.independentBitwidthVars:
             #     if varName in self.substitutions:
@@ -3404,7 +3470,8 @@ class IRBuilder(ASTVisitor):
             #     else:
             #         break
             while varName in self.substitutions:
-                varName = self.substitutions[varName]
+                varName = self.substitutions[varName]      
+
         if varName in self.varScales.keys(): #Function has been called on this variable or scale has been manually computed
             if varName in self.demotedVarsList:
                 return config.wordLength // 2, self.varScales[varName]

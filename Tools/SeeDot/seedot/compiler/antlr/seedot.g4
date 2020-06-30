@@ -66,6 +66,7 @@ specialFunc	:	RELU
 			|	SGN
 			|	TANH
 			|	SIGMOID
+			|   NORMALISEL2
 			;
 
 ADD		:	'+' ;
@@ -82,6 +83,7 @@ ARGMAX	:	'argmax' ;
 SGN		:	'sgn'    ;
 TANH	:	'tanh'   ;
 SIGMOID	:	'sigmoid';
+NORMALISEL2: 'normaliseL2';
 
 Conv2d	:	'conv2d' ;
 Reshape	:	'reshape' ;

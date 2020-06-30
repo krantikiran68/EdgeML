@@ -168,7 +168,7 @@ class InferType(astVisitor.ASTVisitor):
         shape = [n1, outH, outW, n4]
         node.type = Tensor(shape)
 
-        return node.type
+        return node.type    
 
     # Indexing a tensor
     def visitIndex(self, node: ast.Index):
@@ -379,6 +379,9 @@ class InferType(astVisitor.ASTVisitor):
             assert isTensor(eType) and eType.dim == 2
             node.type = eType
 
+        elif node.op == seedotParser.seedotParser.NORMALISEL2:
+            assert isTensor(eType) and eType.dim == 4   
+            node.type = eType
         else:
             assert False
 

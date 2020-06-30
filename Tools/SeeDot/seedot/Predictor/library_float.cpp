@@ -789,6 +789,36 @@ void Maxpool(float *A, float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, M
 	return;
 }
 
+void NormaliseL2(float* A, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+
+				// calculate the sum square
+				float sumSquare = 0;
+				for (MYITE c = 0; c < C; c++) {
+						float tmp = A[n * H * W * C + h * W * C + w * C + c];
+						sumSquare += tmp*tmp;
+				}
+
+				// calculate the inverse square root of sumSquare
+
+				if(sumSquare == 0){
+					sumSquare = 1e-5;
+				}
+
+				float inverseNorm = 1/sqrt(sumSquare);
+
+				// multiply all elements by the 1/sqrt(sumSquare)
+				for (MYITE c = 0; c < C; c++) {
+						A[n * H * W * C + h * W * C + w * C + c]  = A[n * H * W * C + h * W * C + w * C + c]  *inverseNorm;  
+				}								
+			}
+		}
+	}
+	return;
+}
+
 // B = exp(A)
 void Exp(float *A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, float *B)
 {

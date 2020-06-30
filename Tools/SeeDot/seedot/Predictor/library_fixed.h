@@ -243,6 +243,18 @@ void Relu2D(MYINT *A, MYINT H, MYINT W);
  */
 void Maxpool(MYINT *A, MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR);
 
+
+/**
+ * Dimensions:	A is a tensor. dim(A) = [N][H][W][C]
+ * 				scaleA, shrA are integers
+ * 
+ * Exponentiation
+ * For each channel computes the L2 norm of all its elements. And divides each number in that channel by the norm.
+ */
+
+void NormaliseL2(MYINT* A, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA); 
+
+
 /**
  * Dimensions:	A, B are matrices. dim(A) = dim(B) = [I][J]
  * 				shrA, shrB are integers
@@ -1037,6 +1049,67 @@ void Maxpool(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, M
 					B[n * HO * WO * C + ho * WO * C + wo * C + c] = (TypeB)(max / demote);
 				}
 			}
+		}
+	}
+	return;
+}
+
+template<class TypeA>
+void NormaliseL2(TypeA* A, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+
+				// calculate the sum square
+				int32_t sumSquare = 0;
+				MYINT shrAdiv = (1<<shrA);
+
+				for (MYITE c = 0; c < C; c++) {
+#ifdef FASTAPPROX
+				MYINT tmp = (A[n * H * W * C + h * W * C + w * C + c] / shrAdiv);
+				sumSquare += tmp*tmp;
+#else           
+				int32_t tmp = A[n * H * W * C + h * W * C + w * C + c];
+				sumSquare += (((tmp*tmp)/shrAdiv)*shrAdiv);						
+#endif
+				}
+				
+
+				// calculate the inverse square root of sumSquare
+				MYINT yLow = 1;
+
+				// yHigh: A number of length shrA with all 1s in binary representation e.g. for shrA=8 --> y_high = 0b11111111
+				MYINT yHigh = (1<<shrA - 1);   
+
+				// one: value of 1 with same scale as y*y*sumSquare
+				// scale of sumSquare = 2*scale_in + 2*shrA
+				// since we assume scale of y = 1 - shrA
+				// scale of y*y*sumSquare =  2*scale_in + 2*shrA + 2(1-shrA) = 2*scale_in + 2
+				int32_t one = ( 1<< (-(2*scaleA + 2)) ); 
+
+				//binary search for the inverse square root 
+				while( yLow+1 < yHigh ){
+
+					//using int32_t sotherwise (y*y*sumSquare) will overflow
+					MYINT yMid = ((yHigh + yLow)>>1);
+
+					int64_t cmpValue = (int64_t)sumSquare*yMid*yMid;
+
+					if(cmpValue > one){
+						yHigh = yMid;	
+					}	
+					else {
+						yLow = yMid;
+					}
+				}
+				MYINT inverseNorm = yLow;
+
+
+				// multiply all elements by the 1/sqrt(sumSquare)
+				for (MYITE c = 0; c < C; c++) {
+						A[n * H * W * C + h * W * C + w * C + c]  = (A[n * H * W * C + h * W * C + w * C + c]  / shrAdiv)*inverseNorm;  
+				}
+			}				
 		}
 	}
 	return;

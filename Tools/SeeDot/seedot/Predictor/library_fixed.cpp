@@ -960,18 +960,22 @@ void NormaliseL2(MYINT* A, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYI
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
 		 
-
 				// calculate the sum square
 				int32_t sumSquare = 0;
 				MYINT shrAdiv = (1<<shrA);
 
 				for (MYITE c = 0; c < C; c++) {
-						MYINT tmp = (A[n * H * W * C + h * W * C + w * C + c] / shrAdiv);
-						sumSquare += tmp*tmp;
+#ifdef FASTAPPROX
+				MYINT tmp = (A[n * H * W * C + h * W * C + w * C + c] / shrAdiv);
+				sumSquare += tmp*tmp;
+#else           
+				int32_t tmp = A[n * H * W * C + h * W * C + w * C + c];
+				sumSquare += (((tmp*tmp)/shrAdiv)/shrAdiv);						
+#endif
 				}
 				
 
-				// calculate the inverse square roor of sumSquare
+				// calculate the inverse square root of sumSquare
 				MYINT yLow = 1;
 
 				// yHigh: A number of length shrA with all 1s in binary representation e.g. for shrA=8 --> y_high = 0b11111111

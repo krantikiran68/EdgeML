@@ -801,7 +801,12 @@ void NormaliseL2(float* A, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYI
 						sumSquare += tmp*tmp;
 				}
 
-				// calculate the inverse square roor of sumSquare
+				// calculate the inverse square root of sumSquare
+
+				if(sumSquare == 0){
+					sumSquare = 1e-5;
+				}
+
 				float inverseNorm = 1/sqrt(sumSquare);
 
 				// multiply all elements by the 1/sqrt(sumSquare)

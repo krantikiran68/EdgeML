@@ -288,6 +288,72 @@ class InferType(astVisitor.ASTVisitor):
         node.type = Tensor(shape)
         return node.type
 
+    # c = mbconv(a, filters, weights, biases, <params>)
+    def visitMbconv(self, node: ast.MBConv):
+        node.expr1.gamma = dict(node.gamma)
+        eType = self.visit(node.expr1)
+
+        assert eType.dim == 4
+        [N, H, W, Cin] = eType.shape
+
+        node.exprF1.gamma = dict(node.gamma)
+        F1Type = self.visit(node.exprF1)
+        node.exprF2.gamma = dict(node.gamma)
+        F2Type = self.visit(node.exprF2)
+        node.exprF3.gamma = dict(node.gamma)
+        F3Type = self.visit(node.exprF3)
+
+        node.exprW1.gamma = dict(node.gamma)
+        W1Type = self.visit(node.exprW1)
+        node.exprW2.gamma = dict(node.gamma)
+        W2Type = self.visit(node.exprW2)
+        node.exprW3.gamma = dict(node.gamma)
+        W3Type = self.visit(node.exprW3)
+
+        node.exprB1.gamma = dict(node.gamma)
+        B1Type = self.visit(node.exprB1)
+        node.exprB2.gamma = dict(node.gamma)
+        B2Type = self.visit(node.exprB2)
+        node.exprB3.gamma = dict(node.gamma)
+        B3Type = self.visit(node.exprB3)
+
+        assert F1Type.dim == F2Type.dim == F3Type.dim == 5
+        assert W1Type.dim == W2Type.dim == W3Type.dim == 1
+        assert B1Type.dim == B2Type.dim == B3Type.dim == 1
+
+        [F1g, F1hf, F1wf, F1cin, F1cout] = F1Type.shape
+        [F2g, F2hf, F2wf, F2cin, F2cout] = F2Type.shape
+        [F3g, F3hf, F3wf, F3cin, F3cout] = F3Type.shape
+
+        [W1] = W1Type.shape
+        [W2] = W2Type.shape
+        [W3] = W3Type.shape
+
+        [B1] = B1Type.shape
+        [B2] = B2Type.shape
+        [B3] = B3Type.shape
+
+        assert F1g == F3g == 1, "first and third filters must have only 1 group"
+        assert F2cin == F2cout == 1, "second filter must be depthwise separable with equal input and output size"
+        assert F1hf == F1wf == F2hf == F2wf == 1, "first and third filters must be 1x1 convolutions"
+
+        assert F2hf % 2 == F2wf % 2 == 1, "odd filter size necessary for second filter"
+
+        for i in range(0,4): 
+            assert node.padding[i] >= 0, "Padding cannot be negative"
+        assert node.stride[0] > 0 and node.stride[1] > 0, "Stride must be positive"
+
+        assert Cin == F1cin, "incompatible size of first filter"
+
+        assert F1cout == F2g, "first filter's output channels must match number of groups of second filter"
+        assert F1cout == F3cin, "first filter's output channels must match third filters input channel"
+
+        Hout = (H + node.padding[0] + node.padding[1] - F2hf) // node.stride[0] + 1
+        Wout = (W + node.padding[2] + node.padding[3] - F2wf) // node.stride[1] + 1
+
+        node.type = Tensor([N, Hout, Wout, F3cout])
+        return node.type
+
     # c = conv(a, b, <params>)
     def visitConvolution(self, node: ast.Convolution):
         node.expr1.gamma = dict(node.gamma)
@@ -304,7 +370,6 @@ class InferType(astVisitor.ASTVisitor):
 
         assert cin_ * g == cin
         assert g == node.groups
-        assert cout % g == 0
 
         assert hf % 2 == wf % 2 == 1, "Odd filter sizes supported"
 

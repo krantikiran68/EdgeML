@@ -817,7 +817,7 @@ void ScalarMul(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT
 }
 
 template<class TypeA, class TypeF1, class TypeB1W, class TypeB1B, class TypeF2, class TypeB2W, class TypeB2B, class TypeF3, class TypeB3W, class TypeB3B, class TypeC, class TypeX, class TypeT, class TypeU, class TypeUB1W, class TypeUB2W, class TypeUB3W> 
-void MBConv2(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, TypeB2W *BN2W, TypeB2B *BN2B, TypeF3 *F3, TypeB3W *BN3W, TypeB3B *BN3B, TypeC *C, TypeX *X, TypeT *T, TypeU *U, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE D1, MYITE D2, MYITE D3, TypeX SIX_1, TypeX SIX_2, TypeUB1W shr1, TypeUB1W shr2, TypeUB1W shr3, TypeUB2W shr4, TypeUB2W shr5, TypeUB2W shr6, TypeUB3W shr7, TypeUB3W shr8, TypeUB3W shr9) {
+void MBConv(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, TypeB2W *BN2W, TypeB2B *BN2B, TypeF3 *F3, TypeB3W *BN3W, TypeB3B *BN3B, TypeC *C, TypeX *X, TypeT *T, TypeU *U, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE D1, MYITE D2, MYITE D3, TypeX SIX_1, TypeX SIX_2, TypeUB1W shr1, TypeUB1W shr2, TypeUB1W shr3, TypeUB2W shr4, TypeUB2W shr5, TypeUB2W shr6, TypeUB3W shr7, TypeUB3W shr8, TypeUB3W shr9) {
 	MYITE HOffsetL = (HF/2) - HPADL;
 	MYITE WOffsetL = (WF/2) - WPADL;
 	MYITE HOffsetR = (HF/2) - HPADR;

@@ -38,9 +38,8 @@ expr:	IntConst								# int
 		'[' expr ',' expr ',' expr ']' ','
 		'[' expr ',' expr ',' expr ']' ','
 		'[' expr ',' expr ',' expr ']' ','
-		'{s' IntConst IntConst '}' ',' 
-		'{p' IntConst IntConst IntConst IntConst'}' ','
-		'{g'IntConst'}' ')' 					# mbconv
+		'{s' IntConst IntConst '}' ',' '{p' IntConst 
+		IntConst IntConst IntConst'}' ')' 		# mbconv
 
 	|	specialFunc '(' expr ')'				# func
 	|	Sum '(' Id '='

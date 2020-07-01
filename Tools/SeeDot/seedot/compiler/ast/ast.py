@@ -136,6 +136,23 @@ class Bop2(ASTNode):
         self.expr2 = expr2
 
 
+class MBConv(ASTNode):
+
+    def __init__(self, expr1, exprF1, exprW1, exprB1, exprF2, exprW2, exprB2, exprF3, exprW3, exprB3, stride, padding):
+        self.expr1 = expr1
+        self.exprF1 = exprF1
+        self.exprW1 = exprW1
+        self.exprB1 = exprB1
+        self.exprF2 = exprF2
+        self.exprW2 = exprW2
+        self.exprB2 = exprB2
+        self.exprF3 = exprF3
+        self.exprW3 = exprW3
+        self.exprB3 = exprB3
+        self.stride = stride
+        self.padding = padding
+        
+
 class Convolution(ASTNode):
 
     def __init__(self, expr1, expr2, stride, padding, dilation, groups):

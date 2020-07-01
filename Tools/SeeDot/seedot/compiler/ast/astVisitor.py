@@ -43,6 +43,8 @@ class ASTVisitor:
             return self.visitBop1(node)
         elif isinstance(node, AST.Bop2):
             return self.visitBop2(node)
+        elif isinstance(node, AST.MBConv):
+            return self.visitMbconv(node)
         elif isinstance(node, AST.Convolution):
             return self.visitConvolution(node)
         elif isinstance(node, AST.Func):

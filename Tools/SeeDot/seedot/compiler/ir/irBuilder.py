@@ -1186,6 +1186,53 @@ class IRBuilder(ASTVisitor):
 
         return (prog_out, expr_out)
 
+    # out = mbconv(A, filters, weights, biases, <params>)
+    def visitMbconv(self, node: AST.MBConv):
+
+        if not (self.ddsEnabled and self.vbwEnabled):
+            assert False, "MBConv is currently only supported if VBW and DDS modes are switched on"
+
+        (prog_in_A, expr_in_A) = self.visit(node.expr1)
+
+        (prog_in_F1, expr_in_F1) = self.visit(node.exprF1)
+        (prog_in_W1, expr_in_W1) = self.visit(node.exprW1)
+        (prog_in_B1, expr_in_B1) = self.visit(node.exprB1)
+
+        (prog_in_F2, expr_in_F2) = self.visit(node.exprF2)
+        (prog_in_W2, expr_in_W2) = self.visit(node.exprW2)
+        (prog_in_B2, expr_in_B2) = self.visit(node.exprB2)
+
+        (prog_in_F3, expr_in_F3) = self.visit(node.exprF3)
+        (prog_in_W3, expr_in_W3) = self.visit(node.exprW3)
+        (prog_in_B3, expr_in_B3) = self.visit(node.exprB3)
+
+        [expr_treeSum, expr_out] = self.getTempVars(2)
+        [expr_bufX, expr_bufT] = self.getTempVars(2)
+
+        [N, H, W, Cin] = node.expr1.type.shape
+        [_, _, _, _, Ct] = node.exprF1.type.shape
+        [_, Hf, Wf, _, _] = node.exprF2.type.shape
+        [_, _, _, _, Cout] = node.exprF3.type.shape
+
+        type_treeSum = Type.Tensor([np.max((Hf * Wf, Ct, Cout))])
+        type_out = node.type
+
+        bitwidth_in_A, scale_in_A = self.getBitwidthAndScale(expr_in_A.idf)
+
+        bitwidth_in_F1, scale_in_F1 = self.getBitwidthAndScale(expr_in_F1.idf)
+        bitwidth_in_W1, scale_in_W1 = self.getBitwidthAndScale(expr_in_W1.idf)
+        bitwidth_in_B1, scale_in_B1 = self.getBitwidthAndScale(expr_in_B1.idf)
+
+        bitwidth_in_F2, scale_in_F2 = self.getBitwidthAndScale(expr_in_F2.idf)
+        bitwidth_in_W2, scale_in_W2 = self.getBitwidthAndScale(expr_in_W2.idf)
+        bitwidth_in_B2, scale_in_B2 = self.getBitwidthAndScale(expr_in_B2.idf)
+
+        bitwidth_in_F3, scale_in_F3 = self.getBitwidthAndScale(expr_in_F3.idf)
+        bitwidth_in_W3, scale_in_W3 = self.getBitwidthAndScale(expr_in_W3.idf)
+        bitwidth_in_B3, scale_in_B3 = self.getBitwidthAndScale(expr_in_B3.idf)
+
+
+
     # out = conv(A, B, <params>)
     def visitConvolution(self, node: AST.Convolution):
         

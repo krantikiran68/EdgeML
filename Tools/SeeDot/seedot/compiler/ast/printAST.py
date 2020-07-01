@@ -92,12 +92,30 @@ class PrintAST(ASTVisitor):
         print(indent * node.printLevel, SeeDotParser.literalNames[node.op])
         self.visit(node.expr2)
 
+    def visitMbconv(self, node: AST.Convolution):
+        node.expr1.printLevel = node.exprF1.printLevel = node.exprW1.printLevel = node.exprB1.printLevel = node.exprF2.printLevel = node.exprW2.printLevel = node.exprB2.printLevel = node.exprF3.printLevel = node.exprW3.printLevel = node.exprB3.printLevel = node.printLevel + 1
+        print(indent * node.printLevel, "Mbconv(")
+        self.visit(node.expr1)
+        print(", FWB1:")
+        self.visit(node.exprF1)
+        self.visit(node.exprW1)
+        self.visit(node.exprB1)        
+        print(", FWB2:")
+        self.visit(node.exprF2)
+        self.visit(node.exprW2)
+        self.visit(node.exprB2)
+        print(", FWB3:")
+        self.visit(node.exprF3)
+        self.visit(node.exprW3)
+        self.visit(node.exprB3)
+        print(", ", node.stride, ',', node.padding, ")")
+
     def visitConvolution(self, node: AST.Convolution):
         node.expr1.printLevel = node.expr2.printLevel = node.printLevel + 1
         print(indent * node.printLevel, "conv(", )
         self.visit(node.expr1)
         self.visit(node.expr2)
-        print(indent * node.printLevel, node.stride, ',', node.padding, ',', node.dilation, ',',node.groups, ')')
+        print(",", node.stride, ',', node.padding, ',', node.dilation, ',',node.groups, ')')
 
     def visitFunc(self, node: AST.Func):
         print(indent * node.printLevel, SeeDotParser.literalNames[node.op])

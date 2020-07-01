@@ -1,4 +1,4 @@
-# Generated from .\seedot.g4 by ANTLR 4.8
+# Generated from ..\compiler\antlr\seedot.g4 by ANTLR 4.7
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .seedotParser import seedotParser
@@ -96,6 +96,11 @@ class seedotVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by seedotParser#convolution.
     def visitConvolution(self, ctx:seedotParser.ConvolutionContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by seedotParser#mbconv.
+    def visitMbconv(self, ctx:seedotParser.MbconvContext):
         return self.visitChildren(ctx)
 
 

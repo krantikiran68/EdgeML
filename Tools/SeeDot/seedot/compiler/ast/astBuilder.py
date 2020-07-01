@@ -104,6 +104,21 @@ class ASTBuilder(SeeDotVisitor):
         expr2 = self.visit(ctx.expr(1))
         return AST.Bop2(expr1, op, expr2)
 
+    def visitMbconv(self, ctx: SeeDotParser.MbconvContext):
+        expr1 = self.visit(ctx.expr(0))
+        exprF1 = self.visit(ctx.expr(1))
+        exprW1 = self.visit(ctx.expr(2))
+        exprB1 = self.visit(ctx.expr(3))
+        exprF2 = self.visit(ctx.expr(4))
+        exprW2 = self.visit(ctx.expr(5))
+        exprB2 = self.visit(ctx.expr(6))
+        exprF3 = self.visit(ctx.expr(7))
+        exprW3 = self.visit(ctx.expr(8))
+        exprB3 = self.visit(ctx.expr(9))
+        stride = [int(ctx.IntConst(i).getText()) for i in range(0, 2)]
+        padding = [int(ctx.IntConst(i).getText()) for i in range(2, 6)]
+        return AST.MBConv(expr1, exprF1, exprW1, exprB1, exprF2, exprW2, exprB2, exprF3, exprW3, exprB3, stride, padding)
+
     def visitConvolution(self, ctx: SeeDotParser.ConvolutionContext):
         expr1 = self.visit(ctx.expr(0))
         expr2 = self.visit(ctx.expr(1))

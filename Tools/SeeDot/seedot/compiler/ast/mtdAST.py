@@ -49,6 +49,19 @@ class MtdAST(ASTVisitor):
         self.visit(node.expr1, mtd)
         self.visit(node.expr2, mtd)
 
+    def visitMbconv(self, node: AST.MBConv, mtd: dict):
+        node.metadata.update(mtd)
+        self.visit(node.expr1, mtd)
+        self.visit(node.exprF1, mtd)
+        self.visit(node.exprW1, mtd)
+        self.visit(node.exprB1, mtd)
+        self.visit(node.exprF2, mtd)
+        self.visit(node.exprW2, mtd)
+        self.visit(node.exprB2, mtd)
+        self.visit(node.exprF3, mtd)
+        self.visit(node.exprW3, mtd)
+        self.visit(node.exprB3, mtd)
+
     def visitConvolution(self, node: AST.Convolution, mtd: dict):
         node.metadata.update(mtd)
         self.visit(node.expr1, mtd)

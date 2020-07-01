@@ -34,6 +34,13 @@ expr:	IntConst								# int
 		'{p' IntConst IntConst IntConst IntConst'}' ','
 		'{d' IntConst IntConst '}' ','
 		'{g'IntConst'}' ')' 					# convolution
+	|	MbConv '(' expr ',' 
+		'[' expr ',' expr ',' expr ']' ','
+		'[' expr ',' expr ',' expr ']' ','
+		'[' expr ',' expr ',' expr ']' ','
+		'{s' IntConst IntConst '}' ',' 
+		'{p' IntConst IntConst IntConst IntConst'}' ','
+		'{g'IntConst'}' ')' 					# mbconv
 
 	|	specialFunc '(' expr ')'				# func
 	|	Sum '(' Id '='
@@ -85,6 +92,7 @@ TANH	:	'tanh'   ;
 SIGMOID	:	'sigmoid';
 NORMALISEL2: 'normaliseL2';
 
+MbConv	:	'mbconv' ;
 Conv2d	:	'conv2d' ;
 Reshape	:	'reshape' ;
 Maxpool	:	'maxpool' ;

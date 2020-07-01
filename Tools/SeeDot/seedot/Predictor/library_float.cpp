@@ -513,6 +513,142 @@ void ScalarMul(float *A, float *B, float *C, MYINT I, MYINT J, MYINT shrA, MYINT
 	return;
 }
 
+// C = MBConv(A, params)
+// A[N][H][W][Cin], C[N][Hout][Wout][Cout]
+// X[HF][W][Ct], T[Ct], U[max(Ct, Cin, HF*WF)]
+// F1[1][1][1][Cin][Ct], BN1W[Ct], BN1B[Ct]
+// F2[Ct][HF][WF][1][1], BN2W[Ct], BN2B[Ct]
+// F3[1][1][1][Ct][Cout], BN3W[Cout], BN3B[Cout]
+void MBConv2(float *A, const float *F1, const float *BN1W, const float *BN1B, const float *F2, const float *BN2W, const float *BN2B, const float *F3, const float *BN3W, const float *BN3B, float *C, float *X, float *T, float *U, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE D1, MYITE D2, MYITE D3) {
+	MYITE HOffsetL = (HF/2) - HPADL;
+	MYITE WOffsetL = (WF/2) - WPADL;
+	MYITE HOffsetR = (HF/2) - HPADR;
+	MYITE WOffsetR = (WF/2) - WPADR;
+
+	for (MYITE n = 0; n < N; n++) {
+		MYITE margin = HOffsetL + (HF / 2 + 1) - HSTR > 0 ? HOffsetL + (HF/2 + 1) - HSTR : 0; 
+		MYITE nstart = HOffsetL - (HF/2) < 0 ? 0 : HOffsetL - (HF/2);
+		for (MYITE i = nstart; i < margin; i++) {
+			for (MYITE j = 0; j < W; j++) {
+				for (MYITE k = 0; k < Ct; k++) {
+					for (MYITE l = 0; l < Cin; l++) {
+						U[l] = A[n * H * W * Cin + i * W * Cin + j * Cin + l] * F1[l * Ct + k];
+					}
+					MYITE totalEle = Cin;
+					MYITE count = Cin;
+					MYITE depth = 0;
+
+					while (depth < D1) {
+						for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
+							if (p < count / 2)
+								U[p] = U[2 * p] / 2 + U[(2 * p) + 1] / 2;
+							else if ((p == (count / 2)) && ((count % 2) == 1))
+								U[p] = U[2 * p] / 2;
+							else
+								U[p] = 0;
+						}
+						count = (count + 1) / 2;
+						depth++;
+					}
+	
+					X[i * W * Ct + j * Ct + k] = (U[0] + BN1B[k]) * BN1W[k];
+					X[i * W * Ct + j * Ct + k] = X[i * W * Ct + j * Ct + k] < 0.0 ? 0.0 : X[i * W * Ct + j * Ct + k];
+					X[i * W * Ct + j * Ct + k] = X[i * W * Ct + j * Ct + k] > 6.0 ? 6.0 : X[i * W * Ct + j * Ct + k];
+				}
+			}
+		}
+
+		for (MYITE h = HOffsetL, hout = 0; h < H - HOffsetR; hout++, h += HSTR) {
+
+			for (MYITE i = 0; i < HSTR; i++) {
+				for (MYITE j = 0; j < W; j++) {
+					for (MYITE k = 0; k < Ct; k++) {
+						MYITE iRed = (i + margin + hout * HSTR) % HF, iFull = i + margin + hout * HSTR;
+						X[iRed * W * Ct + j * Ct + k] = 0.0
+						for l in range(Cin):
+							float a = iFull < H ? A[n * H * W * Cin + iFull * W * Cin + j * Cin + l] : 0.0;
+							U[l] = a * F1[l * Ct + k];
+						MYITE totalEle = Cin;
+						MYITE count = Cin;
+						MYITE depth = 0;
+
+						while (depth < D1) {
+							for (MYITE p = 0; p <(totalEle / 2 + 1); p++) {
+								if (p < count / 2)
+									U[p] = U[2 * p] / 2 + U[(2 * p) + 1] / 2;
+								else if ((p == (count / 2)) && ((count % 2) == 1))
+									U[p] = U[2 * p] / 2;
+								else
+									U[p] = 0;
+							}
+							count = (count + 1) / 2;
+							depth++;
+						}
+						X[iRed * W * Ct + j * Ct + k] = (U[0] + BN1B[k]) * BN1W[k];
+						X[iRed * W * Ct + j * Ct + k] = X[iRed * W * Ct + j * Ct + k] < 0.0 ? 0.0 : X[iRed * W * Ct + j * Ct + k];
+						X[iRed * W * Ct + j * Ct + k] = X[iRed * W * Ct + j * Ct + k] > 6.0 ? 6.0 : X[iRed * W * Ct + j * Ct + k];
+					}
+				}
+			}
+
+			for (MYITE w = WOffsetL, wout = 0; w < W - WOffsetR; w += WSTR, wout++) {
+				for (MYITE g = 0; g < Ct; g++) {
+					MYITE counter = 0;
+					for (MYITE hf = -(HF/2); hf <= (HF/2); hf++) {
+						for (MYITE wf = -(WF/2); wf <= (WF/2); wf++) {
+							float x = (((h + hf) < 0) || ((h + hf) >= H) || ((w + wf) < 0) || ((w + wf) >= W)) ? 0.0 : X[((h + hf) % HF) * W * Ct + (w + wf) * Ct + g];
+							float b = F2[gg * HF * WF + (hf + HF/2) * WF + (wf + WF/2)];
+							U[counter] = x * b;
+							counter++;
+						}
+					}
+					MYITE totalEle = HF * WF;
+					MYITE count = HF * WF;
+					MYITE depth = 0;
+
+					while (depth < D2) {
+						for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
+							if (p < count / 2)
+								U[p] = U[2 * p] / 2 + U[(2 * p) + 1] / 2;
+							else if ((p == (count / 2)) && ((count % 2) == 1))
+								U[p] = U[2 * p] / 2;
+							else
+								U[p] = 0;
+						}
+						count = (count + 1) / 2;
+						depth++;
+					}
+					T[g] = (U[0] + BN2B[g]) * BN2W[g];
+					T[g] = T[g] < 0.0 ? 0.0 : T[g];
+					T[g] = T[g] > 6.0 ? 6.0 : T[g];
+				}
+
+				for (MYITE i = 0; i < Cout; i++) {
+					for (MYITE g = 0; g < Ct; g++) 
+						U[g] = T[g] * F3[g * Cout + i];
+					MYITE totalEle = Ct;
+					MYITE count = Ct;
+					MYITE depth = 0;
+
+					while (depth < D3) {
+						for (MYITE p = 0; p<(totalEle / 2 + 1); p++) {
+							if (p < count / 2)
+								U[p] = U[2 * p] / 2 + U[(2 * p) + 1] / 2;
+							else if ((p == (count / 2 )) && ((count % 2) == 1))
+								U[p] = U[2 * p] / 2;
+							else
+								U[p] = 0;
+						}
+						count = (count + 1) / 2;
+						depth++;
+					}
+					C[n * Hout * Wout * Cout + hout * Wout * Cout + wout * Cout + i] = (U[0] + BN3B[i]) * BN3W[i];
+				}
+			}
+		}
+	}
+}
+
 // C = conv(A, B, <params>)
 // A[N][H][W][CIN], B[G][HF][WF][CINF][COUTF], C[N][HOUT][WOUT][COUTF*G]
 void Convolution(float *A, const float *B, float *C, float *tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {

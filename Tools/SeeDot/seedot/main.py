@@ -182,6 +182,14 @@ class Main:
         if execMap == None:
             return False, True
 
+        if self.algo == config.Algo.test:
+            for codeId, sf in codeIdToScaleFactorMap.items():
+                self.accuracy[sf] = execMap[str(codeId)]
+                print("The 95th percentile error for sf" + str(sf) + "with respect to dataset is " + str(execMap[str(codeId)][0]) + "%.")
+                print("The 95th percentile error for sf" + str(sf) + "with respect to float execution is " + str(execMap[str(codeId)][1]) + "%.")     
+                print("\n")
+            return True,False    
+                
         if codeIdToScaleFactorMap is not None:
             for codeId, sf in codeIdToScaleFactorMap.items():
                 self.accuracy[sf] = execMap[str(codeId)]
@@ -406,6 +414,10 @@ class Main:
                 return (-a[1][1], -a[1][2], a[1][0]) if not config.higherOffsetBias else (-max(5, a[1][1]), -a[0])
             elif self.maximisingMetric == config.MaximisingMetric.reducedDisagreements:
                 return (-a[1][2], -a[1][1], a[1][0]) if not config.higherOffsetBias else (-max(5, a[1][2]), -a[0])
+            elif self.algo == config.Algo.test:
+                # minimize regression error
+                return (-a[1][0])    
+
         x = [(i, self.accuracy[i]) for i in self.accuracy]
         x.sort(key=getMaximisingMetricValue, reverse=True)
         sorted_accuracy = x[:5]

@@ -42,8 +42,9 @@ class Algo:
     protonn = "protonn"
     rnn = "rnn"
     rnnpool = "rnnpool"
+    test = "test"
     default = [bonsai, protonn]
-    all = [bonsai, lenet, protonn, rnn, rnnpool]
+    all = [bonsai, lenet, protonn, rnn, rnnpool, test]
 
 
 class Version:

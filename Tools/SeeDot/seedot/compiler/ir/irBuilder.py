@@ -1189,7 +1189,7 @@ class IRBuilder(ASTVisitor):
     # out = mbconv(A, filters, weights, biases, <params>)
     def visitMbconv(self, node: AST.MBConv):
 
-        if not (self.ddsEnabled and self.vbwEnabled):
+        if not (config.ddsEnabled and config.vbwEnabled):
             assert False, "MBConv is currently only supported if VBW and DDS modes are switched on"
 
         (prog_in_A, expr_in_A) = self.visit(node.expr1)
@@ -1214,8 +1214,10 @@ class IRBuilder(ASTVisitor):
         [_, Hf, Wf, _, _] = node.exprF2.type.shape
         [_, _, _, _, Cout] = node.exprF3.type.shape
 
-        type_treeSum = Type.Tensor([np.max((Hf * Wf, Ct, Cout))])
+        type_treeSum = Type.Tensor([np.max((Hf * Wf, Ct, Cin))])
         type_out = node.type
+        type_bufX = Type.Tensor([Hf, W, Ct])
+        type_bufT = Type.Tensor([Ct])
 
         bitwidth_in_A, scale_in_A = self.getBitwidthAndScale(expr_in_A.idf)
 
@@ -1327,8 +1329,84 @@ class IRBuilder(ASTVisitor):
         expr_bufT.inputVar = False
         expr_bufX.inputVar = False
 
+        bitwidth_u = np.max((bitwidth_u1_code, bitwidth_u2_code, bitwidth_u3_code))
         if forFixed():
-            self.varsForBitwidth[expr_treeSum.idf] = bitwidth_temp
+            self.varsForBitwidth[expr_treeSum.idf] = bitwidth_u
+            self.varsForBitwidth[expr_bufT.idf] = bitwidth_t
+            self.varsForBitwidth[expr_bufX.idf] = bitwidth_x
+
+        comment = IR.Comment('MBconv(%s)' %(expr_in_A.idf))
+
+        argMap = {
+            expr_in_A: "A",
+            expr_in_F1: "F1",
+            expr_in_W1: "BN1W",
+            expr_in_B1: "BN1B",
+            expr_in_F2: "F2",
+            expr_in_W2: "BN2W",
+            expr_in_B2: "BN2B",
+            expr_in_F3: "F3",
+            expr_in_W3: "BN3W",
+            expr_in_B3: "BN3B",
+            expr_out: "C",
+            expr_bufX: "X",
+            expr_bufT: "T",
+            expr_treeSum: "U",
+            IR.Int(N): "N",
+            IR.Int(H): "H",
+            IR.Int(W): "W",
+            IR.Int(Cin): "Cin",
+            IR.Int(Ct): "Ct",
+            IR.Int(Hf): "HF",
+            IR.Int(Wf): "WF",
+            IR.Int(Cout): "Cout",
+            IR.Int(type_out.shape[1]): "Hout",
+            IR.Int(type_out.shape[2]): "Wout",
+            IR.Int(node.padding[0]): "HPADL",
+            IR.Int(node.padding[1]): "HPADR",
+            IR.Int(node.padding[2]): "WPADL",
+            IR.Int(node.padding[3]): "WPADR",
+            IR.Int(node.stride[0]): "HSTR",
+            IR.Int(node.stride[1]): "WSTR",
+            IR.Int(d1): "D1",
+            IR.Int(d2): "D2",
+            IR.Int(d3): "D3",
+            IR.Int(six1): "SIX_1",
+            IR.Int(six2): "SIX_2",
+            IR.Int(shr1): "shr1",
+            IR.Int(shr2): "shr2",
+            IR.Int(shr3): "shr3",
+            IR.Int(shr4): "shr4",
+            IR.Int(shr5): "shr5",
+            IR.Int(shr6): "shr6",
+            IR.Int(shr7): "shr7",
+            IR.Int(shr8): "shr8",
+            IR.Int(shr9): "shr9"
+        }
+
+        templateArgs = ("<int%s_t" + (", int%s_t" * 16) + ">") % (bitwidth_in_A, bitwidth_in_F1, bitwidth_in_W1, bitwidth_in_B1, bitwidth_in_F2, bitwidth_in_W2, bitwidth_in_B2, bitwidth_in_F3, bitwidth_in_W3, bitwidth_in_B3, bitwidth_out, bitwidth_x, bitwith_t, bitwidth_u, bitwidth_mul1_code, bitwidth_mul2_code, bitwidth_mul3_code)
+        localVarMap = {expr_treeSum.idf: type_treeSum, expr_bufX.idf: type_bufX, expr_bufT.idf: type_bufT}
+        if forFloat():
+            funcCall = IR.FuncCall("MBConv", argMap, localVarMap)
+        else:
+            funcCall = IR.FuncCall("MBConv" + templateArgs, argMap, localVarMap)
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in_A, expr_in_F1, expr_in_F2, expr_in_F3, expr_in_W1, expr_in_W2, expr_in_W3, expr_in_B1, expr_in_B2, expr_in_B3, expr_out, expr_treeSum, expr_bufX, expr_bufT])
+
+        profile = IR.FuncCall("Profile4", {
+            expr_out: "Var",
+            IR.Int(N): "I",
+            IR.Int(type_out.shape[1]): "J",
+            IR.Int(type_out.shape[2]): "K",
+            IR.Int(Cout): "L",
+            IR.String(expr_out): "VarName"
+        })
+        if forFloat():
+            self.independentVars.append(expr_out.idf)
+
+        prog_mbconv = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_F1, prog_in_W1, prog_in_B1, prog_in_F2, prog_in_W2, prog_in_B2, prog_in_F3, prog_in_W3, prog_in_B3, prog_mbconv)
 
     # out = conv(A, B, <params>)
     def visitConvolution(self, node: AST.Convolution):

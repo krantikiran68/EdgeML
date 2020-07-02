@@ -1231,7 +1231,104 @@ class IRBuilder(ASTVisitor):
         bitwidth_in_W3, scale_in_W3 = self.getBitwidthAndScale(expr_in_W3.idf)
         bitwidth_in_B3, scale_in_B3 = self.getBitwidthAndScale(expr_in_B3.idf)
 
+        bitwidth_out, scale_out = self.getBitwidthAndScale(expr_out.idf)
 
+        #stage 1 step 1: multiplication
+        bitwidth_u1 = bitwidth_in_A + bitwidth_in_F1 - 1
+        bitwidth_u1_code = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_F1, "mul")
+        scale_u1 = scale_in_A + scale_in_F1
+
+        #stage 1 step 2: tree sum
+        d1 = int(np.ceil(np.log2(Cin)))
+        scale_u1 = scale_u1 + d1
+
+        #stage 1 step 3: batch normalisation and relu6
+        bitwidth_add1 = np.max((bitwidth_in_A, bitwidth_in_F1))
+        bitwidth_reduction = bitwidth_u1 - bitwidth_add1
+        scale_add1 = np.max((scale_u1, scale_in_B1)) + 1 + bitwidth_reduction
+        shr1 = 2 ** (scale_add1 - scale_u1)
+        shr2 = 2 ** (scale_add1 - scale_in_B1)
+        bitwidth_mul1 = bitwidth_add1 + bitwidth_in_W1 - 1
+        bitwidth_mul1_code = self.getTempBitwidth(bitwidth_add1, bitwidth_in_W1, "mul")
+        scale_mul1 = scale_add1 + scale_in_W1
+        bitwidth_x = np.max((bitwidth_add1, bitwidth_in_W1))
+        bitwidth_reduction = bitwidth_mul1 - bitwidth_x
+        scale_x = scale_mul1 + bitwidth_reduction
+        shr3 = 2 ** bitwidth_reduction
+        six1 = 6 * (2 ** -scale_x)
+
+        #stage 2 step 4: multiplication
+        bitwidth_u2 = bitwidth_x + bitwidth_in_F2 - 1
+        bitwidth_u2_code = self.getTempBitwidth(bitwidth_x, bitwidth_in_F2, "mul")
+        scale_u2 = scale_x + scale_in_F2
+
+        #stage 2 step 5: tree sum
+        d2 = int(np.ceil(np.log2(Hf * Wf)))
+        scale_u2 = scale_u2 + d2
+
+        #stage 2 step 6: batch normalisation and relu6
+        bitwidth_add2 = np.max((bitwidth_x, bitwidth_in_F2))
+        bitwidth_reduction = bitwidth_u2 - bitwidth_add2
+        scale_add2 = np.max((scale_u2, scale_in_B2)) + 1 + bitwidth_reduction
+        shr4 = 2 ** (scale_add2 - scale_u2)
+        shr5 = 2 ** (scale_add2 - scale_in_B2)
+        bitwidth_mul2 = bitwidth_add2 + bitwidth_in_W2 - 1
+        bitwidth_mul2_code = self.getTempBitwidth(bitwidth_add2, bitwidth_in_W2, "mul")
+        scale_mul2 = scale_add2 + scale_in_W2
+        bitwidth_t = np.max((bitwidth_add2, bitwidth_in_W2))
+        bitwidth_reduction = bitwidth_mul2 - bitwidth_t
+        scale_t = scale_mul2 + bitwidth_reduction
+        shr6 = 2 ** bitwidth_reduction
+        six2 = 6 * (2 ** -scale_t)
+
+        #stage 3 step 7: multiplication
+        bitwidth_u3 = bitwidth_t + bitwidth_in_F3 - 1
+        bitwidth_u3_code = self.getTempBitwidth(bitwidth_t, bitwidth_in_F3, "mul")
+        scale_u3 = scale_t + scale_in_F3
+
+        #stage 3 step 8: tree sum
+        d3 = int(np.ceil(np.log2(Ct)))
+        scale_u3 = scale_u3 + d3
+
+        #stage 3 step 9: batch normalisation
+        bitwidth_add3 = np.max((bitwidth_t, bitwidth_in_F3))
+        bitwidth_reduction = bitwidth_u3 - bitwidth_add3
+        scale_add3 = np.max((scale_u3, scale_in_B3)) + 1 + bitwidth_reduction
+        shr7 = 2 ** (scale_add3 - scale_u3)
+        shr8 = 2 ** (scale_add3 - scale_in_B3)
+        bitwidth_mul3 = bitwidth_add3 + bitwidth_in_W3 - 1
+        bitwidth_mul3_code = self.getTempBitwidth(bitwidth_add3, bitwidth_in_W3, "mul")
+        scale_mul3 = scale_add3 + scale_in_W3
+        scale_reduction = scale_out - scale_mul3
+        shr9 = 2 ** scale_reduction
+
+        shr1 = self.formatShr(shr1)
+        shr2 = self.formatShr(shr2)
+        shr3 = self.formatShr(shr3)
+        shr4 = self.formatShr(shr4)
+        shr5 = self.formatShr(shr5)
+        shr6 = self.formatShr(shr6)
+        shr7 = self.formatShr(shr7)
+        shr8 = self.formatShr(shr8)
+        shr9 = self.formatShr(shr9)
+
+        expr_in_A.inputVar = False
+        expr_in_F1.inputVar = False
+        expr_in_W1.inputVar = False
+        expr_in_B1.inputVar = False
+        expr_in_F2.inputVar = False
+        expr_in_W2.inputVar = False
+        expr_in_B2.inputVar = False
+        expr_in_F3.inputVar = False
+        expr_in_W3.inputVar = False
+        expr_in_B3.inputVar = False
+        expr_out.inputVar = False
+        expr_treeSum.inputVar = False
+        expr_bufT.inputVar = False
+        expr_bufX.inputVar = False
+
+        if forFixed():
+            self.varsForBitwidth[expr_treeSum.idf] = bitwidth_temp
 
     # out = conv(A, B, <params>)
     def visitConvolution(self, node: AST.Convolution):
@@ -1318,6 +1415,7 @@ class IRBuilder(ASTVisitor):
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out, expr_treeSum])
 
+        #TODO: ARE THESE ARGUMENTS CORRECT???????
         profile = IR.FuncCall("Profile4", {
             expr_out: "Var",
             IR.Int(N): "I",

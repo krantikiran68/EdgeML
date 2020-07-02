@@ -24,7 +24,7 @@ import seedot.compiler.converter.protonn as protonn
 class Dataset:
     common = ["cifar-binary", "cr-binary", "cr-multiclass", "curet-multiclass",
               "letter-multiclass", "mnist-binary", "mnist-multiclass",
-              "usps-binary", "usps-multiclass", "ward-binary"]
+              "usps-binary", "usps-multiclass", "ward-binary", "test"]
     extra = ["cifar-multiclass", "dsa", "eye-binary", "farm-beats",
              "interactive-cane", "spectakoms", "usps10", "whale-binary",
              "HAR-2", "HAR-6", "MNIST-10", "Google-12", "Google-30", "Wakeword-2",

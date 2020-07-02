@@ -148,11 +148,11 @@ def get_seedot_filter_shape_order(filter_shape):
 		# Case when spatial dimension is 2
 		# inverse of [3, 4, 2, 1] is [4, 3, 1, 2]
 		# return ([filter_shape[2], filter_shape[3], filter_shape[1], filter_shape[0]], [4, 3, 1, 2])	
-		return ([filter_shape[2], filter_shape[3], filter_shape[1], filter_shape[0]], [3, 4, 2, 1])			
+		return ([1, filter_shape[2], filter_shape[3], filter_shape[1], filter_shape[0]], [3, 4, 2, 1])			
 	else:
 		# Casr when spatial dimension is 3 	
 		# inverse of [3, 4, 5, 2, 1] is [5, 4, 1, 2, 3]
-		return ([filter_shape[2], filter_shape[3], filter_shape[4], filter_shape[1], filter_shape[0]], [3, 4, 5, 2, 1])		
+		return ([1, filter_shape[2], filter_shape[3], filter_shape[4], filter_shape[1], filter_shape[0]], [3, 4, 5, 2, 1])		
 
 def get_onnx_order(onnx_shape):
 	if(len(onnx_shape) == 4):

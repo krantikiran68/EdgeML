@@ -1235,6 +1235,9 @@ class IRBuilder(ASTVisitor):
 
         bitwidth_out, scale_out = self.getBitwidthAndScale(expr_out.idf)
 
+        shr = [0 for i in range(9)]
+        shl = [0 for i in range(9)]
+
         if not forFloat():
             #stage 1 step 1: multiplication
             bitwidth_u1 = bitwidth_in_A + bitwidth_in_F1 - 1
@@ -1249,8 +1252,8 @@ class IRBuilder(ASTVisitor):
             bitwidth_add1 = np.max((bitwidth_in_A, bitwidth_in_F1))
             bitwidth_reduction = config.wordLength - bitwidth_add1
             _, scale_add1 = self.getBitwidthAndScale(expr_out.idf + "t1") + bitwidth_reduction 
-            shr1 = (scale_add1 - scale_u1)
-            shr2 = (scale_add1 - scale_in_B1)
+            shr[0] = (scale_add1 - scale_u1)
+            shr[1] = (scale_add1 - scale_in_B1)
             bitwidth_mul1 = bitwidth_add1 + bitwidth_in_W1 - 1
             bitwidth_mul1_code = self.getTempBitwidth(bitwidth_add1, bitwidth_in_W1, "mul")
             scale_mul1 = scale_add1 + scale_in_W1
@@ -1258,7 +1261,7 @@ class IRBuilder(ASTVisitor):
             bitwidth_x = np.max((bitwidth_add1, bitwidth_in_W1))
             scale_x = -bitwidth_x + 1 + (np.floor(np.log2(6)) + 1)
             scale_shift = scale_x - scale_mul1
-            shr3 = scale_shift
+            shr[2] = scale_shift
 
             #stage 2 step 4: multiplication
             bitwidth_u2 = bitwidth_x + bitwidth_in_F2 - 1
@@ -1273,8 +1276,8 @@ class IRBuilder(ASTVisitor):
             bitwidth_add2 = np.max((bitwidth_x, bitwidth_in_F2))
             bitwidth_reduction = config.wordLength - bitwidth_add2
             _, scale_add2 = self.getBitwidthAndScale(expr_out.idf + "t3") + bitwidth_reduction 
-            shr4 = (scale_add2 - scale_u2)
-            shr5 = (scale_add2 - scale_in_B2)
+            shr[3] = (scale_add2 - scale_u2)
+            shr[4] = (scale_add2 - scale_in_B2)
             bitwidth_mul2 = bitwidth_add2 + bitwidth_in_W2 - 1
             bitwidth_mul2_code = self.getTempBitwidth(bitwidth_add2, bitwidth_in_W2, "mul")
             scale_mul2 = scale_add2 + scale_in_W2
@@ -1282,7 +1285,7 @@ class IRBuilder(ASTVisitor):
             bitwidth_t = np.max((bitwidth_add2, bitwidth_in_W2))
             scale_t = -bitwidth_t + 1 + (np.floor(np.log2(6)) + 1)
             scale_shift = scale_t - scale_mul2
-            shr6 = scale_shift
+            shr[5] = scale_shift
 
             #stage 3 step 7: multiplication
             bitwidth_u3 = bitwidth_t + bitwidth_in_F3 - 1
@@ -1297,41 +1300,37 @@ class IRBuilder(ASTVisitor):
             bitwidth_add3 = np.max((bitwidth_t, bitwidth_in_F3))
             bitwidth_reduction = config.wordLength - bitwidth_add3
             _, scale_add3 = self.getBitwidthAndScale(expr_out.idf + "t5") + bitwidth_reduction 
-            shr7 = (scale_add3 - scale_u3)
-            shr8 = (scale_add3 - scale_in_B3)
+            shr[6] = (scale_add3 - scale_u3)
+            shr[7] = (scale_add3 - scale_in_B3)
             bitwidth_mul3 = bitwidth_add3 + bitwidth_in_W3 - 1
             bitwidth_mul3_code = self.getTempBitwidth(bitwidth_add3, bitwidth_in_W3, "mul")
             scale_mul3 = scale_add3 + scale_in_W3
             scale_reduction = scale_out - scale_mul3
-            shr9 = scale_reduction
+            shr[8] = scale_reduction
 
-            shl1 = -shr1
-            shl2 = -shr2
-            shl3 = -shr3
-            shl4 = -shr4
-            shl5 = -shr5
-            shl6 = -shr6
-            shl7 = -shr7
-            shl8 = -shr8
-            shl9 = -shr9
+            for i in range(9):
+                shl[i] = -shr[i]
 
         else:
             d1 = int(np.ceil(np.log2(Cin)))
             d2 = int(np.ceil(np.log2(Hf * Wf)))
             d3 = int(np.ceil(np.log2(Ct)))
             # In floating point mode, none of the following values matter. Setting them to dummy values
-            shr1 = shr2 = shr3 = shr4 = shr5 = shr6 = shr7 = shr8 = shr9 = 1
+            for i in range(9):
+                shr[i] = 1
+                shl[i] = 1
             bitwidth_u = bitwidth_t = bitwidth_x = config.wordLength
             bitwidth_u1_code = bitwidth_u2_code = bitwidth_u3_code = config.wordLength
             six1 = six2 = 6.0
             scale_x = scale_t = 0
 
-        if shr1 >= 0:
-            shr1 = self.formatShr(shr1, saturate=False)
-            shl1 = self.formatShr(0)
-        else:
-            shr1 = self.formatShr(0)
-            shl1 = self.formatShr(shl1, saturate=False)
+        for i in range(9):
+            if shr[i] >= 0:
+                shr[i] = self.formatShr(shr[i], saturate=False)
+                shl[i] = self.formatShr(0)
+            else:
+                shr[i] = self.formatShr(0)
+                shl[i] = self.formatShr(shl[i], saturate=False)
 
         expr_in_A.inputVar = False
         expr_in_F1.inputVar = False
@@ -1392,16 +1391,13 @@ class IRBuilder(ASTVisitor):
             IR.Int(d3): "D3",
             IR.Int(six1): "SIX_1",
             IR.Int(six2): "SIX_2",
-            shr1: "shr1",
-            shr2: "shr2",
-            shr3: "shr3",
-            shr4: "shr4",
-            shr5: "shr5",
-            shr6: "shr6",
-            shr7: "shr7",
-            shr8: "shr8",
-            shr9: "shr9"
         }
+
+        for i in range(9):
+            argMap[shr[i]] = "shr%d" % (i+1)
+        
+        for i in range(9):
+            argMap[shl[i]] = "shl%d" % (i+1)
 
         if forFloat():
             argMap[IR.String(expr_out)] = "name"

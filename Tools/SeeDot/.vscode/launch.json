@@ -14,17 +14,17 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "lenet",
+                "mbconv",
                 "-v",
                 "fixed",
                 "-d",
-                "cifar-multiclass",
+                "wider-mbconv",
                 "-m",
-                "red_disagree",
+                "disagree",
                 // "-t",
                 // "arduino",
                 "-n",
-                "1"
+                "28800"
             ]
         }
     ]

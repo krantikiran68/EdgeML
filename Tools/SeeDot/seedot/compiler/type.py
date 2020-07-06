@@ -335,7 +335,7 @@ class InferType(astVisitor.ASTVisitor):
 
         assert F1g == F3g == 1, "first and third filters must have only 1 group"
         assert F2cin == F2cout == 1, "second filter must be depthwise separable with equal input and output size"
-        assert F1hf == F1wf == F2hf == F2wf == 1, "first and third filters must be 1x1 convolutions"
+        assert F1hf == F1wf == F3hf == F3wf == 1, "first and third filters must be 1x1 convolutions"
 
         assert F2hf % 2 == F2wf % 2 == 1, "odd filter size necessary for second filter"
 

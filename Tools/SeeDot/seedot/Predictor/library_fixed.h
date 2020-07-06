@@ -817,7 +817,7 @@ void ScalarMul(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT
 }
 
 template<class TypeA, class TypeF1, class TypeB1W, class TypeB1B, class TypeF2, class TypeB2W, class TypeB2B, class TypeF3, class TypeB3W, class TypeB3B, class TypeC, class TypeX, class TypeT, class TypeU, class TypeUB1W, class TypeUB2W, class TypeUB3W> 
-void MBConv(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, TypeB2W *BN2W, TypeB2B *BN2B, TypeF3 *F3, TypeB3W *BN3W, TypeB3B *BN3B, TypeC *C, TypeX *X, TypeT *T, TypeU *U, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE D1, MYITE D2, MYITE D3, TypeX SIX_1, TypeX SIX_2, TypeUB1W shr1, TypeUB1W shr2, TypeUB1W shr3, TypeUB2W shr4, TypeUB2W shr5, TypeUB2W shr6, TypeUB3W shr7, TypeUB3W shr8, TypeUB3W shr9) {
+void MBConv(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, TypeB2W *BN2W, TypeB2B *BN2B, TypeF3 *F3, TypeB3W *BN3W, TypeB3B *BN3B, TypeC *C, TypeX *X, TypeT *T, TypeU *U, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE D1, MYITE D2, MYITE D3, TypeUB1W SIX_1, TypeUB2W SIX_2, TypeUB1W shr1, TypeUB1W shr2, TypeUB1W shr3, TypeUB2W shr4, TypeUB2W shr5, TypeUB2W shr6, TypeUB3W shr7, TypeUB3W shr8, TypeUB3W shr9) {
 	MYITE HOffsetL = (HF/2) - HPADL;
 	MYITE WOffsetL = (WF/2) - WPADL;
 	MYITE HOffsetR = (HF/2) - HPADR;
@@ -849,9 +849,10 @@ void MBConv(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, Type
 						depth++;
 					}
 	
-					X[i * W * Ct + j * Ct + k] = (((TypeUB1W)(U[0] / shr1 + BN1B[k] / shr2)) * ((TypeUB1W)BN1W[k])) / shr3;
-					X[i * W * Ct + j * Ct + k] = X[i * W * Ct + j * Ct + k] < 0 ? 0 : X[i * W * Ct + j * Ct + k];
-					X[i * W * Ct + j * Ct + k] = X[i * W * Ct + j * Ct + k] > SIX_1 ? SIX_1 : X[i * W * Ct + j * Ct + k];
+					TypeUB1W x = (((TypeUB1W)(U[0] / shr1 + BN1B[k] / shr2)) * ((TypeUB1W)BN1W[k]));
+					x = x < 0 ? 0 : x;
+					x = x > SIX_1 ? SIX_1 : x;
+					X[i * W * Ct + j * Ct + k] =  x / shr3;
 				}
 			}
 		}
@@ -862,10 +863,11 @@ void MBConv(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, Type
 				for (MYITE j = 0; j < W; j++) {
 					for (MYITE k = 0; k < Ct; k++) {
 						MYITE iRed = (i + margin + hout * HSTR) % HF, iFull = i + margin + hout * HSTR;
-						X[iRed * W * Ct + j * Ct + k] = 0.0
-						for l in range(Cin):
+						X[iRed * W * Ct + j * Ct + k] = 0.0;
+						for (MYITE l = 0; l < Cin; l++) {
 							TypeA a = iFull < H ? A[n * H * W * Cin + iFull * W * Cin + j * Cin + l] : 0.0;
 							U[l] = ((TypeU) a) * ((TypeU) F1[l * Ct + k]);
+						}
 						MYITE totalEle = Cin;
 						MYITE count = Cin;
 						MYITE depth = 0;
@@ -882,9 +884,11 @@ void MBConv(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, Type
 							count = (count + 1) / 2;
 							depth++;
 						}
-						X[iRed * W * Ct + j * Ct + k] = (((TypeUB1W)(U[0] / shr1 + BN1B[k] / shr2)) * ((TypeUB1W)BN1W[k])) / shr3;
-						X[iRed * W * Ct + j * Ct + k] = X[iRed * W * Ct + j * Ct + k] < 0 ? 0 : X[iRed * W * Ct + j * Ct + k];
-						X[iRed * W * Ct + j * Ct + k] = X[iRed * W * Ct + j * Ct + k] > SIX_1 ? SIX_1 : X[iRed * W * Ct + j * Ct + k];
+
+						TypeUB1W x = (((TypeUB1W)(U[0] / shr1 + BN1B[k] / shr2)) * ((TypeUB1W)BN1W[k]));
+						x = x < 0 ? 0 : x;
+						x = x > SIX_1 ? SIX_1 : x;
+						X[iRed * W * Ct + j * Ct + k] =  x / shr3;
 					}
 				}
 			}
@@ -916,9 +920,11 @@ void MBConv(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, Type
 						count = (count + 1) / 2;
 						depth++;
 					}
-					T[g] = (((TypeUB2W)(U[0] / shr4 + BN2B[g] / shr5)) * ((TypeUB2W)BN2W[g])) / shr6;
-					T[g] = T[g] < 0 ? 0 : T[g];
-					T[g] = T[g] > SIX_2 ? SIX_2 : T[g];
+
+					TypeUB2W x = (((TypeUB2W)(U[0] / shr4 + BN2B[g] / shr5)) * ((TypeUB2W)BN2W[g]));
+					x = x < 0 ? 0 : x;
+					x = x > SIX_2 ? SIX_2 : x;
+					T[g] =  x / shr6;
 				}
 
 				for (MYITE i = 0; i < Cout; i++) {

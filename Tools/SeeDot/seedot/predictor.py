@@ -153,7 +153,7 @@ class Predictor:
         exeFile = os.path.join("./Predictor")
         args = [exeFile, self.version, self.datasetType, self.problemType, str(self.numOutputs)]
 
-        logFile = os.path.join(self.outputDir, "exec.txt")
+        logFile = os.path.join(self.outputDir, "exec.txt") 
         with open(logFile, 'w') as file:
             process = subprocess.call(args, stdout=file, stderr=subprocess.STDOUT)
 

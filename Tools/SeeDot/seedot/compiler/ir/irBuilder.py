@@ -1235,84 +1235,103 @@ class IRBuilder(ASTVisitor):
 
         bitwidth_out, scale_out = self.getBitwidthAndScale(expr_out.idf)
 
-        #stage 1 step 1: multiplication
-        bitwidth_u1 = bitwidth_in_A + bitwidth_in_F1 - 1
-        bitwidth_u1_code = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_F1, "mul")
-        scale_u1 = scale_in_A + scale_in_F1
+        if not forFloat():
+            #stage 1 step 1: multiplication
+            bitwidth_u1 = bitwidth_in_A + bitwidth_in_F1 - 1
+            bitwidth_u1_code = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_F1, "mul")
+            scale_u1 = scale_in_A + scale_in_F1
 
-        #stage 1 step 2: tree sum
-        d1 = int(np.ceil(np.log2(Cin)))
-        scale_u1 = scale_u1 + d1
+            #stage 1 step 2: tree sum
+            d1 = int(np.ceil(np.log2(Cin)))
+            scale_u1 = scale_u1 + d1
 
-        #stage 1 step 3: batch normalisation and relu6
-        bitwidth_add1 = np.max((bitwidth_in_A, bitwidth_in_F1))
-        bitwidth_reduction = bitwidth_u1 - bitwidth_add1
-        scale_add1 = np.max((scale_u1, scale_in_B1)) + 1 + bitwidth_reduction
-        shr1 = 2 ** (scale_add1 - scale_u1)
-        shr2 = 2 ** (scale_add1 - scale_in_B1)
-        bitwidth_mul1 = bitwidth_add1 + bitwidth_in_W1 - 1
-        bitwidth_mul1_code = self.getTempBitwidth(bitwidth_add1, bitwidth_in_W1, "mul")
-        scale_mul1 = scale_add1 + scale_in_W1
-        bitwidth_x = np.max((bitwidth_add1, bitwidth_in_W1))
-        bitwidth_reduction = bitwidth_mul1 - bitwidth_x
-        scale_x = scale_mul1 + bitwidth_reduction
-        shr3 = 2 ** bitwidth_reduction
-        six1 = 6 * (2 ** -scale_x)
+            #stage 1 step 3: batch normalisation and relu6
+            bitwidth_add1 = np.max((bitwidth_in_A, bitwidth_in_F1))
+            bitwidth_reduction = config.wordLength - bitwidth_add1
+            _, scale_add1 = self.getBitwidthAndScale(expr_out.idf + "t1") + bitwidth_reduction 
+            shr1 = (scale_add1 - scale_u1)
+            shr2 = (scale_add1 - scale_in_B1)
+            bitwidth_mul1 = bitwidth_add1 + bitwidth_in_W1 - 1
+            bitwidth_mul1_code = self.getTempBitwidth(bitwidth_add1, bitwidth_in_W1, "mul")
+            scale_mul1 = scale_add1 + scale_in_W1
+            six1 = 6 * (2 ** -scale_mul1)
+            bitwidth_x = np.max((bitwidth_add1, bitwidth_in_W1))
+            scale_x = -bitwidth_x + 1 + (np.floor(np.log2(6)) + 1)
+            scale_shift = scale_x - scale_mul1
+            shr3 = scale_shift
 
-        #stage 2 step 4: multiplication
-        bitwidth_u2 = bitwidth_x + bitwidth_in_F2 - 1
-        bitwidth_u2_code = self.getTempBitwidth(bitwidth_x, bitwidth_in_F2, "mul")
-        scale_u2 = scale_x + scale_in_F2
+            #stage 2 step 4: multiplication
+            bitwidth_u2 = bitwidth_x + bitwidth_in_F2 - 1
+            bitwidth_u2_code = self.getTempBitwidth(bitwidth_x, bitwidth_in_F2, "mul")
+            scale_u2 = scale_x + scale_in_F2
 
-        #stage 2 step 5: tree sum
-        d2 = int(np.ceil(np.log2(Hf * Wf)))
-        scale_u2 = scale_u2 + d2
+            #stage 2 step 5: tree sum
+            d2 = int(np.ceil(np.log2(Hf * Wf)))
+            scale_u2 = scale_u2 + d2
 
-        #stage 2 step 6: batch normalisation and relu6
-        bitwidth_add2 = np.max((bitwidth_x, bitwidth_in_F2))
-        bitwidth_reduction = bitwidth_u2 - bitwidth_add2
-        scale_add2 = np.max((scale_u2, scale_in_B2)) + 1 + bitwidth_reduction
-        shr4 = 2 ** (scale_add2 - scale_u2)
-        shr5 = 2 ** (scale_add2 - scale_in_B2)
-        bitwidth_mul2 = bitwidth_add2 + bitwidth_in_W2 - 1
-        bitwidth_mul2_code = self.getTempBitwidth(bitwidth_add2, bitwidth_in_W2, "mul")
-        scale_mul2 = scale_add2 + scale_in_W2
-        bitwidth_t = np.max((bitwidth_add2, bitwidth_in_W2))
-        bitwidth_reduction = bitwidth_mul2 - bitwidth_t
-        scale_t = scale_mul2 + bitwidth_reduction
-        shr6 = 2 ** bitwidth_reduction
-        six2 = 6 * (2 ** -scale_t)
+            #stage 2 step 6: batch normalisation and relu6
+            bitwidth_add2 = np.max((bitwidth_x, bitwidth_in_F2))
+            bitwidth_reduction = config.wordLength - bitwidth_add2
+            _, scale_add2 = self.getBitwidthAndScale(expr_out.idf + "t3") + bitwidth_reduction 
+            shr4 = (scale_add2 - scale_u2)
+            shr5 = (scale_add2 - scale_in_B2)
+            bitwidth_mul2 = bitwidth_add2 + bitwidth_in_W2 - 1
+            bitwidth_mul2_code = self.getTempBitwidth(bitwidth_add2, bitwidth_in_W2, "mul")
+            scale_mul2 = scale_add2 + scale_in_W2
+            six2 = 6 * (2 ** -scale_mul2)
+            bitwidth_t = np.max((bitwidth_add2, bitwidth_in_W2))
+            scale_t = -bitwidth_t + 1 + (np.floor(np.log2(6)) + 1)
+            scale_shift = scale_t - scale_mul2
+            shr6 = scale_shift
 
-        #stage 3 step 7: multiplication
-        bitwidth_u3 = bitwidth_t + bitwidth_in_F3 - 1
-        bitwidth_u3_code = self.getTempBitwidth(bitwidth_t, bitwidth_in_F3, "mul")
-        scale_u3 = scale_t + scale_in_F3
+            #stage 3 step 7: multiplication
+            bitwidth_u3 = bitwidth_t + bitwidth_in_F3 - 1
+            bitwidth_u3_code = self.getTempBitwidth(bitwidth_t, bitwidth_in_F3, "mul")
+            scale_u3 = scale_t + scale_in_F3
 
-        #stage 3 step 8: tree sum
-        d3 = int(np.ceil(np.log2(Ct)))
-        scale_u3 = scale_u3 + d3
+            #stage 3 step 8: tree sum
+            d3 = int(np.ceil(np.log2(Ct)))
+            scale_u3 = scale_u3 + d3
 
-        #stage 3 step 9: batch normalisation
-        bitwidth_add3 = np.max((bitwidth_t, bitwidth_in_F3))
-        bitwidth_reduction = bitwidth_u3 - bitwidth_add3
-        scale_add3 = np.max((scale_u3, scale_in_B3)) + 1 + bitwidth_reduction
-        shr7 = 2 ** (scale_add3 - scale_u3)
-        shr8 = 2 ** (scale_add3 - scale_in_B3)
-        bitwidth_mul3 = bitwidth_add3 + bitwidth_in_W3 - 1
-        bitwidth_mul3_code = self.getTempBitwidth(bitwidth_add3, bitwidth_in_W3, "mul")
-        scale_mul3 = scale_add3 + scale_in_W3
-        scale_reduction = scale_out - scale_mul3
-        shr9 = 2 ** scale_reduction
+            #stage 3 step 9: batch normalisation
+            bitwidth_add3 = np.max((bitwidth_t, bitwidth_in_F3))
+            bitwidth_reduction = config.wordLength - bitwidth_add3
+            _, scale_add3 = self.getBitwidthAndScale(expr_out.idf + "t5") + bitwidth_reduction 
+            shr7 = (scale_add3 - scale_u3)
+            shr8 = (scale_add3 - scale_in_B3)
+            bitwidth_mul3 = bitwidth_add3 + bitwidth_in_W3 - 1
+            bitwidth_mul3_code = self.getTempBitwidth(bitwidth_add3, bitwidth_in_W3, "mul")
+            scale_mul3 = scale_add3 + scale_in_W3
+            scale_reduction = scale_out - scale_mul3
+            shr9 = scale_reduction
 
-        shr1 = self.formatShr(shr1)
-        shr2 = self.formatShr(shr2)
-        shr3 = self.formatShr(shr3)
-        shr4 = self.formatShr(shr4)
-        shr5 = self.formatShr(shr5)
-        shr6 = self.formatShr(shr6)
-        shr7 = self.formatShr(shr7)
-        shr8 = self.formatShr(shr8)
-        shr9 = self.formatShr(shr9)
+            shl1 = -shr1
+            shl2 = -shr2
+            shl3 = -shr3
+            shl4 = -shr4
+            shl5 = -shr5
+            shl6 = -shr6
+            shl7 = -shr7
+            shl8 = -shr8
+            shl9 = -shr9
+
+        else:
+            d1 = int(np.ceil(np.log2(Cin)))
+            d2 = int(np.ceil(np.log2(Hf * Wf)))
+            d3 = int(np.ceil(np.log2(Ct)))
+            # In floating point mode, none of the following values matter. Setting them to dummy values
+            shr1 = shr2 = shr3 = shr4 = shr5 = shr6 = shr7 = shr8 = shr9 = 1
+            bitwidth_u = bitwidth_t = bitwidth_x = config.wordLength
+            bitwidth_u1_code = bitwidth_u2_code = bitwidth_u3_code = config.wordLength
+            six1 = six2 = 6.0
+            scale_x = scale_t = 0
+
+        if shr1 >= 0:
+            shr1 = self.formatShr(shr1, saturate=False)
+            shl1 = self.formatShr(0)
+        else:
+            shr1 = self.formatShr(0)
+            shl1 = self.formatShr(shl1, saturate=False)
 
         expr_in_A.inputVar = False
         expr_in_F1.inputVar = False
@@ -1373,22 +1392,25 @@ class IRBuilder(ASTVisitor):
             IR.Int(d3): "D3",
             IR.Int(six1): "SIX_1",
             IR.Int(six2): "SIX_2",
-            IR.Int(shr1): "shr1",
-            IR.Int(shr2): "shr2",
-            IR.Int(shr3): "shr3",
-            IR.Int(shr4): "shr4",
-            IR.Int(shr5): "shr5",
-            IR.Int(shr6): "shr6",
-            IR.Int(shr7): "shr7",
-            IR.Int(shr8): "shr8",
-            IR.Int(shr9): "shr9"
+            shr1: "shr1",
+            shr2: "shr2",
+            shr3: "shr3",
+            shr4: "shr4",
+            shr5: "shr5",
+            shr6: "shr6",
+            shr7: "shr7",
+            shr8: "shr8",
+            shr9: "shr9"
         }
 
-        templateArgs = ("<int%s_t" + (", int%s_t" * 16) + ">") % (bitwidth_in_A, bitwidth_in_F1, bitwidth_in_W1, bitwidth_in_B1, bitwidth_in_F2, bitwidth_in_W2, bitwidth_in_B2, bitwidth_in_F3, bitwidth_in_W3, bitwidth_in_B3, bitwidth_out, bitwidth_x, bitwith_t, bitwidth_u, bitwidth_mul1_code, bitwidth_mul2_code, bitwidth_mul3_code)
+        if forFloat():
+            argMap[IR.String(expr_out)] = "name"
+
         localVarMap = {expr_treeSum.idf: type_treeSum, expr_bufX.idf: type_bufX, expr_bufT.idf: type_bufT}
         if forFloat():
             funcCall = IR.FuncCall("MBConv", argMap, localVarMap)
         else:
+            templateArgs = ("<int%s_t" + (", int%s_t" * 16) + ">") % (bitwidth_in_A, bitwidth_in_F1, bitwidth_in_W1, bitwidth_in_B1, bitwidth_in_F2, bitwidth_in_W2, bitwidth_in_B2, bitwidth_in_F3, bitwidth_in_W3, bitwidth_in_B3, bitwidth_out, bitwidth_x, bitwidth_t, bitwidth_u, bitwidth_mul1_code, bitwidth_mul2_code, bitwidth_mul3_code)
             funcCall = IR.FuncCall("MBConv" + templateArgs, argMap, localVarMap)
 
         self.counter_inst += 1
@@ -1407,6 +1429,29 @@ class IRBuilder(ASTVisitor):
 
         prog_mbconv = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_F1, prog_in_W1, prog_in_B1, prog_in_F2, prog_in_W2, prog_in_B2, prog_in_F3, prog_in_W3, prog_in_B3, prog_mbconv)
+
+        self.varDeclarations[expr_out.idf] = type_out
+        self.varDeclarations[expr_treeSum.idf] = type_treeSum
+        self.varDeclarations[expr_bufX.idf] = type_bufX
+        self.varDeclarations[expr_bufT.idf] = type_bufT
+        
+        self.varScales[expr_out.idf] = scale_out
+        self.varScales[expr_treeSum.idf] = 0 #its variable across three stages
+        self.varScales[expr_bufX.idf] = scale_x
+        self.varScales[expr_bufT.idf] = scale_t
+        
+        self.varIntervals[expr_out.idf] = (0, 0)
+        self.varIntervals[expr_treeSum.idf] = (0, 0)
+        self.varIntervals[expr_bufX.idf] = (0, 0)
+        self.varIntervals[expr_bufT.idf] = (0, 0)
+
+        self.log.print(comment.msg)
+        self.log.print("\tInput1: scale = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_in_A.idf],) + self.varIntervals[expr_in_A.idf]))
+        self.log.print("\tOutput: scale = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_out.idf],) + self.varIntervals[expr_out.idf]))
+
+        return (prog_out, expr_out)
 
     # out = conv(A, B, <params>)
     def visitConvolution(self, node: AST.Convolution):
@@ -3538,14 +3583,14 @@ class IRBuilder(ASTVisitor):
         self.counter_iter += 1
         return var
 
-    def formatShr(self, num, shrt=getShrType()):
+    def formatShr(self, num, shrt=getShrType(), saturate=True):
         assert num >= 0
     
         shrType = shrt #getShrType()
         if shrType == "shr" or shrType == "shr+":
             return IR.Int(num)
         elif shrType == "div":
-            if num >= config.wordLength - 1:
+            if num >= config.wordLength - 1 and saturate:
                 return IR.Int(IR.Int.max())
             else:
                 intVar = IR.Int(2 ** num)

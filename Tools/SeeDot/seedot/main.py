@@ -312,6 +312,7 @@ class Main:
                 print("No difference in iteration %d Stage 2 and iteration %d Stage 1. Stopping search"%(fixedPointCounter-1, fixedPointCounter))
                 break 
 
+            #break
             if config.vbwEnabled:
                 assert config.ddsEnabled, "Currently VBW on maxscale not supported"
                 if config.wordLength != 16:

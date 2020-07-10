@@ -67,6 +67,7 @@ binOp	:	MUL
 		|	SUBCIR
 		;
 specialFunc	:	RELU
+			|	RELU6
 			|	EXP
 			|	ARGMAX
 			|	SGN
@@ -83,13 +84,14 @@ MULCIR	:	'<*>' ;
 ADDCIR	:	'<+>' ;
 SUBCIR	:	'<->' ;
 
-RELU	:	'relu'   ;
-EXP		:	'exp'    ;
-ARGMAX	:	'argmax' ;
-SGN		:	'sgn'    ;
-TANH	:	'tanh'   ;
-SIGMOID	:	'sigmoid';
-NORMALISEL2: 'normaliseL2';
+RELU	:	'relu'			;
+RELU6	:	'relu6'			;
+EXP		:	'exp'    		;
+ARGMAX	:	'argmax' 		;
+SGN		:	'sgn'    		;
+TANH	:	'tanh'   		;
+SIGMOID	:	'sigmoid'		;
+NORMALISEL2: 'normaliseL2'	;
 
 MbConv	:	'mbconv' ;
 Conv2d	:	'conv2d' ;

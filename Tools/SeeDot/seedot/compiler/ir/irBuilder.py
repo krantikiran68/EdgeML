@@ -2025,6 +2025,8 @@ class IRBuilder(ASTVisitor):
     def visitFunc(self, node: AST.Func):
         if node.op == SeeDotParser.RELU:
             return self.visitRelu(node)
+        if node.op == SeeDotParser.RELU6:
+            return self.visitRelu6(node)
         elif node.op == SeeDotParser.EXP:
             return self.visitExp(node)
         elif node.op == SeeDotParser.ARGMAX:
@@ -2149,6 +2151,69 @@ class IRBuilder(ASTVisitor):
         prog_out = IRUtil.concatPrograms(prog_in, prog_relu)
 
         self.varIntervals[expr_in.idf] = intv_out
+
+        return (prog_out, expr_in)
+
+        # out = relu(in)
+
+    def visitRelu6(self, node: AST.Func):
+
+        (prog_in, expr_in) = self.visit(node.expr)
+        intv_out = (0, 0)
+
+        type_in = node.expr.type
+
+        expr_out = self.getTempVar()
+
+        # TODO: Temp computation for POC. Remove later.
+        bitwidth_in, scale_in = self.getBitwidthAndScale(expr_in.idf)
+        bitwidth_out, scale_out = bitwidth_in, scale_in
+        
+        if expr_in.idf in self.demotedVarsList:
+            self.demotedVarsList.append(expr_out.idf)
+            self.demotedVarsOffsets[expr_out.idf] = 0
+            self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
+
+        divide = 2 ** (scale_out - scale_in)
+        cap = 6 * (2 ** -scale_in)
+
+        expr_in.inputVar = False
+
+        comment = IR.Comment("relu6(" + expr_in.idf + ")")
+
+        assert node.type.dim = 4, "Relu6 only implemented for 4 dimensional tensors"
+        [N, H, W, C] = node.type.shape
+        funcCall = IR.FuncCall("Relu6", {
+            expr_in: "A",
+            expr_out: "B",
+            IR.Int(N): "N",
+            IR.Int(H): "H",
+            IR.Int(W): "W",
+            IR.Int(C): "C",
+            IR.Int(cap): "six",
+            IR.Int(divide): "div"
+        }) if not self.vbwEnabled else IR.FuncCall("Relu6<int%d_t, int%d_t>" % (bitwidth_in, bitwidth_out), {
+            expr_in: "A",
+            expr_out: "B",
+            IR.Int(N): "N",
+            IR.Int(H): "H",
+            IR.Int(W): "W",
+            IR.Int(C): "C",
+            IR.Int(cap): "six",
+            IR.Int(divide): "div"
+        })
+
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in])
+
+        prog_relu = IR.Prog([comment, funcCall])
+
+        prog_out = IRUtil.concatPrograms(prog_in, prog_relu)
+
+        self.varIntervals[expr_out.idf] = intv_out
+        self.varDeclarations[expr_out.idf] = type_in
+        self.varScales[expr_out.idf] = scale_out
 
         return (prog_out, expr_in)
 

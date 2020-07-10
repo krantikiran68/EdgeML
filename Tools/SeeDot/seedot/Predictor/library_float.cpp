@@ -878,6 +878,34 @@ void Relu4D(float *A, MYINT N, MYINT H, MYINT W, MYINT C)
 	return;
 }
 
+// B = relu6(A)
+// A[N][H][W][C]
+void Relu4D(float *A, float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div)
+{
+
+	for (MYITE n = 0; n < N; n++)
+	{
+		for (MYITE h = 0; h < H; h++)
+		{
+			for (MYITE w = 0; w < W; w++)
+			{
+				for (MYITE c = 0; c < C; c++)
+				{
+					float a = A[n * H * W * C + h * W * C + w * C + c];
+					if (a < 0)
+						a = 0;
+					if (a > 6)
+						a = 6;
+
+					B[n * H * W * C + h * W * C + w * C + c] = a;
+				}
+			}
+		}
+	}
+
+	return;
+}
+
 // A = relu(A)
 // A[N][H][W][C]
 void Relu2D(float *A, MYINT H, MYINT W)

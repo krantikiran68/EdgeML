@@ -46,6 +46,8 @@ void Relu4D(float *A, MYINT N, MYINT H, MYINT W, MYINT C);
 
 void Relu2D(float *A, MYINT H, MYINT W);
 
+void Relu6(float *A, float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div);
+
 void Maxpool(float *A, float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR);
 
 void Exp(float *A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, float *B);

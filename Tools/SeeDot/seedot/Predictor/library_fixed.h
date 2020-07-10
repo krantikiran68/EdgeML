@@ -228,6 +228,7 @@ void AddOrSubCir2D(MYINT *A, const MYINT *B, MYINT *X, MYINT H, MYINT W, MYINT s
  */
 void Relu4D(MYINT *A, MYINT N, MYINT H, MYINT W, MYINT C);
 void Relu2D(MYINT *A, MYINT H, MYINT W);
+void Relu6(MYINT *A, MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div);
 
 /**
  * Dimensions:	A, B are matrices, dim(A) = dim(B) = [N][H][W][C]; N, H, W, C are integers
@@ -1152,6 +1153,26 @@ void Relu4D(TypeA* A, MYINT N, MYINT H, MYINT W, MYINT C) {
 	}
 	return;
 }
+
+template<class TypeA, class TypeB>
+void Relu6(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, TypeA six, TypeA div) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					TypeA a = A[n * H * W * C + h * W * C + w * C + c];
+					if (a < 0)
+						a = 0;
+					if (a > six)
+						a = six;
+					B[n * H * W * C + h * W * C + w * C + c] = (TypeB) (a / div);
+				}
+			}
+		}
+	}
+	return;
+}
+
 template<class TypeA>
 void Relu2D(TypeA* A, MYINT H, MYINT W) {
 	for (MYITE h = 0; h < H; h++) {
@@ -1164,6 +1185,7 @@ void Relu2D(TypeA* A, MYINT H, MYINT W) {
 	}
 	return;
 }
+
 template<class TypeA, class TypeB>
 void Maxpool(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT demote) {
 	MYITE HO = H / strideH;

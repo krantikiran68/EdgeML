@@ -418,6 +418,11 @@ class InferType(astVisitor.ASTVisitor):
             assert isTensor(eType) and eType.dim >= 1
             node.type = eType
 
+        # relu(e)
+        elif node.op == seedotParser.seedotParser.RELU6:
+            assert isTensor(eType) and eType.dim >= 1
+            node.type = eType
+
         # exp(e)
         elif node.op == seedotParser.seedotParser.EXP:
             # Currently supports exp() on a tensor with single element
@@ -447,6 +452,7 @@ class InferType(astVisitor.ASTVisitor):
         elif node.op == seedotParser.seedotParser.NORMALISEL2:
             assert isTensor(eType) and eType.dim == 4   
             node.type = eType
+        
         else:
             assert False
 

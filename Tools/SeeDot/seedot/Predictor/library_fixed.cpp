@@ -898,9 +898,9 @@ void Relu4D(MYINT *A, MYINT N, MYINT H, MYINT W, MYINT C)
 	return;
 }
 
-// B = relu(A)
+// B = relu6(A)
 // A[N][H][W][C]
-void Relu4D(MYINT *A, MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C,MYINT six, MYINT div)
+void Relu6(MYINT *A, MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C,MYINT six, MYINT div)
 {
 
 	for (MYITE n = 0; n < N; n++)
@@ -983,7 +983,7 @@ void Maxpool(MYINT *A, MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, M
 }
 
 // A = Normalise(A)
-void NormaliseL2(MYINT* A, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA) {
+void NormaliseL2(MYINT* A, MYINT* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -1035,7 +1035,7 @@ void NormaliseL2(MYINT* A, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYI
 
 				// multiply all elements by the 1/sqrt(sumSquare)
 				for (MYITE c = 0; c < C; c++){
-						A[n * H * W * C + h * W * C + w * C + c]  = (A[n * H * W * C + h * W * C + w * C + c]  / shrAdiv)*inverseNorm;  
+						B[n * H * W * C + h * W * C + w * C + c]  = (A[n * H * W * C + h * W * C + w * C + c]  / shrAdiv)*inverseNorm;  
 				}	
 			}					
 		}

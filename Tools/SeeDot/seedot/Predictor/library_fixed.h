@@ -253,7 +253,7 @@ void Maxpool(MYINT *A, MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, M
  * For each channel computes the L2 norm of all its elements. And divides each number in that channel by the norm.
  */
 
-void NormaliseL2(MYINT* A, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA); 
+void NormaliseL2(MYINT* A, MYINT* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA); 
 
 
 /**
@@ -316,7 +316,8 @@ inline TypeA Saturate(int32_t inp) {
 template<>
 inline int16_t Saturate(int32_t inp) {
 #ifdef SATURATE
-	return (int16_t)((inp > 32767 ? 32767 : inp) < -32768 ? -32768 : inp);
+	inp = inp > 32767 ? 32767 : inp;
+	return (int16_t)(inp < -32768 ? -32768 : inp);
 #else
 	return (int16_t)inp;
 #endif
@@ -325,7 +326,8 @@ inline int16_t Saturate(int32_t inp) {
 template<>
 inline int8_t Saturate(int32_t inp) {
 #ifdef SATURATE
-	return (int8_t)((inp > 127 ? 127 : inp) < -128 ? -128 : inp);
+	inp = inp > 127 ? 127 : inp;
+	return (int8_t)(inp < -128 ? -128 : inp);
 #else
 	return (int8_t)inp;
 #endif
@@ -430,6 +432,29 @@ void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA
 			TypeTemp c = a / shrC + b / shrC;
 
 			C[i * J + j] = Saturate<TypeC>(c / demote);
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeTemp, class TypeX>
+void MatAdd4(TypeA *A, TypeB *B, TypeX *X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					TypeTemp a = (TypeTemp)A[n * H * W * C + h * W * C + w * C + c];
+					TypeTemp b = (TypeTemp)B[n * H * W * C + h * W * C + w * C + c];
+
+					a = a / shrA;
+					b = b / shrB;
+
+					TypeTemp x = a / shrC + b / shrC;
+
+					X[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeX>(x / demote);
+				}
+			}
+			
 		}
 	}
 	return;
@@ -853,7 +878,7 @@ void MBConv(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, Type
 					TypeUB1W x = (((TypeUB1W)((U[0] * shl1) / shr1 + (BN1B[k] * shl2) / shr2)) * ((TypeUB1W)BN1W[k]));
 					x = x < 0 ? 0 : x;
 					x = x > SIX_1 ? SIX_1 : x;
-					X[i * W * Ct + j * Ct + k] =  (x * shl3) / shr3;
+					X[i * W * Ct + j * Ct + k] =  Saturate<TypeX>((x * shl3) / shr3);
 				}
 			}
 		}
@@ -864,9 +889,9 @@ void MBConv(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, Type
 				for (MYITE j = 0; j < W; j++) {
 					for (MYITE k = 0; k < Ct; k++) {
 						MYITE iRed = (i + margin + hout * HSTR) % HF, iFull = i + margin + hout * HSTR;
-						X[iRed * W * Ct + j * Ct + k] = 0.0;
+						X[iRed * W * Ct + j * Ct + k] = 0;
 						for (MYITE l = 0; l < Cin; l++) {
-							TypeA a = iFull < H ? A[n * H * W * Cin + iFull * W * Cin + j * Cin + l] : 0.0;
+							TypeA a = iFull < H ? A[n * H * W * Cin + iFull * W * Cin + j * Cin + l] : 0;
 							U[l] = ((TypeU) a) * ((TypeU) F1[l * Ct + k]);
 						}
 						MYITE totalEle = Cin;
@@ -889,7 +914,7 @@ void MBConv(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, Type
 						TypeUB1W x = (((TypeUB1W)((U[0] * shl1) / shr1 + (BN1B[k] * shl2) / shr2)) * ((TypeUB1W)BN1W[k]));
 						x = x < 0 ? 0 : x;
 						x = x > SIX_1 ? SIX_1 : x;
-						X[iRed * W * Ct + j * Ct + k] =  (x * shl3) / shr3;
+						X[iRed * W * Ct + j * Ct + k] =  Saturate<TypeX>((x * shl3) / shr3);
 					}
 				}
 			}
@@ -899,7 +924,7 @@ void MBConv(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, Type
 					MYITE counter = 0;
 					for (MYITE hf = -(HF/2); hf <= (HF/2); hf++) {
 						for (MYITE wf = -(WF/2); wf <= (WF/2); wf++) {
-							TypeX x = (((h + hf) < 0) || ((h + hf) >= H) || ((w + wf) < 0) || ((w + wf) >= W)) ? 0.0 : X[((h + hf) % HF) * W * Ct + (w + wf) * Ct + g];
+							TypeX x = (((h + hf) < 0) || ((h + hf) >= H) || ((w + wf) < 0) || ((w + wf) >= W)) ? 0 : X[((h + hf) % HF) * W * Ct + (w + wf) * Ct + g];
 							TypeF2 b = F2[g * HF * WF + (hf + HF/2) * WF + (wf + WF/2)];
 							U[counter] = ((TypeU) x) * ((TypeU) b);
 							counter++;
@@ -925,7 +950,7 @@ void MBConv(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, Type
 					TypeUB2W x = (((TypeUB2W)((U[0] * shl4) / shr4 + (BN2B[g] * shl5) / shr5)) * ((TypeUB2W)BN2W[g]));
 					x = x < 0 ? 0 : x;
 					x = x > SIX_2 ? SIX_2 : x;
-					T[g] =  (x * shl6) / shr6;
+					T[g] =  Saturate<TypeT>((x * shl6) / shr6);
 				}
 
 				for (MYITE i = 0; i < Cout; i++) {
@@ -947,7 +972,7 @@ void MBConv(TypeA *A, TypeF1 *F1, TypeB1W *BN1W, TypeB1B *BN1B, TypeF2 *F2, Type
 						count = (count + 1) / 2;
 						depth++;
 					}
-					C[n * Hout * Wout * Cout + hout * Wout * Cout + wout * Cout + i] = ((((TypeUB3W)((U[0] * shl7) / shr7 + (BN3B[i] * shl8) / shr8)) * ((TypeUB3W)BN3W[i])) * shl9) / shr9;
+					C[n * Hout * Wout * Cout + hout * Wout * Cout + wout * Cout + i] = Saturate<TypeC>(((((TypeUB3W)((U[0] * shl7) / shr7 + (BN3B[i] * shl8) / shr8)) * ((TypeUB3W)BN3W[i])) * shl9) / shr9);
 				}
 			}
 		}
@@ -1214,7 +1239,7 @@ void Maxpool(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, M
 }
 
 template<class TypeA>
-void NormaliseL2(TypeA* A, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA) {
+void NormaliseL2(TypeA* A, TypeA* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -1266,7 +1291,7 @@ void NormaliseL2(TypeA* A, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYI
 
 				// multiply all elements by the 1/sqrt(sumSquare)
 				for (MYITE c = 0; c < C; c++) {
-						A[n * H * W * C + h * W * C + w * C + c]  = (A[n * H * W * C + h * W * C + w * C + c]  / shrAdiv)*inverseNorm;  
+						B[n * H * W * C + h * W * C + w * C + c]  = (A[n * H * W * C + h * W * C + w * C + c]  / shrAdiv)*inverseNorm;  
 				}
 			}				
 		}

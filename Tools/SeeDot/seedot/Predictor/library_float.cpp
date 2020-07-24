@@ -116,6 +116,27 @@ void MatAddBroadCastB(float *A, float *B, float *C, MYINT I, MYINT J, MYINT shrA
 	return;
 }
 
+// C = A + B
+void MatAdd4(float *A, float *B, float *X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC)
+{
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					float a = A[n * H * W * C + h * W * C + w * C + c];
+					float b = B[n * H * W * C + h * W * C + w * C + c];
+
+					float x = a + b;
+
+					X[n * H * W * C + h * W * C + w * C + c] = x;
+				}
+			}
+			
+		}
+	}
+	return;
+}
+
 // C = A - B
 void MatSub(float *A, const float *B, float *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC)
 {
@@ -880,7 +901,7 @@ void Relu4D(float *A, MYINT N, MYINT H, MYINT W, MYINT C)
 
 // B = relu6(A)
 // A[N][H][W][C]
-void Relu4D(float *A, float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div)
+void Relu6(float *A, float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div)
 {
 
 	for (MYITE n = 0; n < N; n++)
@@ -962,7 +983,7 @@ void Maxpool(float *A, float *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, M
 	return;
 }
 
-void NormaliseL2(float* A, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA) {
+void NormaliseL2(float* A, float* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -984,7 +1005,7 @@ void NormaliseL2(float* A, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYI
 
 				// multiply all elements by the 1/sqrt(sumSquare)
 				for (MYITE c = 0; c < C; c++) {
-						A[n * H * W * C + h * W * C + w * C + c]  = A[n * H * W * C + h * W * C + w * C + c]  *inverseNorm;  
+						B[n * H * W * C + h * W * C + w * C + c]  = A[n * H * W * C + h * W * C + w * C + c]  *inverseNorm;  
 				}								
 			}
 		}

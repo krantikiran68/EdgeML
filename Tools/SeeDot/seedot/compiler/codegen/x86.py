@@ -181,7 +181,7 @@ class X86(CodegenBase):
                 else:
                     typ_str = IR.DataType.getIntStr()
             else:
-                typ_str = IR.DataType.getIntStr()
+                typ_str = "int"
 
             idf_str = decl
             type = self.decls[decl]

@@ -14,17 +14,17 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "mbconv",
+                "rnnpool",
                 "-v",
                 "fixed",
                 "-d",
-                "wider-mbconv",
+                "face-2",
                 "-m",
                 "disagree",
                 // "-t",
                 // "arduino",
                 "-n",
-                "28800"
+                "38400"
             ]
         }
     ]

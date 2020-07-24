@@ -9,11 +9,11 @@ import seedot.config as config
 
 class Config:
     expBigLength = 6
-    exp = "table"  # "table" "math" "new table"
+    exp = "new table"  # "table" "math" "new table"
     codegen = "funcCall"  # "funcCall" "inline"
     debug = False
     debugCompiler = True
-    saturateArithmetic = False
+    saturateArithmetic = True
     fastApproximations = False
 
 def isSaturate():

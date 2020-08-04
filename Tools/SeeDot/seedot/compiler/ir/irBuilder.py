@@ -87,13 +87,16 @@ class IRBuilder(ASTVisitor):
         # floatConstants: Map of float constant variables to their value
         self.varDeclarations = {}
         self.varDeclarationsLocal = {}
-        self.notScratch = []
+        self.notScratch = ['X']
         self.varLiveIntervals = {}
         self.varScales = {}
         self.varIntervals = {}
         self.internalVars = []
         self.intConstants = {}
         self.floatConstants = {}
+
+        self.curDepth = 0
+        self.allDepths = {}
 
         # Mutable variables declared in the 'loop' operator is stored in mutableVars
         # The range of run-time values see by mutable variables is stored in mutableVarsProfile. This information is obtained from collecting run-time profile on the floating-point code
@@ -168,7 +171,8 @@ class IRBuilder(ASTVisitor):
         intv = self.getInterval(scale, minVal, maxVal)
 
         comment = IR.Comment('init([%s], %.6f)' % (
-            ', '.join(map(str, node.shape)), node.value))
+            ', '.join(map(str, node.shape)), node.value), self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         # using loops to initialize non-zero values instead of memset
         if node.value == 0:
@@ -223,7 +227,8 @@ class IRBuilder(ASTVisitor):
         expr_in.inputVar = False
         expr_out.inputVar = False
 
-        comment = IR.Comment(expr_in.idf + "^T")
+        comment = IR.Comment(expr_in.idf + "^T", self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         if forFixed():
             self.varsForBitwidth[expr_out.idf] = bw_out
@@ -275,7 +280,7 @@ class IRBuilder(ASTVisitor):
 
         expr_out = self.getTempVar()
 
-        self.notScratch.append(expr_out.idf)
+        # self.notScratch.append(expr_out.idf)
 
         if forFixed():
             self.varsForBitwidth[expr_out.idf] = bw_out
@@ -294,11 +299,16 @@ class IRBuilder(ASTVisitor):
             loopIters.append(iters_in[order])
             loopAssns.append(IR.Assn(iters_out[order], IRUtil.add(iters_in[order], vars_in[order])))
 
+        expr_out_idx = IRUtil.addIndex(expr_out, iters_in)
+        expr_in_idx = IRUtil.addIndex(expr_in, iters_out)
         loop = IRUtil.loop(loopShape, loopIters, loopAssns + [
-                IR.Assn(IRUtil.addIndex(expr_out, iters_in), IRUtil.addIndex(expr_in, iters_out))
+                IR.Assn(expr_out_idx, expr_in_idx)
             ])
 
-        comment = IR.Comment("splice")
+        out_indices = ']['.join([i.idf for i in iters_in])
+        in_indices = ']['.join([i.idf for i in iters_out])
+        comment = IR.Comment("%s[%s] = %s[%s]"%(expr_out_idx.idf, out_indices, expr_in_idx.idf, in_indices), self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
         prog_splice = IR.Prog([comment] + loop)
 
         self.counter_inst += 1
@@ -310,8 +320,8 @@ class IRBuilder(ASTVisitor):
             prog_out = IRUtil.concatPrograms(prog_out, prog)
         prog_out = IRUtil.concatPrograms(prog_out, prog_splice)
 
-        if forFloat() and self.ddsEnabled:
-            self.substitutions[expr_out.idf] = expr_in.idf #Scale and bitwidth will be conserved for input and output
+        # if forFloat() and self.ddsEnabled:
+        #     self.substitutions[expr_out.idf] = expr_in.idf #Scale and bitwidth will be conserved for input and output
 
         # Update context
         self.varDeclarations[expr_out.idf] = type_out
@@ -354,7 +364,7 @@ class IRBuilder(ASTVisitor):
         # Declare variables
         expr_out = self.getTempVar()
 
-        self.notScratch.append(expr_out.idf)
+        # self.notScratch.append(expr_out.idf)
 
         if forFixed():
             self.varsForBitwidth[expr_out.idf] = bw_out
@@ -398,7 +408,8 @@ class IRBuilder(ASTVisitor):
 
         # Finalize
         comment = IR.Comment("reshape(" + expr_in.idf + ", (" + ', '.join(str(e)
-                                                                          for e in type_out.shape) + "), (" + ', '.join(str(e) for e in node.order))
+            for e in type_out.shape) + "), (" + ', '.join(str(e) for e in node.order), self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
         prog_reshape = IR.Prog([comment] + cmd1 + loop)
 
         self.counter_inst += 1
@@ -406,8 +417,8 @@ class IRBuilder(ASTVisitor):
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_reshape)
 
-        if forFloat() and self.ddsEnabled:
-            self.substitutions[expr_out.idf] = expr_in.idf #Scale and bitwidth will be conserved for input and output
+        # if forFloat() and self.ddsEnabled:
+        #     self.substitutions[expr_out.idf] = expr_in.idf #Scale and bitwidth will be conserved for input and output
 
         # Update context
         self.varDeclarations[expr_out.idf] = type_out
@@ -456,7 +467,8 @@ class IRBuilder(ASTVisitor):
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
         comment = IR.Comment(
-            "maxpool(" + expr_in.idf + ", " + str(kernelSize) + ',' + str(padding) + ',' + str(stride) + ")")
+            "maxpool(" + expr_in.idf + ", " + str(kernelSize) + ',' + str(padding) + ',' + str(stride) + ")", self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         funcCall = IR.FuncCall("Maxpool", {
             expr_in: "A",
@@ -554,7 +566,8 @@ class IRBuilder(ASTVisitor):
             ch = chr(ord(ch) + 1)
 
         comment = IR.Comment(
-            node.name + '(' + ', '.join(expr.idf for expr in exprs) + ')')
+            node.name + '(' + ', '.join(expr.idf for expr in exprs) + ')', self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         funcCall = IR.FuncCall(node.name, args)
 
@@ -596,8 +609,8 @@ class IRBuilder(ASTVisitor):
         args[expr_out] = expr_out.idf
 
         comment = IR.Comment(
-            "reverse" + '(' + expr_in.idf + ',' + str(node.axis) + ')')
-
+            "reverse" + '(' + expr_in.idf + ',' + str(node.axis) + ')', self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         funcCall = IR.FuncCall('Reverse' + str(len(node.type.shape)), args) if not self.vbwEnabled else IR.FuncCall('Reverse' + str(len(node.type.shape)) + '<int' + str(bitwidth_in) + '_t>', args)                    
 
@@ -712,8 +725,9 @@ class IRBuilder(ASTVisitor):
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B)
         expr_out = IRUtil.mul(expr_in_A, expr_in_B)
 
-        self.counter_inst += 1
-        self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
+        # Not incrementing as this is not a function call. this expression appears inline with others
+        # self.counter_inst += 1
+        # self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
 
         # Just to be safe, check that the scaling factor of the integer variables is never tracked
         if isinstance(expr_in_A, IR.Var):
@@ -774,7 +788,8 @@ class IRBuilder(ASTVisitor):
         b.inputVar = False
         expr_out.inputVar = False
 
-        comment = IR.Comment(expr_in_A.idf + ' * ' + expr_in_B.idf)
+        comment = IR.Comment(expr_in_A.idf + ' * ' + expr_in_B.idf, self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
         bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
         funcCall = IR.FuncCall("ScalarMul", {
             a: "A",
@@ -891,7 +906,9 @@ class IRBuilder(ASTVisitor):
         if forFixed():
             self.varsForBitwidth[expr_treeSum.idf] = bitwidth_temp
 
-        comment = IR.Comment(expr_in_A.idf + ' * ' + expr_in_B.idf)
+        comment = IR.Comment(expr_in_A.idf + ' * ' + expr_in_B.idf, self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
         bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
         if self.vbwEnabled:
             self.varsForBitwidth[expr_treeSum.idf] = bitwidth_mul
@@ -907,7 +924,8 @@ class IRBuilder(ASTVisitor):
             shr_B: "shr2",
             IR.Int(H1): "H1",
             IR.Int(H2): "H2"
-        }, {expr_treeSum.idf: type_treeSum}) if not self.vbwEnabled else IR.FuncCall("MatMul" + c + ("<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out)), {
+            # , {expr_treeSum.idf: type_treeSum}
+        }) if not self.vbwEnabled else IR.FuncCall("MatMul" + c + ("<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out)), {
             expr_in_A: "A",
             expr_in_B: "B",
             expr_out: "C",
@@ -920,7 +938,8 @@ class IRBuilder(ASTVisitor):
             IR.Int(H1): "H1",
             IR.Int(H2): "H2",
             IR.Int(demote): "demote"
-        }, {expr_treeSum.idf: type_treeSum})
+            # , {expr_treeSum.idf: type_treeSum}
+        })
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out, expr_treeSum])
@@ -941,6 +960,10 @@ class IRBuilder(ASTVisitor):
         self.varDeclarations[expr_out.idf] = type_out
         self.varScales[expr_out.idf] = scale_out
         self.varIntervals[expr_out.idf] = intv_out
+
+        self.varDeclarations[expr_treeSum.idf] = type_treeSum
+        self.varScales[expr_treeSum.idf] = scale_temp
+        self.varIntervals[expr_treeSum.idf] = (0, 0)
 
         #self.varDeclarations[expr_treeSum.idf] = type_treeSum
 
@@ -1011,7 +1034,8 @@ class IRBuilder(ASTVisitor):
         expr_in_B.inputVar = False
         expr_out.inputVar = False
 
-        comment = IR.Comment(expr_in_A.idf + ' |*| ' + expr_in_B.idf)
+        comment = IR.Comment(expr_in_A.idf + ' |*| ' + expr_in_B.idf, self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         cmd1 = IR.Memset(expr_out, type_out.size())
         bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
@@ -1135,7 +1159,9 @@ class IRBuilder(ASTVisitor):
         expr_in_B.inputVar = False
         expr_out.inputVar = False
 
-        comment = IR.Comment(expr_in_A.idf + ' <*> ' + expr_in_B.idf)
+        comment = IR.Comment(expr_in_A.idf + ' <*> ' + expr_in_B.idf, self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
         bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
         funcCall = IR.FuncCall("MulCir", {
             expr_in_A: "A",
@@ -1353,7 +1379,11 @@ class IRBuilder(ASTVisitor):
             self.varsForBitwidth[expr_bufT.idf] = bitwidth_t
             self.varsForBitwidth[expr_bufX.idf] = bitwidth_x
 
-        comment = IR.Comment('MBconv(%s)' %(expr_in_A.idf))
+        # if Config.faceDetectionHacks:
+        #     self.notScratch.append(expr_bufX.idf)
+
+        comment = IR.Comment('MBconv(%s)' %(expr_in_A.idf), self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         argMap = {
             expr_in_A: "A",
@@ -1404,10 +1434,10 @@ class IRBuilder(ASTVisitor):
 
         localVarMap = {expr_treeSum.idf: type_treeSum, expr_bufX.idf: type_bufX, expr_bufT.idf: type_bufT}
         if forFloat():
-            funcCall = IR.FuncCall("MBConv", argMap, localVarMap)
+            funcCall = IR.FuncCall("MBConv", argMap) #, localVarMap)
         else:
             templateArgs = ("<int%s_t" + (", int%s_t" * 16) + ">") % (bitwidth_in_A, bitwidth_in_F1, bitwidth_in_W1, bitwidth_in_B1, bitwidth_in_F2, bitwidth_in_W2, bitwidth_in_B2, bitwidth_in_F3, bitwidth_in_W3, bitwidth_in_B3, bitwidth_out, bitwidth_x, bitwidth_t, bitwidth_u, bitwidth_mul1_code, bitwidth_mul2_code, bitwidth_mul3_code)
-            funcCall = IR.FuncCall("MBConv" + templateArgs, argMap, localVarMap)
+            funcCall = IR.FuncCall("MBConv" + templateArgs, argMap) #, localVarMap)
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_F1, expr_in_F2, expr_in_F3, expr_in_W1, expr_in_W2, expr_in_W3, expr_in_B1, expr_in_B2, expr_in_B3, expr_out, expr_treeSum, expr_bufX, expr_bufT])
@@ -1489,7 +1519,9 @@ class IRBuilder(ASTVisitor):
         if forFixed():
             self.varsForBitwidth[expr_treeSum.idf] = bitwidth_temp
 
-        comment = IR.Comment('conv(%s, %s)' %(expr_in_A.idf,expr_in_B.idf))
+        comment = IR.Comment('conv(%s, %s)' %(expr_in_A.idf,expr_in_B.idf), self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+        
         bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
         if self.vbwEnabled:
             self.varsForBitwidth[expr_treeSum.idf] = bitwidth_mul
@@ -1527,12 +1559,15 @@ class IRBuilder(ASTVisitor):
             argMap[IR.Int(demote)] = "demote"
 
         if not self.vbwEnabled:
-            funcCall = IR.FuncCall("Convolution", argMap, {expr_treeSum.idf: type_treeSum})
+            funcCall = IR.FuncCall("Convolution", argMap) #, {expr_treeSum.idf: type_treeSum})
         else:
-            funcCall = IR.FuncCall("Convolution" + ("<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out)), argMap, {expr_treeSum.idf: type_treeSum})
+            funcCall = IR.FuncCall("Convolution" + ("<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out)), argMap) #, {expr_treeSum.idf: type_treeSum})
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out, expr_treeSum])
+
+        if Config.faceDetectionHacks and Hf == Wf == CinF == CoutF == 1:        #quick fix for face detection
+                self.updateLiveRange([expr_in_A], self.counter_inst - 1)
 
         profile = IR.FuncCall("Profile4", {
             expr_out: "Var",
@@ -1553,6 +1588,10 @@ class IRBuilder(ASTVisitor):
         self.varDeclarations[expr_out.idf] = type_out
         self.varScales[expr_out.idf] = scale_out
         self.varIntervals[expr_out.idf] = intv_out
+
+        self.varDeclarations[expr_treeSum.idf] = type_treeSum
+        self.varScales[expr_treeSum.idf] = scale_temp
+        self.varIntervals[expr_treeSum.idf] = (0, 0)
 
         self.log.print(comment.msg)
         self.log.print("\tInput1: scale = %d, interval = [%d, %d]" % (
@@ -1606,7 +1645,9 @@ class IRBuilder(ASTVisitor):
         if forFixed():
             self.varsForBitwidth[expr_treeSum.idf] = bitwidth_temp
 
-        comment = IR.Comment(expr_in_A.idf + ' # ' + expr_in_B.idf)
+        comment = IR.Comment(expr_in_A.idf + ' # ' + expr_in_B.idf, self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+        
         bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
         if self.vbwEnabled:
             self.varsForBitwidth[expr_treeSum.idf] = bitwidth_mul
@@ -1626,7 +1667,8 @@ class IRBuilder(ASTVisitor):
             shr_B: "shrB",
             IR.Int(H1): "H1",
             IR.Int(H2): "H2"
-        }, {expr_treeSum.idf: type_treeSum}) if not self.vbwEnabled else IR.FuncCall("Conv" + ("<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out)), {
+            # , {expr_treeSum.idf: type_treeSum}
+        }) if not self.vbwEnabled else IR.FuncCall("Conv" + ("<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out)), {
             expr_in_A: "A",
             expr_in_B: "B",
             expr_out: "C",
@@ -1643,7 +1685,8 @@ class IRBuilder(ASTVisitor):
             IR.Int(H1): "H1",
             IR.Int(H2): "H2",
             IR.Int(demote): "demote"
-        }, {expr_treeSum.idf: type_treeSum})
+            # , {expr_treeSum.idf: type_treeSum}
+        })
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out, expr_treeSum])
@@ -1729,7 +1772,8 @@ class IRBuilder(ASTVisitor):
         expr_out.inputVar = False
 
         comment = IR.Comment(expr_in_A.idf + " <" +
-                             op_ir.name + "> " + expr_in_B.idf)
+                             op_ir.name + "> " + expr_in_B.idf, self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         if type_out.dim == 4:
             [N, H, W, C] = type_out.shape
@@ -1804,7 +1848,10 @@ class IRBuilder(ASTVisitor):
             self.independentVars.append(expr_out.idf)
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in_A, expr_in_B])
+        self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
+
+        if Config.faceDetectionHacks:        #quick fix for face detection
+            self.updateLiveRange([expr_in_A], self.counter_inst - 1)
 
         adjust = []
         if forFixed():
@@ -1953,7 +2000,12 @@ class IRBuilder(ASTVisitor):
             expr_out.inputVar = False
 
             comment = IR.Comment(expr_in_A.idf + ' ' +
-                                 op_ir.name + ' ' + expr_in_B.idf)
+                                 op_ir.name + ' ' + expr_in_B.idf, self.counter_inst+1)
+            self.allDepths[self.counter_inst+1] = self.curDepth
+
+            # if type_out.dim == 4:
+            #     self.substitutions[expr_out.idf] = expr_in_A.idf
+            #     expr_out.idf = expr_in_A.idf
 
             if type_out.dim == 2:
                 funcCall = IR.FuncCall(funcName + c, {
@@ -2004,6 +2056,9 @@ class IRBuilder(ASTVisitor):
 
             self.counter_inst += 1
             self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
+
+            if Config.faceDetectionHacks and type_out.dim == 4:        #quick fix for face detection
+                self.updateLiveRange([expr_in_A], self.counter_inst - 1)
 
             if type_out.dim == 2:
                 profile = IR.FuncCall("Profile2", {
@@ -2147,11 +2202,12 @@ class IRBuilder(ASTVisitor):
         if forFixed() and bw_out != config.wordLength:
             self.demotedVarsList.append(expr_out.idf)
             self.demotedVarsOffsets[expr_out.idf] = 0
-            self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
+        self.varsForBitwidth[expr_out.idf] = bw_out
 
         expr_in.inputVar = False
 
-        comment = IR.Comment("normaliseL2(" + expr_in.idf + ")")
+        comment = IR.Comment("normaliseL2(" + expr_in.idf + ")", self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         # since NormaliseL2 does not get profiled now. We do not demote the output.
         if node.type.dim == 4:
@@ -2170,7 +2226,7 @@ class IRBuilder(ASTVisitor):
             assert False, "inverseL2Norm only supports 4D tensors."
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in])
+        self.updateLiveRange([expr_in, expr_out])
 
         prog_func = IR.Prog([comment, funcCall])
 
@@ -2194,7 +2250,8 @@ class IRBuilder(ASTVisitor):
 
         expr_in.inputVar = False
 
-        comment = IR.Comment("relu(" + expr_in.idf + ")")
+        comment = IR.Comment("relu(" + expr_in.idf + ")", self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         if node.type.dim == 4:
             [N, H, W, C] = node.type.shape
@@ -2251,7 +2308,8 @@ class IRBuilder(ASTVisitor):
 
         expr_in.inputVar = False
 
-        comment = IR.Comment("relu6(" + expr_in.idf + ")")
+        comment = IR.Comment("relu6(" + expr_in.idf + ")", self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         assert node.type.dim == 4, "Relu6 only implemented for 4 dimensional tensors"
         [N, H, W, C] = node.type.shape
@@ -2277,7 +2335,7 @@ class IRBuilder(ASTVisitor):
 
 
         self.counter_inst += 1
-        self.updateLiveRange([expr_in])
+        self.updateLiveRange([expr_in, expr_out])
 
         prog_relu = IR.Prog([comment, funcCall])
 
@@ -2356,7 +2414,8 @@ class IRBuilder(ASTVisitor):
                                             IR.Int(2 ** diff_scale): "scale"
                 })]
 
-        comm = IR.Comment('exp(' + expr_in.idf + ')')
+        comm = IR.Comment('exp(' + expr_in.idf + ')', self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         funcCall = IR.FuncCall("ExpNew%d<int%d_t>" %(bitwidth_in_raw, bitwidth_out), {
             expr_in: "A",
@@ -2418,7 +2477,8 @@ class IRBuilder(ASTVisitor):
         shr1 = self.formatShr(shr1, "shr")
         shr2 = self.formatShr(shr2, "shr")
 
-        cmd0 = IR.Comment('exp(' + expr_in.idf + ')')
+        cmd0 = IR.Comment('exp(' + expr_in.idf + ')', self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         funcCall = IR.FuncCall("Exp", {
             expr_in: "A",
@@ -2653,7 +2713,8 @@ class IRBuilder(ASTVisitor):
 
         expr_in.inputVar = False
 
-        comment = IR.Comment('argmax(' + expr_in.idf + ')')
+        comment = IR.Comment('argmax(' + expr_in.idf + ')', self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         funcCall = IR.FuncCall("ArgMax", {
             expr_in: "A",
@@ -2695,7 +2756,8 @@ class IRBuilder(ASTVisitor):
 
         bitwidth_in, scale_in = self.getBitwidthAndScale(expr_in.idf)
 
-        comment = IR.Comment('sgn(' + expr_in.idf + ')')
+        comment = IR.Comment('sgn(' + expr_in.idf + ')', self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         cmd1 = IR.Assn(expr_out, IRUtil.cond_zero(
             expr_in_idx, IRUtil.one, IRUtil.zero))
@@ -2748,7 +2810,8 @@ class IRBuilder(ASTVisitor):
 
         expr_in.inputVar = False
 
-        comment = IR.Comment("tanh(" + expr_in.idf + ")")
+        comment = IR.Comment("tanh(" + expr_in.idf + ")", self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         scale_out = scale_in #self.getScale(1.5)
         tanh_limit_out = 2 ** -scale_out
@@ -2832,7 +2895,8 @@ class IRBuilder(ASTVisitor):
                                             IR.Int(2 ** diff_scale): "scale"
                 })]
 
-        comm = IR.Comment('tanh(' + expr_in.idf + ')')
+        comm = IR.Comment('tanh(' + expr_in.idf + ')', self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         funcCall = IR.FuncCall("TanHNew%d<0>" %(bitwidth_in_raw), {
             expr_in: "A",
@@ -2919,7 +2983,8 @@ class IRBuilder(ASTVisitor):
 
         expr_in.inputVar = False
 
-        comment = IR.Comment("Sigmoid(" + expr_in.idf + ")")
+        comment = IR.Comment("Sigmoid(" + expr_in.idf + ")", self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         funcCall = IR.FuncCall("Sigmoid", {
             expr_in: "A",
@@ -3010,7 +3075,8 @@ class IRBuilder(ASTVisitor):
                                             IR.Int(2 ** diff_scale): "scale"
                 })]
 
-        comm = IR.Comment('sigmoid(' + expr_in.idf + ')')
+        comm = IR.Comment('sigmoid(' + expr_in.idf + ')', self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         funcCall = IR.FuncCall("SigmoidNew%d<0>" %(bitwidth_in_raw), {
             expr_in: "A",
@@ -3076,7 +3142,10 @@ class IRBuilder(ASTVisitor):
                 cmd2
             ])
 
-        comment = IR.Comment("Left splice")
+        out_indices = ']['.join([i.idf for i in iters_out])
+        in_indices = ']['.join([i.idf for i in iters_in])
+        comment = IR.Comment("%s[%s] = %s[%s]"%(expr_out_idx.idf, out_indices, expr_in_idx.idf, in_indices), self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
         prog_splice = IR.Prog([comment] + loop)
 
         self.counter_inst += 1
@@ -3145,7 +3214,8 @@ class IRBuilder(ASTVisitor):
         expr_in_idx = IRUtil.addIndex(expr_in, iters)
         expr_out_idx = IRUtil.addIndex(expr_out, iters)
 
-        comment = IR.Comment("sum(i = [%d, %d])" % (start, end))
+        comment = IR.Comment("sum(i = [%d, %d])" % (start, end), self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         cmd1 = IR.Memset(expr_out, type_out.size())
         if self.ddsEnabled:
@@ -3212,29 +3282,35 @@ class IRBuilder(ASTVisitor):
 
         prevVarDecls = dict(self.varDeclarations)
 
+        start, end = node.start, node.end
+
+        comment = IR.Comment("loop(%s = [%d, %d], %s)" % (
+            node.name, start, end, idf), self.counter_inst+1) #The comment is before visiting the loop statements so the self.counter_inst's earlier value is used
+        self.allDepths[self.counter_inst+1] = self.curDepth
+        
+        self.counter_inst += 1
+        self.curDepth += 1
+
         (prog_in, expr_in) = self.visit(node.expr)
 
+        self.curDepth -=1
+
         forDecls = {}
-        for key in self.varDeclarations.keys():
-            if key not in prevVarDecls and not(key in self.intConstants or key in self.floatConstants or key in self.internalVars):
-                forDecls[key] = self.varDeclarations[key]
+        # for key in self.varDeclarations.keys():
+        #     if key not in prevVarDecls and not(key in self.intConstants or key in self.floatConstants or key in self.internalVars):
+        #         forDecls[key] = self.varDeclarations[key]
 
-        for key in forDecls.keys():
-            del self.varDeclarations[key]
-            self.varDeclarationsLocal[key] = forDecls[key]
+        # for key in forDecls.keys():
+        #     del self.varDeclarations[key]
+        #     self.varDeclarationsLocal[key] = forDecls[key]
 
-        start, end = node.start, node.end
         assert start == 0, "'loop' operator currently supports only iterations starting from 0."
 
         var = IR.Var(node.name)
 
-        comment = IR.Comment("loop(%s = [%d, %d], %s)" % (
-            node.name, start, end, idf))
-
         loop = IR.For(var, 0, IRUtil.lt(
             var, IR.Int(end - start)), prog_in.cmd_l, 0, forDecls)
 
-        self.counter_inst += 1
         self.updateLiveRange([expr_in])
 
         # Generate code for profiling
@@ -3355,9 +3431,9 @@ class IRBuilder(ASTVisitor):
 
         # Left Splice case
         elif node.leftSplice is not None:
-            (prog_in, expr_in) = self.visit(node.expr)
             (prog_splice, expr_splice) = self.visitLeftSplice(node.leftSplice, expr_decl)
-
+            (prog_in, expr_in) = self.visit(node.expr)
+            
             profile = IR.Prog([])
             if forFloat():
                 profile = IR.Prog([IR.FuncCall("Profile2", {
@@ -3899,13 +3975,18 @@ class IRBuilder(ASTVisitor):
         else:
             assert False, "No root found"
 
-    def updateLiveRange(self, exprs):
+    def updateLiveRange(self, exprs, counter_inst= -1):
+        if counter_inst == -1:
+            counter_inst = self.counter_inst
         if not isinstance(exprs, list):
             exprs = [exprs]
         for expr in exprs:
             if hasattr(expr, 'idf'):
                 varName = expr.idf
+                if forFixed():
+                    while varName in self.substitutions:
+                        varName = self.substitutions[varName]
                 if varName in self.varLiveIntervals.keys():
-                    self.varLiveIntervals[varName][1] = self.counter_inst
+                    self.varLiveIntervals[varName][1] = counter_inst
                 else:
-                    self.varLiveIntervals[varName] = [self.counter_inst, self.counter_inst]
+                    self.varLiveIntervals[varName] = [counter_inst, counter_inst]

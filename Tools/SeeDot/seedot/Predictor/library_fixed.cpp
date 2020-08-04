@@ -563,7 +563,7 @@ void TanH(MYINT *A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out, MYINT *B)
 }
 
 // index = argmax(A)
-void ArgMax(MYINT *A, MYINT I, MYINT J, MYINT *index)
+void ArgMax(MYINT *A, MYINT I, MYINT J, int *index)
 {
 
 	MYINT max = A[0];

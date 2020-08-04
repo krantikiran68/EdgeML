@@ -55,6 +55,12 @@ class X86(CodegenBase):
 
         self.varLiveIntervals = varLiveIntervals
         self.notScratch = notScratch
+        self.scratchSubs = {}
+
+        self.numberOfMemoryMaps = 0
+        self.currentMemMap = 0
+        self.defragmentationInstructions = []
+        self.defragmentationParameters = []
 
     def printPrefix(self):
 
@@ -66,6 +72,8 @@ class X86(CodegenBase):
             # self.printVarDecls()
 
         self.printCHeader()
+
+        self.computeScratchLocations()
 
         self.printModelParamsWithBitwidth()
 
@@ -369,3 +377,192 @@ class X86(CodegenBase):
 
         print("Closing File after outputting cpp code: ID " + self.idStr)
         self.out.close()
+
+    def printFor(self, ir):
+        #if not Config.x86MemoryOptimize or forFloat():
+        super().printFor(ir)
+        #else:
+
+    def printFuncCall(self, ir):
+        if not Config.x86MemoryOptimize or forFloat():
+            super().printFuncCall(ir)
+        else:
+            self.out.printf("{\n", indent=True)
+            self.out.increaseIndent()
+            self.printLocalVarDecls(ir)
+            self.out.printf("%s(" % ir.name, indent=True)
+            keys = list(ir.argList)
+            for i in range(len(keys)):
+                arg = keys[i]
+                if isinstance(arg, IR.Var) and (arg.idf in self.decls.keys() or arg.idf in self.localDecls.keys()) and not arg.idf == 'X':
+                    type = self.decls[arg.idf] if arg.idf in self.decls else self.localDecls[arg.idf]
+                    if isinstance(type, Type.Tensor):
+                        if type.dim == 0:
+                            x = -1
+                        else:
+                            x = type.dim - len(arg.idx)
+                    else:
+                        x = -1
+                else:
+                    x = 0
+
+                if forFixed():
+                    typeCast = "(int%d_t*)" % self.varsForBitwidth[arg.idf] if x > 0 else ""
+                    self.out.printf(typeCast)
+
+                
+                if not (isinstance(arg, IR.Var) and arg.idf in self.scratchSubs[self.currentMemMap]):
+                    if x != 0:
+                        self.out.printf("&")
+                    self.print(arg)
+
+                    if x != 0 and x != -1:
+                        self.out.printf("[0]" * x)
+                else:
+                    self.out.printf("(scratch + %d)"%(self.scratchSubs[self.currentMemMap][arg.idf]))
+                if i != len(keys) - 1:
+                    self.out.printf(", ")
+
+            self.out.printf(");\n")
+            self.out.decreaseIndent()
+            self.out.printf("}\n", indent=True)
+
+    def computeScratchLocations(self):
+        if not Config.x86MemoryOptimize or forFloat():
+            return
+        else:
+            varToLiveRange = []
+            todelete = []
+            decls = dict(self.decls)
+            for var in decls.keys():
+                if var not in self.varLiveIntervals:
+                    todelete.append(var)
+                    continue
+                if hasattr(self, 'floatConstants'):
+                    if var in self.floatConstants:
+                        todelete.append(var)
+                        continue
+                if hasattr(self, 'intConstants'):
+                    if var in self.intConstants:
+                        todelete.append(var)
+                        continue
+                if hasattr(self, 'internalVars'):
+                    if var in self.internalVars:
+                        todelete.append(var)
+                        continue
+                size = np.prod(decls[var].shape)
+                varToLiveRange.append((self.varLiveIntervals[var], var, size, self.varsForBitwidth[var]))
+            for var in todelete:
+                del decls[var]
+            def sortkey(a):
+                return (a[0][0], -a[0][1], -(a[2]*a[3])//8)
+            varToLiveRange.sort(key=sortkey)
+            usedSpaceMap = {}
+            totalScratchSize = -1
+            listOfDimensions = []
+            for ([_,_], var, size, atomSize) in varToLiveRange:
+                listOfDimensions.append(size)
+            mode = 75 #(lambda x: np.bincount(x).argmax())(listOfDimensions) if len(listOfDimensions) > 0 else None
+            for ([startIns, endIns], var, size, atomSize) in varToLiveRange:
+                if var in self.notScratch:
+                    continue
+                spaceNeeded = size * atomSize // 8
+                varsToKill = []
+                for activeVar in usedSpaceMap.keys():
+                    endingIns = usedSpaceMap[activeVar][0]
+                    if endingIns < startIns:
+                        varsToKill.append(activeVar)
+                for tbk in varsToKill:
+                    del usedSpaceMap[tbk]
+                i = 0
+                if spaceNeeded >= mode:
+                    blockSize = int(2**np.ceil(np.log2(spaceNeeded / mode))) * mode
+                else:
+                    blockSize = mode / int(2**np.floor(np.log2(mode // spaceNeeded)))
+                breakOutOfWhile = True
+                if Config.faceDetectionHacks and var in ['tmp252', 'tmp253', 'tmp364', 'tmp367']: #quick fix for face detection
+                    i = 153600 // blockSize
+                while True:
+                    potentialStart = int(blockSize * i)
+                    potentialEnd = int(blockSize * (i+1)) - 1
+                    for activeVar in usedSpaceMap.keys():
+                        (locationOccupiedStart, locationOccupiedEnd) = usedSpaceMap[activeVar][1]
+                        if not (locationOccupiedStart > potentialEnd or locationOccupiedEnd < potentialStart):
+                            i += 1
+                            breakOutOfWhile = False
+                            break
+                        else:
+                            breakOutOfWhile = True
+                            continue
+                    if breakOutOfWhile:
+                        break
+                
+                if False: #Config.defragmentEnabled and potentialStart + spaceNeeded > 200000:
+                    usedSpaceMap = self.defragmentMemory(usedSpaceMap, var, spaceNeeded, endIns, mode)
+                else:
+                    if Config.defragmentEnabled:
+                        usedSpaceMap[var] = (endIns, (potentialStart, potentialStart + spaceNeeded))
+                    else:
+                        usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
+                    totalScratchSize = max(totalScratchSize, potentialStart + spaceNeeded - 1)
+                    if self.numberOfMemoryMaps not in self.scratchSubs.keys():
+                        self.scratchSubs[self.numberOfMemoryMaps] = {}
+                    self.scratchSubs[self.numberOfMemoryMaps][var] = potentialStart
+            self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
+            self.out.printf("/* %s */"%(str(self.scratchSubs)))
+
+    def defragmentMemory(self, oldUsedSpaceMap, newVar, newVarSpace, endIns, mode):
+        varData = []
+        for var, (end, (start, end)) in oldUsedSpaceMap:
+            spaceNeeded = end - start
+            varData.append((spaceNeeded, var, end))
+        varData.append((newVarSpace, newVar, endIns))
+        def sortkey(a):
+            return (a[0], -a[2])
+        varData.sort(key=sortkey)
+        newUsedSpaceMap = {}
+        totalScratchSize = -1
+        
+        self.numberOfMemoryMaps += 1
+        self.scratchSubs[self.numberOfMemoryMaps] = {}
+
+        for (spaceNeeded, var, endIns) in varData:
+            if var in newUsedSpaceMap.keys():
+                continue
+            if spaceNeeded >= mode:
+                blockSize = int(2**np.ceil(np.log2(spaceNeeded / mode))) * mode
+            else:
+                blockSize = mode / int(2**np.floor(np.log2(mode // spaceNeeded)))
+            i = 0
+            while True:
+                for activeVar in newUsedSpaceMap.keys():
+                    potentialStart = int(blockSize * i)
+                    potentialEnd = int(blockSize * (i+1)) - 1
+                    (locationOccupiedStart, locationOccupiedEnd) = newUsedSpaceMap[activeVar][1]
+                    if not (locationOccupiedStart > potentialEnd or locationOccupiedEnd < potentialStart):
+                        i += 1
+                        breakOutOfWhile = False
+                        break
+                    else:
+                        breakOutOfWhile = True
+                        continue
+                if breakOutOfWhile:
+                    break
+            
+            oldBlock = (oldUsedSpaceMap[var][1][0], oldUsedSpaceMap[var][1][0] + blockSize)
+
+
+            for (_, var1, _) in varData:
+                oldUsedSpaceMap[var1][1][0]
+            newUsedSpaceMap[var] = (endIns, (potentialStart, potentialStart + spaceNeeded))
+            totalScratchSize = max(totalScratchSize, potentialStart + spaceNeeded - 1)
+            self.scratchSubs[self.numberOfMemoryMaps][var] = potentialStart
+            oldIndices = oldUsedSpaceMap[var][1]
+            newIndices = newUsedSpaceMap[var][1]
+
+            difference = newIndices - oldIndices
+
+            
+            
+        return newUsedSpaceMap
+

@@ -128,7 +128,12 @@ class Compiler:
 
         outputLog.close()
 
-        state = compiler.varDeclarations, compiler.varDeclarationsLocal, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants, compiler.substitutions, compiler.demotedVarsOffsets, compiler.varsForBitwidth, compiler.varLiveIntervals, compiler.notScratch
+        state = [compiler.varDeclarations, compiler.varDeclarationsLocal, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants, compiler.substitutions, compiler.demotedVarsOffsets, compiler.varsForBitwidth, compiler.varLiveIntervals, compiler.notScratch]
+
+        state[12] = self.adjustLiveRanges(state[12], compiler.allDepths)
+
+        for i in compiler.globalVars:
+            state[13].append(i)
 
         if util.getVersion() == config.Version.floatt:
             self.independentVars = list(compiler.independentVars)
@@ -152,3 +157,21 @@ class Compiler:
                 m, M = float(m), float(M)
                 tempScales[var] = util.computeScalingFactor(max(abs(m) + error, abs(M) + error)) 
         return tempScales
+
+    def adjustLiveRanges(self, oldRanges, depthData):
+        newRanges = {}
+        for var in oldRanges:
+            begIns = oldRanges[var][0]
+            endIns = oldRanges[var][1]
+            beginningDepth = depthData[begIns]
+            endingDepth = depthData[endIns]
+            if endingDepth > beginningDepth:
+                while depthData[endIns] > beginningDepth:
+                    endIns += 1
+                endIns -= 1
+            elif endingDepth < beginningDepth:
+                while depthData[begIns] < endingDepth:
+                    begIns -= 1
+                begIns += 1
+            newRanges[var] = [begIns, endIns]
+        return newRanges

@@ -285,11 +285,12 @@ class PrintAsFloat(Cmd):
 
 class Comment(Cmd):
 
-    def __init__(self, msg):
+    def __init__(self, msg, instructionId=None):
         self.msg = msg
+        self.instructionId = instructionId
 
     def subst(self, from_idf: str, to_e: Expr):
-        return Comment(self.msg)
+        return Comment(self.msg, self.instructionId)
 
 
 class Prog:

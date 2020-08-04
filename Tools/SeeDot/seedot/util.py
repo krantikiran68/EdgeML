@@ -15,6 +15,9 @@ class Config:
     debugCompiler = True
     saturateArithmetic = True
     fastApproximations = False
+    x86MemoryOptimize = True
+    defragmentEnabled = False
+    faceDetectionHacks = True # quick fix for face detection model
 
 def isSaturate():
     return Config.saturateArithmetic

@@ -28,7 +28,7 @@ void MulCir(float *A, float *B, float *C, MYINT I, MYINT J, MYINT shrA, MYINT sh
 
 void TanH(float *A, MYINT I, MYINT J, float scale_in, float scale_out, float *B);
 
-void ArgMax(float *A, MYINT I, MYINT J, MYINT *index);
+void ArgMax(float *A, MYINT I, MYINT J, int *index);
 
 void Transpose(float *A, float *B, MYINT I, MYINT J);
 

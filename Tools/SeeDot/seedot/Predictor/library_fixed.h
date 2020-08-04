@@ -796,7 +796,7 @@ void Confidence(TypeA* A, MYINT I, MYINT J, MYITE* index, float* confidence) {
 
 
 template<class TypeA>
-void ArgMax(TypeA* A, MYINT I, MYINT J, MYITE* index) {
+void ArgMax(TypeA* A, MYINT I, MYINT J, int* index) {
 	TypeA max = A[0];
 	MYITE maxIndex = 0, counter = 0;
 	for (MYITE i = 0; i < I; i++) {

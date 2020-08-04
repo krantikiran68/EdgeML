@@ -38,6 +38,32 @@ class CodegenBase:
     def printVar(self, ir):
         if config.vbwEnabled and forFixed():
             if hasattr(self, "varsForBitwidth"):
+                if Config.x86MemoryOptimize:
+                    if hasattr(self, 'scratchSubs'):
+                        if ir.idf in self.scratchSubs[self.numberOfMemoryMaps]:
+                            type = self.decls[ir.idf]
+                            offset = self.scratchSubs[self.numberOfMemoryMaps][ir.idf]
+                            if Type.isTensor(type):
+                                resIndex = ' '
+                                remSize = np.prod(type.shape)
+                                for i in range(type.dim):
+                                    if i >= len(ir.idx):
+                                        break
+                                    s = ir.idx[i].idf
+                                    remSize = remSize // type.shape[i]
+                                    resIndex += str(s) + '*' + str(remSize) + '+'
+                                resIndex = resIndex[:-1]
+                                resIndex = str(self.varsForBitwidth[ir.idf] // 8) + ('*(%s)'%(resIndex if len(resIndex) > 0 else "0"))
+                                typeCast = "(int%d_t&)" % self.varsForBitwidth[ir.idf]
+                                self.out.printf("%s(scratch[%d + %s])" % (typeCast, offset, resIndex))
+                                return
+                            else:
+                                pass
+                        else:
+                            pass
+                    else:
+                        assert False, "Illegal state, scratchSubs variable should be present if memory optimisation enabled"
+
                 if ir.idf in self.varsForBitwidth and ir.idf[:3] == "tmp" and ir.idf in self.decls:
                     self.out.printf("%s_%d", ir.idf, self.varsForBitwidth[ir.idf])
                 else:
@@ -203,7 +229,10 @@ class CodegenBase:
 
     def printMemset(self, ir):
         self.out.printf('memset(', indent=True)
-        self.print(ir.e)
+        if Config.x86MemoryOptimize and forFixed() and forX86():
+            self.out.printf("(scratch + %d)", self.scratchSubs[self.numberOfMemoryMaps][ir.e.idf])
+        else:
+            self.print(ir.e)
         typ_str = "MYINT"
         if config.vbwEnabled:
             if hasattr(self, 'varsForBitwidth'):
@@ -230,7 +259,10 @@ class CodegenBase:
 
     def printComment(self, ir):
         self.out.printf('\n')
-        self.out.printf('// ' + ir.msg + '\n', indent=True)
+        if ir.instructionId is not None:
+            self.out.printf('// ' + ('Instruction: %d ::: '%ir.instructionId) + ir.msg + '\n', indent=True)
+        else:
+            self.out.printf('// ' + ir.msg + '\n', indent=True)
 
     def printProg(self, ir):
         for cmd in ir.cmd_l:

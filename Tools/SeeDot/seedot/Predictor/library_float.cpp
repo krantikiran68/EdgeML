@@ -476,7 +476,7 @@ void Reverse2(float *A, MYINT axis, MYINT I, MYINT J, float *B)
 }
 
 // index = argmax(A)
-void ArgMax(float *A, MYINT I, MYINT J, MYINT *index)
+void ArgMax(float *A, MYINT I, MYINT J, int *index)
 {
 
 	float max = A[0];

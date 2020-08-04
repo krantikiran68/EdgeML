@@ -231,6 +231,52 @@ class Main:
 
     # Iterate over multiple scaling factors and store their accuracies
     def performSearch(self):
+
+        keys1 = {'X':0, 'tmp22':0, 'tmp23':-1, 'tmp25':0} #before rnnpool
+        keys2 = {'tmp27':0} #before mbonv
+        keys3 = []
+        for i in [9, 10, 11, 12, 13]:
+            for j in range(1, 4):
+                keys3.append('L%dF%d'%(i, j))
+                keys3.append('L%dW%d'%(i, j))
+                keys3.append('L%dB%d'%(i, j))
+        keys4 = {'tmp433':0, 'tmp446':0, 'tmp449':0, 'tmp460':0, 'tmp463':0, 'tmp469':0, 'tmp470':0} #after 3rd detection mbconvs
+
+        a = {}
+        b = {}
+        c = []
+        for key in self.variableToBitwidthMap.keys():
+            a[key] = 16
+            b[key] = 0
+        for key in keys1.keys():
+            a[key] = 8
+            b[key] = keys1[key]
+            c.append(key)
+        for key in keys2.keys():
+            a[key] = 8
+            b[key] = keys2[key]
+            c.append(key)
+        for key in keys3:
+            a[key] = 8
+            b[key] = 0
+            c.append(key)
+        for key in keys4.keys():
+            a[key] = 8
+            b[key] = keys4[key]
+            c.append(key)
+        self.sf = -7
+        self.partialCompile(config.Version.fixed, config.Target.x86, self.sf, True, None, 0, a, c, b)
+        self.convert(config.Version.fixed,
+                    config.DatasetType.testing, config.Target.x86)
+        self.runAll(config.Version.fixed, config.DatasetType.testing, None, {}, True)
+
+
+
+
+
+
+        #######################################################
+
         start, end = config.maxScaleRange
 
         lastStageAcc = -1

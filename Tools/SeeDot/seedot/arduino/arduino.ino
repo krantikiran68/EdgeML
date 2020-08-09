@@ -84,7 +84,7 @@ void predictionTime() {
 		totalTime += elapsedTime;
 		iterations++;
 
-		if (iterations % 100 == 0) {
+		if (iterations % 1 == 0) {
 			Serial.println("\n------------------------");
 			Serial.println("Average prediction time:");
 			Serial.println((float)totalTime / iterations);

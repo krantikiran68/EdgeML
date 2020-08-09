@@ -1,0 +1,200 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                              %
+%    Artifact for OOPSLA Paper 230             %
+%    Shiftry: RNN Inference in 2 KB of RAM     %
+%                                              %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+STEP BY STEP INSTRUCTIONS GUIDE
+===============================
+
+Note
+----
+Before reading this document, please go through the GETTING_STARTED guide to complete the setup and make one trial run of the compiler to ensure it is installed correctly.
+
+Results this artifact supports
+------------------------------
+All results of Shiftry mentioned in Section 7 can be reproduced through this artifact. They include:
+1. Algorithms: ProtoNN, Bonsai, FastGRNN are supported
+2. Datasets:
+	-ProtoNN and Bonsai: Cifar, CR*2, Curet, Letter, MNIST*2, USPS*2, Ward
+	-FastGRNN: DSA, Google*2, HAR*2, MNIST, Spectakoms (named Industrial in the paper)
+	(The *2 signifies two different datasets bearing the same name are used)
+	(Check out the exact names of the datasets from SeeDot\datasets\<algorithm>\ which will contain folders bearing the names of the datasets)
+The accuracy and model size of sketch on Uno can all be evaluated through the artifact.
+The performance on Arduino Uno can be evaluated if the hardware is available, either in person or remotely.
+Important Note:	
+	(1) Performance numbers will vary from what is recorded in the paper FOR PROTONN AND BONSAI datasets. The performance numbers were recorded for an earlier version of Arduino Uno. In the version we are currently using (1.8.10), in all of the output codes we observe a 5-20% speedup (up to 50% in a few cases) for all codes running on Arduino.
+	(2) Model size (sketch size) numbers can vary slightly from what is recorded in the paper (+- few bytes) due to small updates in the boilerplate code.  
+	(3) For FastGRNN, we also present estimated RAM usage in the paper. For FastGRNN, we note that in addition to sketch size, the RAM used by temporary variables was also a barrier to being able to run on Arduino Uno, hence we also give an estimate for RAM usage on Uno. This calculation is rough and only relevant to FastGRNN, not to ProtoNN and Bonsai. The RAM usage presented in the artifact is a closer estimate than the one presented in the paper, so it can be expected to be approx 10-30% higher than the values given in the paper.
+	(4) The approximate compile times on our machine are given in the last section in this file for reference.
+
+Results this artifact does not support
+--------------------------------------
+1. None of our benchmarks required the usage of defragmentation (Section 6.1). Hence this artifact does support it.
+2. The wakeword dataset is a proprietary dataset which we are unable to distribute.
+
+Primer to invoking the compiler
+-------------------------------
+1. Please go through GETTING_STARTED guide's Running an Example section to ensure the compiler is set up correctly if not already done.
+2. Note the command used in the above: 'python SeeDot-dev.py -a rnn -d spectakoms -m red_disagree -v fixed -t arduino'. The arguments are as follows:
+	-a: algorithm to run, options are 'rnn' (for FastGRNN), 'protonn' (for ProtoNN), 'bonsai' (for Bonsai)
+	-d: dataset to run on, options are in the file 'SeeDot\SeeDot-dev.py' class 'Dataset', parameter 'all'
+	-m: metric which is optimized upon in the intermediate stages, options are 'acc' (for accuracy), 'disagree' (for disagreement), 'red_disagree' (for reduced disagreement)
+	-v: whether to generate floating point of fixed point code, options are 'fixed' or 'float'
+	-t: target device, options are 'arduino' or 'x86'
+3. Note the default values for some of the parameters:
+	-d: if left blank, the compiler is run for all datasets which are in the file 'SeeDot\SeeDot-dev.py' class 'Dataset', parameter 'default'. So to run the compiler for all the datasets for FastGRNN, edit file 'SeeDot\SeeDot-dev.py' class 'Dataset', parameter 'default' to point to the FastGRNN datasets, and run the compiler ignoring the -d parameter. To run all the datasets for ProtoNN or Bonsai, edit file 'SeeDot\SeeDot-dev.py' class 'Dataset', parameter 'default' to point to the Bonsai\ProtoNN datasets, and run the compiler ignoring the -d parameter.
+	-a: if left blank, the compiler will be run both for ProtoNN and Bonsai (not FastGRNN). To generate code both for ProtoNN and Bonsai, simply ignore this flag (examples below)
+
+NOTE: SeeDot-dev.py should only be invoked from the terminal while inside the \SeeDot\ directory (within the same directory as the SeeDot-dev.py file) (For example, running python SeeDot\SeeDot-dev.py i.e. outside the \SeeDot\ directory will crash the compiler)
+
+Reproducing results
+-------------------
+For FastGRNN
+------------
+1. Edit file 'SeeDot\SeeDot-dev.py' class 'Dataset', parameter 'default' to point to the FastGRNN datasets (uncomment the line corresponding to FastGRNN and comment the other)
+2. Run the command: 'python SeeDot-dev.py -a rnn -m red_disagree -v fixed -t arduino' <If you want to run for a a few datasets, add '-d <dataset-name>' to the command (without quotes) (only one dataset-name at a time)>
+3. In the folder SeeDot\arduinodump\arduino\16\rnn\<dataset>\ there will be 6 files: 'compileConfig.h', 'model.h', 'predict.cpp', 'res', 'library.h', 'ram.usage'. The file 'res' will have the accuracy for the particular dataset, which can be tallied with the paper (Section 7 Table 4) and the file 'ram.usage' gives the RAM usage estimate, which can be tallied with the paper (Section 7 Figure 12)
+4. Copy the 6 files in point 3 for each dataset one by one to SeeDot\arduinodump\arduino\ and open arduino.ino in Arduino IDE. Click on the arrow button on top left (upload) which will generate the arduino sketch and upload it to the board.
+	-When the sketch is uploaded, the message box will show the size of the sketch which is the model size, and can be tallied with the paper (Section 7 Table 4)
+	-Open Tools/Serial Monitor which will generate the time taken per prediction, which can be tallied with the paper (Section 7 Table 4)
+5. For results on RAM consumption, we estimate the RAM usage in the Arduino code by summing up the sizes of all local variables declared within the FastGRNN Loop. Other sources of RAM usage like local variables, loops, function call overheads, are ignored as in this artifact the memory optimisation is only applied within one loop, and we illustrate RAM usage reduction within the loop where 10-15 variables are condensed to the space of 2-4 variables. As noted above, the current estimate may be higher than the values presented in the paper.
+
+For ProtoNN, Bonsai
+-------------------
+For these two datasets, the results are presented comparing to the floating point results. We discuss how to generate both fixed point code and floating point code
+1. Edit file 'SeeDot\SeeDot-dev.py' class 'Dataset', parameter 'default' to point to the ProtoNN/Bonsai datasets (uncomment the line corresponding to ProtoNN/Bonsai and comment the other)
+
+2. Run the command: 'python SeeDot-dev.py -m red_disagree -v fixed -t arduino' (ignoring -a flag will execute the compiler for both protonn and bonsai) <If you want to run for a a few datasets, add '-d <dataset-name>' to the command (without quotes) (only one dataset-name at a time)>
+3. In the folder SeeDot\arduinodump\arduino\16\<algorithm>\<dataset>\ there will be 6 files: 'compileConfig.h', 'model.h', 'predict.cpp', 'library.h', 'res', 'ram.usage'. The file 'res' will have the accuracy for the particular dataset. 'ram.usage' can be ignored.
+
+4. Run the command: 'python SeeDot-dev.py -m red_disagree -v float -t arduino' (ignoring -a flag will execute the compiler for both protonn and bonsai) <If you want to run for a a few datasets, add '-d <dataset-name>' to the command (without quotes) (only one dataset-name at a time)>
+5. In the folder SeeDot\arduinodump\arduino\float\<algorithm>\<dataset>\ there will be 5 files: 'compileConfig.h', 'model.h', 'predict.cpp', 'library.h', 'ram.usage'. The accuracy can be checked on STDOUT (for floating point code the accuracy is directly printed on the terminal). These results can be compared with fixed point results in point 3 and matched with the paper (Section 7 Figures 6, 7)
+
+6. For each algorithm (ProtoNN, Bonsai):
+	For each dataset (Cifar, CR*2, Curet, Letter, MNIST*2, USPS*2, Ward):
+		
+		6a. Copy the 6 files inside SeeDot\arduinodump\arduino\16\<algorithm>\<dataset>\ to SeeDot\arduinodump\arduino\ and open arduino.ino in Arduino IDE. Click on the arrow button (upload) which will generate the arduino sketch and upload it to the board.
+			-When the sketch is uploaded, the message box will show the size of the sketch which is the model size
+			-Open Tools\Serial Monitor which will generate the time taken per prediction
+
+		6b. Copy the 5 files inside SeeDot\arduinodump\arduino\float\<algorithm>\<dataset> to SeeDot\arduinodump\arduino\ and open arduino.ino in Arduino IDE. Click on the arrow button (upload) which will generate the arduino sketch and upload it to the board.
+			-When the sketch is uploaded, the message box will show the size of the sketch which is the model size, and can be compared to fixed point code in point 6 and tallied with the paper (Section 7 Figures 10, 11)
+			-Open Tools/Serial Monitor which will generate the time taken per prediction, and can be compared to fixed point code in point 6 and tallied with the paper (Section 7 Figures 8, 9)
+			IMPORTANT NOTE: For floating point code of Bonsai, cr-multiclass and curet-multiclass do not run on Arduino Uno as the models are too big. For them, no speedup numbers are reported in the paper. The floating point codes will compile on Arduino IDE, sketch size will be displayed but the sketch size will be reported as too high to fit on the board
+
+Numerical values of various benchmarks
+--------------------------------------
+We provide the raw numbers used to construct graphs in Section 7. Note performance and model size numbers can differ due to differences in Arduino IDE versions. (Runtimes will be faster and model sizes will be better, all across the table for protonn and bonsai)
+Bonsai:
+	Accuracy of 		fixed point code vs floating point code (paper shows difference floating point - fixed point)
+		cifar-binary		75.560			75.950
+		cr-binary 			74.496			74.602
+		cr-multiclass 		09.922			10.757
+		curet-multiclass	41.981			45.545
+		letter-multiclass	64.380			65.040
+		mnist-binary		95.900			95.960
+		mnist-multiclass	92.870			93.560
+		usps-binary			94.469			94.818
+		usps-multiclass		91.579			91.629
+		ward-binary			94.821			95.132
+	Runtime (us) of		fixed point code vs floating point code (paper shows the ratio floating point / fixed point)
+		cifar-binary		11201			44810
+		cr-binary 			11480			44480
+		cr-multiclass 		29745			does not run
+		curet-multiclass	31485			does not run
+		letter-multiclass	 9281			30505
+		mnist-binary		14205			42653
+		mnist-multiclass	18412			55244
+		usps-binary			 9841			40572
+		usps-multiclass		 9513			37277
+		ward-binary			18858			52560
+	Model size (bytes) 	fixed point code vs floating point code (paper shows ratio fixed point / floating point)
+		cifar-binary		13284			23978
+		cr-binary 			13262			24004
+		cr-multiclass 		13764			29214
+		curet-multiclass	15342			33096
+		letter-multiclass	 8082			13664
+		mnist-binary		14688			24546
+		mnist-multiclass	15674			28320
+		usps-binary			12914			24288
+		usps-multiclass		 9764			16704
+		ward-binary			15782			26220
+ProtoNN:
+	Accuracy of 		fixed point code vs floating point code (paper shows difference floating point - fixed point)
+		cifar-binary		76.350			76.450
+		cr-binary 			72.747			72.906
+		cr-multiclass 		32.115			32.742
+		curet-multiclass	52.815			54.526
+		letter-multiclass	81.780			84.020
+		mnist-binary		94.950			95.210
+		mnist-multiclass	91.710			92.060
+		usps-binary			93.174			94.270
+		usps-multiclass		92.078			92.526
+		ward-binary			94.045			94.873
+	Runtime (us) of		fixed point code vs floating point code (paper shows the ratio floating point / fixed point)
+		cifar-binary		17057			49519
+		cr-binary 			27770			95394
+		cr-multiclass 		36123			159273
+		curet-multiclass	33038			160415
+		letter-multiclass	30647			136711
+		mnist-binary		17244			53897
+		mnist-multiclass	18523			63578
+		usps-binary			 8823			26422
+		usps-multiclass		14128			51073
+		ward-binary			22524			63774
+	Model size (bytes) 	fixed point code vs floating point code (paper shows ratio fixed point / floating point)
+		cifar-binary		10538			16926
+		cr-binary 			13396			25702
+		cr-multiclass 		13318			27988
+		curet-multiclass	13670			29976
+		letter-multiclass	 9672			20596
+		mnist-binary		12118			21274
+		mnist-multiclass	12402			22112
+		usps-binary			 7694			11470
+		usps-multiclass		 8628			14722
+		ward-binary			14320			24776
+
+Time needed for benchmarking
+----------------------------
+The given figures are runtimes on our machine, a Lenovo Thinkpad T495S running Windows 10 with AMD Ryzen 7 Pro @2.30Ghz with 8 logical processors
+1. Command 'python SeeDot-dev.py -a rnn -m red_disagree -v fixed -t arduino' (For RNN Benchmarking)
+	Total time taken: 176 minutes
+	For individual datasets:
+		spectakoms:	8 minutes
+		dsa: 		26 minutes
+		Google-12:	21 minutes
+		Google-30:	25 minutes
+		HAR-2:		9 minutes
+		HAR-6:		9 minutes
+		MNIST-10:	78 minutes
+2. Command 'python SeeDot-dev.py -m red_disagree -v fixed -t arduino' (For ProtoNN/Bonsai Benchmarking)
+	Total time taken: 			186 minutes
+	For individual algorithms:
+		protonn:	108 minutes
+		For individual datasets:
+			cifar-binary:		18 minutes
+			cr-binary:			3 minutes
+			cr-multiclass:		2 minutes
+			curet-multiclass:	4 minutes
+			letter-multiclass:	2 minutes
+			mnist-binary:		37 minutes
+			mnist-multiclass:	32 minutes
+			usps-binary:		3 minutes
+			usps-multiclass:	2 minutes
+			ward-binary:		5 minutes
+		bonsai: 	78 minutes
+		For individual datasets:
+			cifar-binary:		12 minutes
+			cr-binary:			2 minutes
+			cr-multiclass:		2 minutes
+			curet-multiclass:	3 minutes
+			letter-multiclass:	2 minutes
+			mnist-binary:		25 minutes
+			mnist-multiclass:	24 minutes
+			usps-binary:		2 minutes
+			usps-multiclass:	2 minutes
+			ward-binary:		4 minutes
+3. Command 'python SeeDot-dev.py -m red_disagree -v float -t arduino' (For ProtoNN/Bonsai Floating point code)
+	total runtime: 10 minutes (For ProtoNN, Bonsai, 10 datasets each)

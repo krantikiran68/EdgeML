@@ -1,0 +1,661 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                              %
+%    Artifact for OOPSLA Paper 230             %
+%    Shiftry: RNN Inference in 2 KB of RAM     %
+%                                              %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+GETTING STARTED GUIDE
+=====================
+
+Hardware Requirements
+---------------------
+1. Arduino Uno Board + B USB Cable (https://www.arduino.cc/en/Guide/ArduinoUno) (If not available it will be difficult to reproduce runtime numbers)
+2. Windows 10 Machine, preferably with 16GB+ RAM (minimum 8GB), 8+ Logical Processors (more is better).
+
+We have tested the artifact on a Lenovo Thinkpad T495S running Windows 10 with AMD Ryzen 7 Pro @2.30Ghz. 
+We also provide instructions for building on Ubuntu (should work for any Linux distribution, we tested on Windows Subsystem for Linux) if a Windows machine is not available. Please note that we have extensively tested the artifact for Windows (individually checked all commands).
+In the documentation, we follow windows conventions for filenames. The commands given have been executed on Windows Powershell.
+
+Installing Dependencies: Windows
+--------------------------------
+Please follow the steps in order. If one software is already installed, you can skip to the next step.
+Recommended versions are those used by us to run the code. However, any subsequent version should be okay to use.
+1. Install Python 3 (Recommended 3.7.8: https://www.python.org/downloads/release/python-378/) 
+	-While installing python, there would be an option to "Disable path length limit". Please ensure to check this option. As an alternative, follow this link (https://www.howtogeek.com/266621/how-to-make-windows-10-accept-file-paths-over-260-characters/) to enable long paths in Windows. 
+2. Run the following on Windows powershell:
+	a. pip install antlr4-python3-runtime==4.7
+	b. pip install numpy==1.16.4
+3. Install Microsoft Visual Studio Community/Professional/Enterprise Edition
+	-While installing Visual Studio, install Python, C++ and .NET development environments
+4. Install Java Runtime Environment (Recommended Version 8 Update 261: https://java.com/en/download/)
+5. Install Arduino IDE (Recommended 1.8.10: https://www.arduino.cc/download_handler.php?f=/arduino-1.8.10-windows.exe)
+6. Connect the Arduino Uno board to the Windows 10 machine
+
+Installing Dependencies: Ubuntu
+-------------------------------
+Please install the following. If one software is already installed, you can skip to the next step.
+1. Python 3 (Should be pre-installed on most distributions)
+2. Install pip for Python 3 (sudo apt install -y python3-pip)
+3. Install the following through pip: (you may need to use pip3 instead of pip)
+	a. pip install antlr4-python3-runtime==4.7
+	b. pip install numpy==1.16.4
+4. Install g++ (should be already installed on many distributions) (sudo apt-get install g++)
+5. Ensure make is installed (The linux version of the compiler utilises makefile to build and execute output code)
+6. Install Java (sudo apt install openjdk-8-jre-headless)
+7. Install Arduino IDE (https://www.arduino.cc/download_handler.php?f=/arduino-1.8.10-linux64.tar.xz)
+8. Connect the Arduino Uno board to the Ubuntu machine
+
+Placing the datasets and trained models
+---------------------------------------
+1. The datasets and trained models are included with the artifact ('datasets' and 'model' directories)
+2. Check that both the 'datasets' and 'model' directory should be within the 'SeeDot' directory. (As a check, 'ls SeeDot' command should give the following files: .vscode, datasets, model, seedot, Results.csv, SeeDot-dev.py, SeeDot.py) (On Ubuntu,  ls -a SeeDot should give the same result)
+3. The 'datasets' directory contains the input/output traces for multiple datasets, and the 'model' directory contains the model parameters and the input code.
+	Both 'datasets' and 'model' have subdirectories in the following way: <algorithm>\<dataset_name>\<...relevant files...>
+	In 'datasets\<algorithm>\<dataset_name>\', there would be two files: 'train.npy', 'test.npy'
+	In 'model\<algorithm>\<dataset_name>\', there would be one file called 'input.sd', and multiple other .npy files which represent model parameters. If there are multiple files with extension .sd, they can be safely ignored
+
+Running an Example
+------------------
+1. Navigate to .\SeeDot\
+2. Run the following command: 'python SeeDot-dev.py -a rnn -d spectakoms -m red_disagree -v fixed -t arduino'
+3. It is possible you may encounter outputs which look like the following: (observed on Windows)
+
+	>> Traceback (most recent call last):
+	>>   File "SeeDot-dev.py", line 392, in <module>
+	>>     obj.parseArgs()
+	>>   File "SeeDot-dev.py", line 101, in parseArgs
+	>>     shutil.rmtree(config.tempdir)
+	>>   File "C:\Users\t-aak\AppData\Local\Programs\Python\Python37\lib\shutil.py", line 516, in rmtree
+	>>     return _rmtree_unsafe(path, onerror)
+	>>   File "C:\Users\t-aak\AppData\Local\Programs\Python\Python37\lib\shutil.py", line 404, in _rmtree_unsafe
+	>>     onerror(os.rmdir, path, sys.exc_info())
+	>>   File "C:\Users\t-aak\AppData\Local\Programs\Python\Python37\lib\shutil.py", line 402, in _rmtree_unsafe
+	>>     os.rmdir(path)
+	>> OSError: [WinError 145] The directory is not empty: 'temp'
+
+	These errors are caused due to the OS not being able to clear the generated files used in the previous run of the compiler. In case such a message appears, simply run the compiler again (sometimes might be required multiple times till the error clears)
+
+4. The output should be as follows: 
+	-Approximate runtime on our machine: 200 seconds
+	-Each output line is preceded by '>> ', lines not preceded by '>> ' is an explanatory note
+	-The output is approximately 560 lines long
+	-If the output matches the following then the compiler is working as expected
+	-The arduino code would be dumped in SeeDot\arduinodump\arduino\16\rnn\spectakoms
+	-Refer to the STEP_BY_STEP_GUIDE to use the arduino code and reproduce the results of the paper 
+
+	>> ========================================
+	>> Executing on rnn fixed spectakoms arduino
+	>> ========================================
+	>> 
+	>> -----------------------
+	>> Collecting profile data
+	>> -----------------------
+	>> Generating input files for float training dataset...done
+	>> 
+	>> Generating code...completed
+	>> Build...success
+	>> Execution...success
+	>> Accuracy is 99.802%
+	>> 
+
+The above is to run a floating point code to compute data driven scales for variables in the code (Refer to Section 5.1 in the paper)
+
+	>> -------------------------------------------------
+	>> Performing search to find the best scaling factor
+	>> -------------------------------------------------
+	>> 
+	>> Generating input files for fixed training dataset...done
+	>> 
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as 0
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -1
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -2
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -3
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -4
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -5
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -6
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -7
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -8
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -9
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -10
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -11
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -12
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -13
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -14
+	>> Generating code...completed
+	>> Testing with DDS and scale of X as -15
+	>> Generating code...completed
+	>> Build...success
+	>> Execution...success
+	>> Accuracy at scale factor 0 is 29.366%, Disagreement Count is 5356, Reduced Disagreement Count is 5344
+	>> 
+	>> Accuracy at scale factor -1 is 71.412%, Disagreement Count is 2167, Reduced Disagreement Count is 2158
+	>> 
+	>> Accuracy at scale factor -2 is 91.406%, Disagreement Count is 649, Reduced Disagreement Count is 642
+	>> 
+	>> Accuracy at scale factor -3 is 98.207%, Disagreement Count is 130, Reduced Disagreement Count is 125
+	>> 
+	>> Accuracy at scale factor -4 is 99.578%, Disagreement Count is 24, Reduced Disagreement Count is 20
+	>> 
+	>> Accuracy at scale factor -5 is 99.736%, Disagreement Count is 9, Reduced Disagreement Count is 7
+	>> 
+	>> Accuracy at scale factor -6 is 99.802%, Disagreement Count is 2, Reduced Disagreement Count is 1
+	>> 
+	>> Accuracy at scale factor -7 is 99.789%, Disagreement Count is 3, Reduced Disagreement Count is 2
+	>> 
+	>> Accuracy at scale factor -8 is 99.763%, Disagreement Count is 3, Reduced Disagreement Count is 3
+	>> 
+	>> Accuracy at scale factor -9 is 99.776%, Disagreement Count is 2, Reduced Disagreement Count is 2
+	>> 
+	>> Accuracy at scale factor -10 is 99.776%, Disagreement Count is 2, Reduced Disagreement Count is 2
+	>> 
+	>> Accuracy at scale factor -11 is 99.736%, Disagreement Count is 5, Reduced Disagreement Count is 5
+	>> 
+	>> Accuracy at scale factor -12 is 99.341%, Disagreement Count is 35, Reduced Disagreement Count is 35
+	>> 
+	>> Accuracy at scale factor -13 is 95.703%, Disagreement Count is 311, Reduced Disagreement Count is 311
+	>> 
+	>> Accuracy at scale factor -14 is 55.055%, Disagreement Count is 3403, Reduced Disagreement Count is 3398
+	>> 
+	>> Accuracy at scale factor -15 is 5.088%, Disagreement Count is 7201, Reduced Disagreement Count is 7186
+	>> 
+	>> 
+	>> Search completed
+	>> 
+	>> ----------------------------------------------
+	>> Best performing scaling factors with accuracy, disagreement, reduced disagreement:
+	>> [(-11, (99.736, 5, 5)), (-10, (99.776, 2, 2)), (-9, (99.776, 2, 2)), (-8, (99.763, 3, 3)), (-7, (99.789, 3, 2))]
+
+As mentioned in the paper, for the input variable 'X', data driven scaling often does not give the best scale (Section 5.1). So, in the above segment we explore across multiple scales to see which one fits best.
+
+	>> Scales computed in native bitwidth. Starting exploration over other bitwidths.
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Build...success
+	>> Execution...success
+	>> Demoted vars: ('tmp20',)
+	>> 
+	>> Offset 0 (Code ID 1): Accuracy 93.357%, Disagreement Count 500, Reduced Disagreement Count 494
+	>> 
+	>> Offset -1 (Code ID 2): Accuracy 98.603%, Disagreement Count 97, Reduced Disagreement Count 94
+	>> 
+	>> Offset -2 (Code ID 3): Accuracy 99.249%, Disagreement Count 48, Reduced Disagreement Count 45
+	>> 
+	>> Demoted vars: ('tmp22',)
+	>> 
+	>> Offset 0 (Code ID 4): Accuracy 83.999%, Disagreement Count 1220, Reduced Disagreement Count 1209
+	>> 
+	>> Offset -1 (Code ID 5): Accuracy 95.624%, Disagreement Count 331, Reduced Disagreement Count 324
+	>> 
+	>> Offset -2 (Code ID 6): Accuracy 98.985%, Disagreement Count 74, Reduced Disagreement Count 68
+	>> 
+	>> Demoted vars: ('tmp24',)
+	>> 
+	>> Offset 0 (Code ID 7): Accuracy 99.697%, Disagreement Count 8, Reduced Disagreement Count 8
+	>> 
+	>> Offset -1 (Code ID 8): Accuracy 75.405%, Disagreement Count 1854, Reduced Disagreement Count 1852
+	>> 
+	>> Offset -2 (Code ID 9): Accuracy 25.939%, Disagreement Count 5619, Reduced Disagreement Count 5607
+	>> 
+	>> Demoted vars: ('tmp26',)
+	>> 
+	>> Offset 0 (Code ID 10): Accuracy 99.051%, Disagreement Count 69, Reduced Disagreement Count 63
+	>> 
+	>> Offset -1 (Code ID 11): Accuracy 99.183%, Disagreement Count 49, Reduced Disagreement Count 48
+	>> 
+	>> Offset -2 (Code ID 12): Accuracy 80.256%, Disagreement Count 1498, Reduced Disagreement Count 1490
+	>> 
+	>> Demoted vars: ('tmp27',)
+	>> 
+	>> Offset 0 (Code ID 13): Accuracy 85.185%, Disagreement Count 1130, Reduced Disagreement Count 1119
+	>> 
+	>> Offset -1 (Code ID 14): Accuracy 96.639%, Disagreement Count 254, Reduced Disagreement Count 247
+	>> 
+	>> Offset -2 (Code ID 15): Accuracy 99.156%, Disagreement Count 59, Reduced Disagreement Count 54
+	>> 
+	>> Demoted vars: ('tmp28',)
+	>> 
+	>> Offset 0 (Code ID 16): Accuracy 94.016%, Disagreement Count 451, Reduced Disagreement Count 445
+	>> 
+	>> Offset -1 (Code ID 17): Accuracy 98.682%, Disagreement Count 93, Reduced Disagreement Count 89
+	>> 
+	>> Offset -2 (Code ID 18): Accuracy 97.891%, Disagreement Count 151, Reduced Disagreement Count 148
+	>> 
+	>> Demoted vars: ('tmp30',)
+	>> 
+	>> Offset 0 (Code ID 19): Accuracy 95.624%, Disagreement Count 331, Reduced Disagreement Count 324
+	>> 
+	>> Offset -1 (Code ID 20): Accuracy 99.104%, Disagreement Count 59, Reduced Disagreement Count 56
+	>> 
+	>> Offset -2 (Code ID 21): Accuracy 99.670%, Disagreement Count 18, Reduced Disagreement Count 14
+	>> 
+	>> Demoted vars: ('tmp32',)
+	>> 
+	>> Offset 0 (Code ID 22): Accuracy 99.473%, Disagreement Count 33, Reduced Disagreement Count 29
+	>> 
+	>> Offset -1 (Code ID 23): Accuracy 12.350%, Disagreement Count 6647, Reduced Disagreement Count 6636
+	>> 
+	>> Offset -2 (Code ID 24): Accuracy 10.175%, Disagreement Count 6815, Reduced Disagreement Count 6800
+	>> 
+	>> Demoted vars: ('tmp34',)
+	>> 
+	>> Offset 0 (Code ID 25): Accuracy 99.499%, Disagreement Count 29, Reduced Disagreement Count 26
+	>> 
+	>> Offset -1 (Code ID 26): Accuracy 35.469%, Disagreement Count 4890, Reduced Disagreement Count 4883
+	>> 
+	>> Offset -2 (Code ID 27): Accuracy 7.869%, Disagreement Count 6991, Reduced Disagreement Count 6976
+	>> 
+	>> Demoted vars: ('tmp35',)
+	>> 
+	>> Offset 0 (Code ID 28): Accuracy 99.631%, Disagreement Count 21, Reduced Disagreement Count 17
+	>> 
+	>> Offset -1 (Code ID 29): Accuracy 1.872%, Disagreement Count 7445, Reduced Disagreement Count 7430
+	>> 
+	>> Offset -2 (Code ID 30): Accuracy 17.174%, Disagreement Count 6285, Reduced Disagreement Count 6271
+	>> 
+	>> Demoted vars: ('tmp36',)
+	>> 
+	>> Offset 0 (Code ID 31): Accuracy 99.631%, Disagreement Count 21, Reduced Disagreement Count 17
+	>> 
+	>> Offset -1 (Code ID 32): Accuracy 1.568%, Disagreement Count 7468, Reduced Disagreement Count 7453
+	>> 
+	>> Offset -2 (Code ID 33): Accuracy 15.711%, Disagreement Count 6395, Reduced Disagreement Count 6383
+	>> 
+	>> Demoted vars: ('tmp37',)
+	>> 
+	>> Offset 0 (Code ID 34): Accuracy 99.473%, Disagreement Count 33, Reduced Disagreement Count 29
+	>> 
+	>> Offset -1 (Code ID 35): Accuracy 1.529%, Disagreement Count 7471, Reduced Disagreement Count 7456
+	>> 
+	>> Offset -2 (Code ID 36): Accuracy 13.576%, Disagreement Count 6558, Reduced Disagreement Count 6544
+	>> 
+	>> Demoted vars: ('tmp12',)
+	>> 
+	>> Offset 0 (Code ID 37): Accuracy 99.460%, Disagreement Count 34, Reduced Disagreement Count 30
+	>> 
+	>> Offset -1 (Code ID 38): Accuracy 1.410%, Disagreement Count 7480, Reduced Disagreement Count 7465
+	>> 
+	>> Offset -2 (Code ID 39): Accuracy 3.018%, Disagreement Count 7359, Reduced Disagreement Count 7344
+	>> 
+	>> Demoted vars: ('tmp40',)
+	>> 
+	>> Offset 0 (Code ID 40): Accuracy 99.723%, Disagreement Count 6, Reduced Disagreement Count 6
+	>> 
+	>> Offset -1 (Code ID 41): Accuracy 95.624%, Disagreement Count 318, Reduced Disagreement Count 317
+	>> 
+	>> Offset -2 (Code ID 42): Accuracy 14.209%, Disagreement Count 6509, Reduced Disagreement Count 6496
+	>> 
+	>> Demoted vars: ('tmp42',)
+	>> 
+	>> Offset 0 (Code ID 43): Accuracy 99.750%, Disagreement Count 8, Reduced Disagreement Count 6
+	>> 
+	>> Offset -1 (Code ID 44): Accuracy 43.482%, Disagreement Count 4273, Reduced Disagreement Count 4273
+	>> 
+	>> Offset -2 (Code ID 45): Accuracy 0.119%, Disagreement Count 7578, Reduced Disagreement Count 7563
+	>> 
+	>> Demoted vars: ('tmp43',)
+	>> 
+	>> Offset 0 (Code ID 46): Accuracy 99.750%, Disagreement Count 8, Reduced Disagreement Count 6
+	>> 
+	>> Offset -1 (Code ID 47): Accuracy 40.438%, Disagreement Count 4508, Reduced Disagreement Count 4504
+	>> 
+	>> Offset -2 (Code ID 48): Accuracy 0.171%, Disagreement Count 7574, Reduced Disagreement Count 7559
+	>> 
+	>> Demoted vars: ('W1',)
+	>> 
+	>> Offset 0 (Code ID 49): Accuracy 99.710%, Disagreement Count 15, Reduced Disagreement Count 11
+	>> 
+	>> Offset -1 (Code ID 50): Accuracy 6.564%, Disagreement Count 7089, Reduced Disagreement Count 7074
+	>> 
+	>> Offset -2 (Code ID 51): Accuracy 1.450%, Disagreement Count 7477, Reduced Disagreement Count 7462
+	>> 
+	>> Demoted vars: ('W2',)
+	>> 
+	>> Offset 0 (Code ID 52): Accuracy 99.710%, Disagreement Count 11, Reduced Disagreement Count 9
+	>> 
+	>> Offset -1 (Code ID 53): Accuracy 17.609%, Disagreement Count 6249, Reduced Disagreement Count 6237
+	>> 
+	>> Offset -2 (Code ID 54): Accuracy 2.148%, Disagreement Count 7423, Reduced Disagreement Count 7409
+	>> 
+	>> Demoted vars: ('U1',)
+	>> 
+	>> Offset 0 (Code ID 55): Accuracy 99.723%, Disagreement Count 6, Reduced Disagreement Count 6
+	>> 
+	>> Offset -1 (Code ID 56): Accuracy 37.156%, Disagreement Count 4775, Reduced Disagreement Count 4762
+	>> 
+	>> Offset -2 (Code ID 57): Accuracy 26.638%, Disagreement Count 5567, Reduced Disagreement Count 5553
+	>> 
+	>> Demoted vars: ('U2',)
+	>> 
+	>> Offset 0 (Code ID 58): Accuracy 99.736%, Disagreement Count 7, Reduced Disagreement Count 6
+	>> 
+	>> Offset -1 (Code ID 59): Accuracy 99.341%, Disagreement Count 37, Reduced Disagreement Count 36
+	>> 
+	>> Offset -2 (Code ID 60): Accuracy 48.319%, Disagreement Count 3920, Reduced Disagreement Count 3911
+	>> 
+	>> Demoted vars: ('Bg',)
+	>> 
+	>> Offset 0 (Code ID 61): Accuracy 99.710%, Disagreement Count 9, Reduced Disagreement Count 8
+	>> 
+	>> Offset -1 (Code ID 62): Accuracy 27.732%, Disagreement Count 5481, Reduced Disagreement Count 5469
+	>> 
+	>> Offset -2 (Code ID 63): Accuracy 35.495%, Disagreement Count 4894, Reduced Disagreement Count 4881
+	>> 
+	>> Demoted vars: ('Bh',)
+	>> 
+	>> Offset 0 (Code ID 64): Accuracy 99.723%, Disagreement Count 6, Reduced Disagreement Count 6
+	>> 
+	>> Offset -1 (Code ID 65): Accuracy 70.397%, Disagreement Count 2240, Reduced Disagreement Count 2233
+	>> 
+	>> Offset -2 (Code ID 66): Accuracy 19.692%, Disagreement Count 6093, Reduced Disagreement Count 6078
+	>> 
+	>> Demoted vars: ('FC1',)
+	>> 
+	>> Offset 0 (Code ID 67): Accuracy 99.763%, Disagreement Count 5, Reduced Disagreement Count 4
+	>> 
+	>> Offset -1 (Code ID 68): Accuracy 38.856%, Disagreement Count 4639, Reduced Disagreement Count 4626
+	>> 
+	>> Offset -2 (Code ID 69): Accuracy 2.649%, Disagreement Count 7386, Reduced Disagreement Count 7371
+	>> 
+	>> Demoted vars: ('FC2',)
+	>> 
+	>> Offset 0 (Code ID 70): Accuracy 99.723%, Disagreement Count 10, Reduced Disagreement Count 8
+	>> 
+	>> Offset -1 (Code ID 71): Accuracy 70.766%, Disagreement Count 2207, Reduced Disagreement Count 2204
+	>> 
+	>> Offset -2 (Code ID 72): Accuracy 3.980%, Disagreement Count 7284, Reduced Disagreement Count 7271
+	>> 
+	>> Demoted vars: ('FCBias',)
+	>> 
+	>> Offset 0 (Code ID 73): Accuracy 99.750%, Disagreement Count 4, Reduced Disagreement Count 4
+	>> 
+	>> Offset -1 (Code ID 74): Accuracy 99.025%, Disagreement Count 60, Reduced Disagreement Count 59
+	>> 
+	>> Offset -2 (Code ID 75): Accuracy 96.138%, Disagreement Count 281, Reduced Disagreement Count 279
+	>> 
+	>> Demoted vars: ('X',)
+	>> 
+	>> Offset 0 (Code ID 76): Accuracy 98.168%, Disagreement Count 133, Reduced Disagreement Count 128
+	>> 
+	>> Offset -1 (Code ID 77): Accuracy 99.104%, Disagreement Count 60, Reduced Disagreement Count 56
+	>> 
+	>> Offset -2 (Code ID 78): Accuracy 95.743%, Disagreement Count 312, Reduced Disagreement Count 310
+	>> 
+	>> Offset -3 (Code ID 79): Accuracy 55.226%, Disagreement Count 3392, Reduced Disagreement Count 3386
+	>> 
+	>> Offset -4 (Code ID 80): Accuracy 5.048%, Disagreement Count 7204, Reduced Disagreement Count 7189
+	>> 
+	>> Offset -5 (Code ID 81): Accuracy 1.898%, Disagreement Count 7443, Reduced Disagreement Count 7428
+	>> 
+	>> Offset -6 (Code ID 82): Accuracy 1.582%, Disagreement Count 7467, Reduced Disagreement Count 7452
+	>> 
+	>> Offset -7 (Code ID 83): Accuracy 1.239%, Disagreement Count 7493, Reduced Disagreement Count 7478
+	>> 
+	>> Offset -8 (Code ID 84): Accuracy 1.028%, Disagreement Count 7509, Reduced Disagreement Count 7494
+	>> 
+
+In the above section, we demote one variable from 16 to 8 bits at a time, modifying the scale appropriately. The results obtained from each demotion are shown above. (Refer to Section 5.2, Stage III)
+
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Generating code...completed
+	>> Build...success
+	>> Execution...success
+	>> Demoted vars: ('FCBias',)
+	>> 
+	>> Offset 0 (Code ID 1): Accuracy 99.750%, Disagreement Count 4, Reduced Disagreement Count 4
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1')
+	>> 
+	>> Offset 0 (Code ID 2): Accuracy 99.750%, Disagreement Count 6, Reduced Disagreement Count 5
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40')
+	>> 
+	>> Offset 0 (Code ID 3): Accuracy 99.750%, Disagreement Count 8, Reduced Disagreement Count 6
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1')
+	>> 
+	>> Offset 0 (Code ID 4): Accuracy 99.723%, Disagreement Count 6, Reduced Disagreement Count 6
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh')
+	>> 
+	>> Offset 0 (Code ID 5): Accuracy 99.723%, Disagreement Count 6, Reduced Disagreement Count 6
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2')
+	>> 
+	>> Offset 0 (Code ID 6): Accuracy 99.710%, Disagreement Count 9, Reduced Disagreement Count 8
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42')
+	>> 
+	>> Offset 0 (Code ID 7): Accuracy 99.697%, Disagreement Count 12, Reduced Disagreement Count 10
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43')
+	>> 
+	>> Offset 0 (Code ID 8): Accuracy 99.697%, Disagreement Count 12, Reduced Disagreement Count 10
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24')
+	>> 
+	>> Offset 0 (Code ID 9): Accuracy 99.644%, Disagreement Count 16, Reduced Disagreement Count 14
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg')
+	>> 
+	>> Offset 0 (Code ID 10): Accuracy 99.631%, Disagreement Count 19, Reduced Disagreement Count 16
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2')
+	>> 
+	>> Offset 0 (Code ID 11): Accuracy 99.605%, Disagreement Count 21, Reduced Disagreement Count 18
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2')
+	>> 
+	>> Offset 0 (Code ID 12): Accuracy 99.565%, Disagreement Count 24, Reduced Disagreement Count 21
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1')
+	>> 
+	>> Offset 0 (Code ID 13): Accuracy 99.381%, Disagreement Count 42, Reduced Disagreement Count 37
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1', 'tmp30')
+	>> 
+	>> Offset -2 (Code ID 14): Accuracy 98.972%, Disagreement Count 71, Reduced Disagreement Count 67
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1', 'tmp30', 'tmp35')
+	>> 
+	>> Offset 0 (Code ID 15): Accuracy 98.814%, Disagreement Count 83, Reduced Disagreement Count 79
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1', 'tmp30', 'tmp35', 'tmp36')
+	>> 
+	>> Offset 0 (Code ID 16): Accuracy 98.814%, Disagreement Count 83, Reduced Disagreement Count 79
+	>> 
+	>> Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1', 'tmp30', 'tmp35', 'tmp36', 'tmp34')
+	>> 	
+	>> 	Offset 0 (Code ID 17): Accuracy 98.985%, Disagreement Count 72, Reduced Disagreement Count 67	
+	>> 	
+	>> 	Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1', 'tmp30', 'tmp35', 'tmp36', 'tmp34', 'tmp32') 	
+	>> 	
+	>> 	Offset 0 (Code ID 18): Accuracy 98.511%, Disagreement Count 106, Reduced Disagreement Count 102	
+	>> 	
+	>> 	Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1', 'tmp30', 'tmp35', 'tmp36', 'tmp34', 'tmp32', 'tmp37') 	
+	>> 	
+	>> 	Offset 0 (Code ID 19): Accuracy 98.511%, Disagreement Count 106, Reduced Disagreement Count 102	
+	>> 	
+	>> 	Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1', 'tmp30', 'tmp35', 'tmp36', 'tmp34', 'tmp32', 'tmp37', 'tmp12')	
+	>> 	
+	>> 	Offset 0 (Code ID 20): Accuracy 98.445%, Disagreement Count 109, Reduced Disagreement Count 106	
+	>> 	
+	>> 	Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1', 'tmp30', 'tmp35', 'tmp36', 'tmp34', 'tmp32', 'tmp37', 'tmp12', 'tmp20')
+	>> 	
+	>> 	Offset -2 (Code ID 21): Accuracy 97.720%, Disagreement Count 165, Reduced Disagreement Count 161	
+	>> 	
+	>> 	Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1', 'tmp30', 'tmp35', 'tmp36', 'tmp34', 'tmp32', 'tmp37', 'tmp12', 'tmp20', 'tmp26')
+	>> 	
+	>> 	Offset -1 (Code ID 22): Accuracy 97.417%, Disagreement Count 190, Reduced Disagreement Count 185	
+	>> 	
+	>> 	Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1', 'tmp30', 'tmp35', 'tmp36', 'tmp34', 'tmp32', 'tmp37', 'tmp12', 'tmp20', 'tmp26', 'tmp27')
+	>> 	
+	>> 	Offset -2 (Code ID 23): Accuracy 96.402%, Disagreement Count 270, Reduced Disagreement Count 264	
+	>> 	
+	>> 	Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1', 'tmp30', 'tmp35', 'tmp36', 'tmp34', 'tmp32', 'tmp37', 'tmp12', 'tmp20', 'tmp26', 'tmp27', 'X')	
+	>> 	
+	>> 	Offset -1 (Code ID 24): Accuracy 94.688%, Disagreement Count 398, Reduced Disagreement Count 393	
+	>> 	
+	>> 	Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1', 'tmp30', 'tmp35', 'tmp36', 'tmp34', 'tmp32', 'tmp37', 'tmp12', 'tmp20', 'tmp26', 'tmp27', 'X', 'tmp22')
+	>> 	
+	>> 	Offset -2 (Code ID 25): Accuracy 94.688%, Disagreement Count 398, Reduced Disagreement Count 393	
+	>> 	
+	>> 	Demoted vars: ('FCBias', 'FC1', 'tmp40', 'U1', 'Bh', 'U2', 'tmp42', 'tmp43', 'tmp24', 'Bg', 'FC2', 'W2', 'W1', 'tmp30', 'tmp35', 'tmp36', 'tmp34', 'tmp32', 'tmp37', 'tmp12', 'tmp20', 'tmp26', 'tmp27', 'X', 'tmp22', 'tmp28')	
+	>> 	
+	>> 	Offset -1 (Code ID 26): Accuracy 93.173%, Disagreement Count 516, Reduced Disagreement Count 509	
+	>> 	
+	>> 	Best scaling factor = -11	
+	>> 	
+
+In the above section, using the order and scale obtained from the previous section, we cumulatively keep demoting variables to 8 bit until the accuracy threshold is breached (Section 5.2 Stage IV). The variables thus demoted are mentioned below (Demoted Vars with Offsets). In the following section, the final code is generated, run on the testing dataset to show the final accuracy numbers, and the arduino code is generated and dumped.
+
+	>> 	-------------------------------	
+	>> 	Prediction on testing dataset	
+	>> 	-------------------------------	
+	>> 	
+	>> 	Setting max scaling factor to -11	
+	>> 	
+	>> 	Demoted Vars with Offsets: {'FCBias': 0, 'FC1': 0, 'tmp40': 0, 'U1': 0, 'Bh': 0, 'U2': 0, 'tmp42': 0, 'tmp43': 0, 'tmp24': 0, 'Bg': 0, 'FC2': 0, 'W2': 0, 'W1': 0, 'tmp30': -2, 'tmp35': 0, 'tmp36': 0, 'tmp34': 0, 'tmp32': 0, 'tmp37': 0, 'tmp12': 0}
+	>> 	
+	>> 	Generating input files for fixed testing dataset...done	
+	>> 	
+	>> 	Generating code...completed	
+	>> 	Build...success	
+	>> 	Execution...success	
+	>> 	Accuracy at scale factor -11 is 88.893%, Disagreement Count is 113, Reduced Disagreement Count is 57	
+	>> 	
+	>> 	------------------------------	
+	>> 	Generating code for arduino...	
+	>> 	------------------------------	
+	>> 	
+	>> 	Generating input files for fixed testing dataset...done	
+	>> 	
+	>> 	Generating code...completed	
+	>> 	
+	>> 	Arduino sketch dumped in the folder arduinodump\arduino	
+	

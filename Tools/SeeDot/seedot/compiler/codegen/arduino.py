@@ -27,6 +27,7 @@ class Arduino(CodegenBase):
 
     def __init__(self, outputDir, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals, notScratch):
         outputFile = os.path.join(outputDir, "predict.cpp")
+        self.outputDir = outputDir
         self.out = Writer(outputFile)
 
         self.decls = decls
@@ -46,7 +47,41 @@ class Arduino(CodegenBase):
         self.scratchSubs = {}
         self.notScratch = notScratch
 
+        self.currentRAMestimate = 0
+        self.maxRAMestimate = 0
+
+    def printCompilerConfig(self):
+        configFile = os.path.join(self.outputDir, "compileConfig.h")
+        with open(configFile, "w") as file:
+            file.write("// The datatype of the fixed-point representation is specified below\n")
+            file.write("#define INT%d\n" % config.wordLength)
+            if forFloat():
+                file.write("#define XFLOAT\n")
+            else:
+                if config.vbwEnabled:
+                    file.write("#define XINT%d\n" % self.varsForBitwidth['X'])
+                else:
+                    file.write("#define XINT%d\n" % config.wordLength)
+            
+            if isSaturate():
+                file.write("#define SATURATE\n")
+            else:
+                file.write("//#define SATURATE\n")
+            
+            if isfastApprox():
+                file.write("#define FASTAPPROX\n")
+            else:
+                file.write("//#define FASTAPPROX\n")
+
+            if useMathExp() or (useNewTableExp()):
+                file.write("#define FLOATEXP\n")
+            else:
+                file.write("//#define FLOATEXP\n")
+
+
     def printPrefix(self):
+        self.printCompilerConfig()
+
         self.printArduinoIncludes()
 
         self.printExpTables()
@@ -128,6 +163,9 @@ class Arduino(CodegenBase):
         self.out.printf('}\n', indent=True)
 
         self.out.close()
+
+        with open(os.path.join(self.outputDir, "ram.usage"), "w") as f:
+            f.write("Estimate RAM usage :: %d bytes" %(self.maxRAMestimate))
     '''
     Below functions are overriding their corresponding definitions in codegenBase.py.
     These function have arduino-specific print functions.
@@ -153,60 +191,67 @@ class Arduino(CodegenBase):
             self.out.printf('))')
 
     def printFor(self, ir):
-        self.printForHeader(ir)
-        self.out.increaseIndent()
-        varToLiveRange = []
-        for var in ir.varDecls.keys():
-            size = np.prod(self.localDecls[var].shape)
-            varToLiveRange.append((self.varLiveIntervals[var], var, size, self.varsForBitwidth[var]))
-        varToLiveRange.sort()
-        usedSpaceMap = {}
-        totalScratchSize = -1
-        listOfDimensions = []
-        for ([_,_], var, size, atomSize) in varToLiveRange:
-            listOfDimensions.append(size)
-        mode = (lambda x: np.bincount(x).argmax())(listOfDimensions) if len(listOfDimensions) > 0 else None
-        for ([startIns, endIns], var, size, atomSize) in varToLiveRange:
-            if var in self.notScratch:
-                continue
-            spaceNeeded = size * atomSize // 8
-            varsToKill = []
-            for activeVar in usedSpaceMap.keys():
-                endingIns = usedSpaceMap[activeVar][0]
-                if endingIns < startIns:
-                    varsToKill.append(activeVar)
-            for tbk in varsToKill:
-                del usedSpaceMap[tbk]
-            i = 0
-            if spaceNeeded >= mode:
-                blockSize = int(2**np.ceil(np.log2(spaceNeeded / mode))) * mode
-            else:
-                blockSize = mode / int(2**np.floor(np.log2(mode // spaceNeeded)))
-            breakOutOfWhile = True
-            while True:
-                potentialStart = int(blockSize * i)
-                potentialEnd = int(blockSize * (i+1)) - 1
+        if forFloat():
+            super().printFor(ir)
+        else:
+            self.printForHeader(ir)
+            self.out.increaseIndent()
+            varToLiveRange = []
+            for var in ir.varDecls.keys():
+                size = np.prod(self.localDecls[var].shape)
+                varToLiveRange.append((self.varLiveIntervals[var], var, size, self.varsForBitwidth[var]))
+            varToLiveRange.sort()
+            usedSpaceMap = {}
+            totalScratchSize = -1
+            listOfDimensions = []
+            for ([_,_], var, size, atomSize) in varToLiveRange:
+                listOfDimensions.append(size)
+            mode = (lambda x: np.bincount(x).argmax())(listOfDimensions) if len(listOfDimensions) > 0 else None
+            for ([startIns, endIns], var, size, atomSize) in varToLiveRange:
+                if var in self.notScratch:
+                    continue
+                spaceNeeded = size * atomSize // 8
+                varsToKill = []
                 for activeVar in usedSpaceMap.keys():
-                    (locationOccupiedStart, locationOccupiedEnd) = usedSpaceMap[activeVar][1]
-                    if not (locationOccupiedStart > potentialEnd or locationOccupiedEnd < potentialStart):
-                        i += 1
-                        breakOutOfWhile = False
+                    endingIns = usedSpaceMap[activeVar][0]
+                    if endingIns < startIns:
+                        varsToKill.append(activeVar)
+                for tbk in varsToKill:
+                    del usedSpaceMap[tbk]
+                i = 0
+                if spaceNeeded >= mode:
+                    blockSize = int(2**np.ceil(np.log2(spaceNeeded / mode))) * mode
+                else:
+                    blockSize = mode / int(2**np.floor(np.log2(mode // spaceNeeded)))
+                breakOutOfWhile = True
+                while True:
+                    potentialStart = int(blockSize * i)
+                    potentialEnd = int(blockSize * (i+1)) - 1
+                    for activeVar in usedSpaceMap.keys():
+                        (locationOccupiedStart, locationOccupiedEnd) = usedSpaceMap[activeVar][1]
+                        if not (locationOccupiedStart > potentialEnd or locationOccupiedEnd < potentialStart):
+                            i += 1
+                            breakOutOfWhile = False
+                            break
+                        else:
+                            breakOutOfWhile = True
+                            continue
+                    if breakOutOfWhile:
                         break
-                    else:
-                        breakOutOfWhile = True
-                        continue
-                if breakOutOfWhile:
-                    break
-                
-            usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
-            totalScratchSize = max(totalScratchSize, potentialEnd)
-            self.scratchSubs[var] = potentialStart
-        self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
-        self.printLocalVarDecls(ir)
-        for cmd in ir.cmd_l:
-            self.print(cmd)
-        self.out.decreaseIndent()
-        self.out.printf('}\n', indent=True)
+                    
+                usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
+                totalScratchSize = max(totalScratchSize, potentialEnd)
+                self.scratchSubs[var] = potentialStart
+            self.currentRAMestimate += (totalScratchSize+1)
+            self.maxRAMestimate = max(self.currentRAMestimate, self.maxRAMestimate)
+            self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
+            self.printLocalVarDecls(ir)
+            for cmd in ir.cmd_l:
+                self.print(cmd)
+            self.out.decreaseIndent()
+            self.out.printf('}\n', indent=True)
+            self.updateRAMafterDealloc(ir)
+            self.currentRAMestimate -= (totalScratchSize+1)
 
     # The variable X is used to define the data point.
     # It is either read from the serial port or from the device's memory based on the operating mode.
@@ -281,6 +326,7 @@ class Arduino(CodegenBase):
         self.out.printf(");\n")
         self.out.decreaseIndent()
         self.out.printf("}\n", indent=True)
+        self.updateRAMafterDealloc(ir)
 
     def printPrint(self, ir):
         self.out.printf('Serial.println(', indent=True)

@@ -55,6 +55,21 @@ class Predictor:
 
             file.write("const bool logProgramOutput = true;")
 
+            if Util.isSaturate():
+                file.write("#define SATURATE\n")
+            else:
+                file.write("//#define SATURATE\n")
+            
+            if Util.isfastApprox():
+                file.write("#define FASTAPPROX\n")
+            else:
+                file.write("//#define FASTAPPROX\n")
+
+            if Util.useMathExp() or (Util.useNewTableExp()):
+                file.write("#define FLOATEXP\n")
+            else:
+                file.write("//#define FLOATEXP\n")
+
     def buildForWindows(self):
         '''
         Builds using the Predictor.vcxproj project file and creates the executable

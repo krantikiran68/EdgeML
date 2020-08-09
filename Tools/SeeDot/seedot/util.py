@@ -12,7 +12,16 @@ class Config:
     exp = "new table"  # "table" "math" "new table"
     codegen = "funcCall"  # "funcCall" "inline"
     debug = False
-    debugCompiler = True
+    debugCompiler = False
+    saturateArithmetic = False
+    fastApproximations = False
+
+def isSaturate():
+    return Config.saturateArithmetic
+
+
+def isfastApprox():
+    return Config.fastApproximations
 
 
 def windows():

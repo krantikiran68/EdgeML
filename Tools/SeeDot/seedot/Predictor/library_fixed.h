@@ -3,9 +3,7 @@
 
 #pragma once
 
-//#define SATURATE
-//#define FASTAPPROX
-#define FLOATEXP
+#include "datatypes.h"
 
 void MatAddNN(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
 void MatAddCN(const MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
@@ -39,11 +37,9 @@ void Transpose(MYINT *A, MYINT *B, MYINT I, MYINT J);
 
 void ScalarMul(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT shrB);
 
-void Conv(MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
+void AddOrSubCir4D(MYINT *A, const MYINT *B, MYINT *X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
 
-void AddOrSubCir4D(MYINT *A, const MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
-
-void AddOrSubCir2D(MYINT *A, const MYINT *B, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
+void AddOrSubCir2D(MYINT *A, const MYINT *B, MYINT *X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
 
 void Relu4D(MYINT *A, MYINT N, MYINT H, MYINT W, MYINT C);
 
@@ -68,7 +64,8 @@ inline TypeA Saturate(int32_t inp) {
 template<>
 inline int16_t Saturate(int32_t inp) {
 #ifdef SATURATE
-	return (int16_t)((inp > 32767 ? 32767 : inp) < -32768 ? -32768 : inp);
+	inp = inp > 32767 ? 32767 : inp;
+	return (int16_t)(inp < -32768 ? -32768 : inp);
 #else
 	return (int16_t)inp;
 #endif
@@ -77,7 +74,8 @@ inline int16_t Saturate(int32_t inp) {
 template<>
 inline int8_t Saturate(int32_t inp) {
 #ifdef SATURATE
-	return (int8_t)((inp > 127 ? 127 : inp) < -128 ? -128 : inp);
+	inp = inp > 127 ? 127 : inp;
+	return (int8_t)(inp < -128 ? -128 : inp);
 #else
 	return (int8_t)inp;
 #endif
@@ -570,71 +568,7 @@ void ScalarMul(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void Conv(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
-	MYITE padH = (HF - 1) / 2;
-	MYITE padW = (WF - 1) / 2;
-
-	for (MYITE n = 0; n < N; n++) {
-		for (MYITE h = 0; h < H; h++) {
-			for (MYITE w = 0; w < W; w++) {
-				for (MYITE co = 0; co < CO; co++) {
-
-					MYITE counter = 0;
-					for (MYITE hf = 0; hf < HF; hf++) {
-						for (MYITE wf = 0; wf < WF; wf++) {
-							for (MYITE ci = 0; ci < CI; ci++) {
-								TypeTemp a = (TypeTemp)(((((h + hf) < padH) || ((h + hf) >= (H + padH))) || (((w + wf) < padW) || ((w + wf) >= (W + padW)))) ? 0 : A[n * H * W * CI + ((h + hf) - padH) * W * CI + ((w + wf) - padW) * CI + ci]);
-
-								TypeTemp b = (TypeTemp)B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co];
-
-								tmp[counter] = a * b;
-								counter++;
-							}
-						}
-					}
-
-					MYITE totalEle = HF * WF * CI;
-					MYITE count = HF * WF * CI, depth = 0;
-					bool shr = true;
-
-					while (depth < (H1 + H2)) {
-						if (depth >= H1)
-							shr = false;
-
-						for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
-							TypeTemp sum;
-							if (p < (count >> 1)) {
-								if (shr)
-									sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
-								else
-									sum = tmp[2 * p] + tmp[(2 * p) + 1];
-							}
-							else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-								if (shr)
-									sum = tmp[2 * p] / 2;
-								else
-									sum = tmp[2 * p];
-							}
-							else
-								sum = 0;
-
-							tmp[p] = sum;
-						}
-						count = (count + 1) >> 1;
-
-						depth++;
-					}
-
-					C[n * H * W * CO + h * W * CO + w * CO + co] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
-				}
-			}
-		}
-	}
-	return;
-}
-
-template<class TypeA, class TypeB, class TypeTemp>
-void AddOrSubCir4D(TypeA* A, const TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
+void AddOrSubCir4D(TypeA* A, const TypeB* B, TypeC* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add, MYINT demote) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -650,16 +584,15 @@ void AddOrSubCir4D(TypeA* A, const TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C,
 						res = a / shrC + b / shrC;
 					else
 						res = a / shrC - b / shrC;
-
-					A[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeA>(res);
+					X[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeC>(res / demote);
 				}
 			}
 		}
 	}
 	return;
 }
-template<class TypeA, class TypeB, class TypeTemp>
-void AddOrSubCir2D(TypeA* A, const TypeB* B, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
+template<class TypeA, class TypeB, class TypeTemp, class TypeC>
+void AddOrSubCir2D(TypeA* A, const TypeB* B, TypeC* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add, MYINT demote) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			TypeTemp a = (TypeTemp)A[h * W + w];
@@ -673,11 +606,9 @@ void AddOrSubCir2D(TypeA* A, const TypeB* B, MYINT H, MYINT W, MYINT shrA, MYINT
 				res = a / shrC + b / shrC;
 			else
 				res = a / shrC - b / shrC;
-
-			A[h * W + w] = Saturate<TypeA>(res);
+			X[h * W + w] = Saturate<TypeC>(res / demote);
 		}
 	}
-
 	return;
 }
 
@@ -791,8 +722,10 @@ void ExpNew16(int16_t *A, MYINT I, MYINT J, MYINT adjust, TypeB *B) {
 
 template<class TypeA>
 void Sigmoid(TypeA* A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_limit, MYINT scale_in, MYINT scale_out, TypeA* B) {
+	TypeA scale_diff = scale_out / scale_in;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+		#ifdef FLOATEXP
 			float x = float(A[i * J + j]) / scale_in;
 
 			float y = 1 / (1 + exp(-x));
@@ -800,6 +733,19 @@ void Sigmoid(TypeA* A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_lim
 			TypeA z = (TypeA)(y * scale_out);
 
 			B[i * J + j] = z;
+		#else
+			TypeA x = A[i * J + j];
+			x = (x / div) + add;
+			TypeA y;
+			if (x >= sigmoid_limit)
+				y = sigmoid_limit;
+			else if (x <= 0)
+				y = 0;
+			else
+				y = x;
+			y = y * scale_diff;
+			B[i * J + j] = y;
+		#endif
 		}
 	}
 
@@ -843,6 +789,7 @@ template<class TypeA>
 void TanH(TypeA* A, MYINT I, MYINT J, TypeA scale_in, TypeA scale_out, TypeA* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+		#ifdef FLOATEXP
 			float x = float(A[i * J + j]) / scale_in;
 
 			float y = tanh(x);
@@ -850,6 +797,18 @@ void TanH(TypeA* A, MYINT I, MYINT J, TypeA scale_in, TypeA scale_out, TypeA* B)
 			MYINT z = (TypeA)(y * scale_out);
 
 			B[i * J + j] = z;
+		#else
+			TypeA x = A[i * J + j], y;
+			if (x >= scale_in)
+				y = scale_in;
+			else if (x <= -scale_in)
+				y = -scale_in;
+			else
+				y = x;
+			TypeA scale_diff = scale_out / scale_in;
+			y *= scale_diff;
+			B[i * J + j] = y;
+		#endif
 		}
 	}
 	return;

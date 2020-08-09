@@ -630,90 +630,10 @@ void ScalarMul(MYINT *A, MYINT *B, MYINT *C, MYINT I, MYINT J, MYINT shrA, MYINT
 
 	return;
 }
-//TODO: introduce the saturatioon here
-// C = A # B
-// A[N][H][W][CI], B[HF][WF][CI][CO], C[N][H][W][CO]
-void Conv(MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2)
-{
-	MYITE padH = (HF - 1) / 2;
-	MYITE padW = (WF - 1) / 2;
-
-	for (MYITE n = 0; n < N; n++)
-	{
-		for (MYITE h = 0; h < H; h++)
-		{
-			for (MYITE w = 0; w < W; w++)
-			{
-				for (MYITE co = 0; co < CO; co++)
-				{
-
-					MYITE counter = 0;
-					for (MYITE hf = 0; hf < HF; hf++)
-					{
-						for (MYITE wf = 0; wf < WF; wf++)
-						{
-							for (MYITE ci = 0; ci < CI; ci++)
-							{
-								MYINT a = (((((h + hf) < padH) || ((h + hf) >= (H + padH))) || (((w + wf) < padW) || ((w + wf) >= (W + padW)))) ? 0 : A[n * H * W * CI + ((h + hf) - padH) * W * CI + ((w + wf) - padW) * CI + ci]);
-								a = a / shrA;
-
-								MYINT b = B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co];
-								b = b / shrB;
-
-								tmp[counter] = a * b;
-								counter++;
-							}
-						}
-					}
-
-					MYITE totalEle = HF * WF * CI;
-					MYITE count = HF * WF * CI, depth = 0;
-					bool shr = true;
-
-					while (depth < (H1 + H2))
-					{
-						if (depth >= H1)
-							shr = false;
-
-						for (MYITE p = 0; p < (totalEle / 2 + 1); p++)
-						{
-							MYINT sum;
-							if (p < (count >> 1))
-							{
-								if (shr)
-									sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
-								else
-									sum = tmp[2 * p] + tmp[(2 * p) + 1];
-							}
-							else if ((p == (count >> 1)) && ((count & 1) == 1))
-							{
-								if (shr)
-									sum = tmp[2 * p] / 2;
-								else
-									sum = tmp[2 * p];
-							}
-							else
-								sum = 0;
-
-							tmp[p] = sum;
-						}
-						count = (count + 1) >> 1;
-
-						depth++;
-					}
-
-					C[n * H * W * CO + h * W * CO + w * CO + co] = tmp[0];
-				}
-			}
-		}
-	}
-
-	return;
-}
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir4D(MYINT *A, const MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add)
+void AddOrSubCir4D(MYINT *A, const MYINT *B, MYINT *X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add)
 {
 
 	for (MYITE n = 0; n < N; n++)
@@ -735,8 +655,7 @@ void AddOrSubCir4D(MYINT *A, const MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C,
 						res = Saturate<MYINT>(a / shrC + b / shrC);
 					else
 						res = Saturate<MYINT>(a / shrC - b / shrC);
-
-					A[n * H * W * C + h * W * C + w * C + c] = res;
+					X[n * H * W * C + h * W * C + w * C + c] = res;
 				}
 			}
 		}
@@ -747,7 +666,7 @@ void AddOrSubCir4D(MYINT *A, const MYINT *B, MYINT N, MYINT H, MYINT W, MYINT C,
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir2D(MYINT *A, const MYINT *B, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add)
+void AddOrSubCir2D(MYINT *A, const MYINT *B, MYINT *X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add)
 {
 
 	for (MYITE h = 0; h < H; h++)
@@ -765,8 +684,7 @@ void AddOrSubCir2D(MYINT *A, const MYINT *B, MYINT H, MYINT W, MYINT shrA, MYINT
 				res = Saturate<MYINT>(a / shrC + b / shrC);
 			else
 				res = Saturate<MYINT>(a / shrC - b / shrC);
-
-			A[h * W + w] = res;
+			X[h * W + w] = res;
 		}
 	}
 

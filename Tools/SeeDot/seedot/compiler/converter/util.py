@@ -4,7 +4,7 @@
 import math
 import numpy as np
 import os
-from sklearn.datasets import load_svmlight_file
+# from sklearn.datasets import load_svmlight_file
 
 import seedot.config as config
 import seedot.util as Util
@@ -202,8 +202,8 @@ def readXandY(useTrainingSet=False):
         return readXandYasTSV(useTrainingSet)
     elif train_ext == test_ext == ".csv":
         return readXandYasCSV(useTrainingSet)
-    elif train_ext == test_ext == ".txt":
-        return readXandYasLibSVM(useTrainingSet)
+    # elif train_ext == test_ext == ".txt":
+    #     return readXandYasLibSVM(useTrainingSet)
     else:
         assert False
 

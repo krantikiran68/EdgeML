@@ -369,14 +369,17 @@ inline __attribute__((always_inline)) void MulCir(float* A, float* B, float* C, 
 }
 
 // A = tanh(A)
-inline __attribute__((always_inline)) void TanH(float* A, MYINT I, MYINT J, float tanh_limit) {
+inline __attribute__((always_inline)) void TanH(float *A, MYINT I, MYINT J, float scale_in, float scale_out, float *B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			float x = A[i * J + j], y;
-
+			#ifdef FLOATEXP
 			y = tanh(x);
-
-			A[i * J + j] = y;
+			#else
+			y = x > -1 ? x : -1;
+			y = y < 1 ? y : 1;
+			#endif
+			B[i * J + j] = y;
 		}
 	}
 	return;
@@ -431,70 +434,9 @@ inline __attribute__((always_inline)) void ScalarMul(float* A, float* B, float* 
 	return;
 }
 
-// C = A # B
-// A[N][H][W][CI], B[HF][WF][CI][CO], C[N][H][W][CO]
-inline __attribute__((always_inline)) void Conv(float* A, const float* B, float* C, float* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
-	MYITE padH = (HF - 1) / 2;
-	MYITE padW = (WF - 1) / 2;
-
-	for (MYITE n = 0; n < N; n++) {
-		for (MYITE h = 0; h < H; h++) {
-			for (MYITE w = 0; w < W; w++) {
-				for (MYITE co = 0; co < CO; co++) {
-
-					MYITE counter = 0;
-					for (MYITE hf = 0; hf < HF; hf++) {
-						for (MYITE wf = 0; wf < WF; wf++) {
-							for (MYITE ci = 0; ci < CI; ci++) {
-								float a = (((((h + hf) < padH) || ((h + hf) >= (H + padH))) || (((w + wf) < padW) || ((w + wf) >= (W + padW)))) ? 0 : A[n * H * W * CI + ((h + hf) - padH) * W * CI + ((w + wf) - padW) * CI + ci]);
-
-								float b = ((float) pgm_read_float_near(&B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co]));
-
-								tmp[counter] = a * b;
-								counter++;
-							}
-						}
-					}
-
-					MYITE totalEle = HF * WF * CI;
-					MYITE count = HF * WF * CI, depth = 0;
-					bool shr = true;
-
-					while (depth < (H1 + H2)) {
-						if (depth >= H1)
-							shr = false;
-
-						for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
-							float sum;
-							if (p < (count >> 1))
-								sum = tmp[2 * p] + tmp[(2 * p) + 1];
-							else if ((p == (count >> 1)) && ((count & 1) == 1))
-								sum = tmp[2 * p];
-							else
-								sum = 0;
-
-							if (shr)
-								tmp[p] = sum;
-							else
-								tmp[p] = sum;
-						}
-						count = (count + 1) >> 1;
-
-						depth++;
-					}
-
-					C[n * H * W * CO + h * W * CO + w * CO + co] = tmp[0];
-				}
-			}
-		}
-	}
-
-	return;
-}
-
 // A = A <+> B
 // A[N][H][W][C], B[C]
-inline __attribute__((always_inline)) void AddOrSubCir4D(float* A, const float* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
+inline __attribute__((always_inline)) void AddOrSubCir4D(float* A, const float* B, float* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
 
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
@@ -510,7 +452,7 @@ inline __attribute__((always_inline)) void AddOrSubCir4D(float* A, const float* 
 					else
 						res = a - b;
 
-					A[n * H * W * C + h * W * C + w * C + c] = res;
+					X[n * H * W * C + h * W * C + w * C + c] = res;
 				}
 			}
 		}
@@ -521,7 +463,7 @@ inline __attribute__((always_inline)) void AddOrSubCir4D(float* A, const float* 
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-inline __attribute__((always_inline)) void AddOrSubCir2D(float* A, const float* B, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
+inline __attribute__((always_inline)) void AddOrSubCir2D(float* A, const float* B, float* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
 
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
@@ -535,7 +477,7 @@ inline __attribute__((always_inline)) void AddOrSubCir2D(float* A, const float* 
 			else
 				res = a - b;
 
-			A[h * W + w] = res;
+			X[h * W + w] = res;
 		}
 	}
 
@@ -624,14 +566,20 @@ inline __attribute__((always_inline)) void Exp(float* A, MYINT I, MYINT J, MYINT
 }
 
 // A = sigmoid(A)
-inline __attribute__((always_inline)) void Sigmoid(float* A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale) {
-	for (MYITE i = 0; i < I; i++) {
-		for (MYITE j = 0; j < J; j++) {
+inline __attribute__((always_inline)) void Sigmoid(float *A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, float *B) {
+	for (MYITE i = 0; i < I; i++)
+	{
+		for (MYITE j = 0; j < J; j++)
+		{
 			float x = A[i * J + j], y;
-
+			#ifdef FLOATEXP
 			y = 1 / (1 + exp(-x));
-
-			A[i * J + j] = y;
+			#else
+			y = (x + 1) / 2;
+			y = y > 0 ? y : 0;
+			y = y < 1 ? y : 1;
+			#endif
+			B[i * J + j] = y;
 		}
 	}
 	return;
@@ -645,4 +593,14 @@ inline __attribute__((always_inline)) void AdjustScaleShr(float* A, MYINT I, MYI
 // A = AdjustScaleShl(A)
 inline __attribute__((always_inline)) void AdjustScaleShl(float* A, MYINT I, MYINT J, MYINT scale) {
 	return;
+}
+
+// no op
+inline __attribute__((always_inline)) void Profile2(float* A, MYINT I, MYINT J, char* name) {
+  return;
+}
+
+// no op
+inline __attribute__((always_inline)) void checkRange2(float* A, MYINT I, MYINT J) {
+  return;
 }

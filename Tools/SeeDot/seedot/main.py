@@ -72,7 +72,7 @@ class Main:
                 outputLogFile = os.path.join(logDir, "log-fixed-" + str(abs(sf)) + ".txt")
 
         if target == config.Target.arduino:
-            outdir = os.path.join(config.outdir, str(config.wordLength), self.algo, self.dataset)
+            outdir = os.path.join(config.outdir, str(config.wordLength) if version == config.Version.fixed else "float", self.algo, self.dataset)
             os.makedirs(outdir, exist_ok=True)
             outputDir = os.path.join(outdir)
         elif target == config.Target.x86:
@@ -91,7 +91,7 @@ class Main:
                 self.variableToBitwidthMap = dict.fromkeys(obj.independentVars, config.wordLength)
         except:
             print("failed!\n")
-            #traceback.print_exc()
+            traceback.print_exc()
             return False
 
         if id is None:
@@ -360,9 +360,29 @@ class Main:
 
                 okToDemote = ()
                 acceptedAcc = lastStageAcc
+
+                permittedAccDrop = 2.0
+
+                # The following if block is just for ease of reproducability of results presented in the paper. 
+                # Different values of permittedAccDrop can be tried out for all algorithms, datasets
+
+                if self.algo == config.Algo.rnn:
+                    permittedAccDrop = 2.0
+                elif self.algo == config.Algo.protonn:
+                    if self.dataset in ["curet-multiclass", "letter-multiclass", "ward-binary"]:
+                        permittedAccDrop = 2.0
+                    else:
+                        permittedAccDrop = 1.0
+                elif self.algo == config.Algo.bonsai:
+                    if self.dataset == "curet-multiclass":
+                        permittedAccDrop = 2.0
+                    else:
+                        permittedAccDrop = 1.0
+
+
                 for ((demotedVars, _), metrics) in self.varDemoteDetails:
                     acc = metrics[0]
-                    if (self.flAccuracy - acc) > 2.0:
+                    if (self.flAccuracy - acc) > permittedAccDrop:
                         break
                     else:
                         okToDemote = demotedVars
@@ -496,7 +516,7 @@ class Main:
         curr_dir = os.path.dirname(os.path.realpath(__file__))
 
         srcFile = os.path.join(curr_dir, self.target, "library", "library_fixed.h")
-        destFile = os.path.join(config.outdir, "library.h")
+        destFile = os.path.join(config.outdir, str(config.wordLength), self.algo, self.dataset, "library.h")
         shutil.copyfile(srcFile, destFile)
 
 
@@ -551,13 +571,15 @@ class Main:
             return False
 
         # Copy model.h
-        srcFile = os.path.join(config.outdir, "Streamer", "input", "model_float.h")
-        destFile = os.path.join(config.outdir, self.target, "model.h")
+        srcFile = os.path.join(config.outdir, "input", "model_float.h")	
+        destFile = os.path.join(config.outdir, "float", self.algo, self.dataset, "model.h")	
+        os.makedirs(os.path.join(config.outdir, "float", self.algo, self.dataset), exist_ok=True)
         shutil.copyfile(srcFile, destFile)
 
         # Copy library.h file
-        srcFile = os.path.join(config.outdir, self.target, "library", "library_float.h")
-        destFile = os.path.join(config.outdir, self.target, "library.h")
+        curr_dir = os.path.dirname(os.path.realpath(__file__))	
+        srcFile = os.path.join(curr_dir, self.target, "library", "library_float.h")	
+        destFile = os.path.join(config.outdir, "float", self.algo, self.dataset, "library.h")
         shutil.copyfile(srcFile, destFile)
 
         return True

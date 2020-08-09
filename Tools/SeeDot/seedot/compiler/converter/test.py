@@ -51,26 +51,6 @@ def printDsaRNN():
     print("argmax(score)")
 
 
-def printSpectakomRNN():
-    ite = 7
-    print("let a0 = (XX[0] * W1) * W2 in")
-    print("let c0 = a0 in")
-    print("let g0 = sigmoid(c0 + Bg) in")
-    print("let h0 = tanh(c0 + Bh) in")
-    print("let H0 = (zeta * (1.0 - g0) + nu) <*> h0 in ")
-    print("")
-    for i in range(1, ite):
-        print("let a%d = (XX[%d] * W1) * W2 in" % (i, i))
-        print("let b%d = (H%d * U1) * U2 in" % (i, i-1))
-        print("let c%d = a%d + b%d in" % (i, i, i))
-        print("let g%d = sigmoid(c%d + Bg) in" % (i, i))
-        print("let h%d = tanh(c%d + Bh) in" % (i, i))
-        print("let H%d = (g%d <*> H%d) + (zeta * (1.0 - g%d) + nu) <*> h%d in " %
-              (i, i, i-1, i, i))
-        print("\n")
-    print("let score = ((H%d * FC1) * FC2) + FCBias in" % (ite-1))
-    print("argmax(score)")
-
 
 def treeSum(tmp, length, height_shr, height_noshr):
 
@@ -141,8 +121,6 @@ def treeSumNew(tmp, count, height_shr, height_noshr):
 # printUspsRNN()
 
 # printDsaRNN()
-
-# printSpectakomRNN()
 
 
 def treeSumTest():

@@ -112,11 +112,11 @@ class Quantizer:
         self.writeHeader()
 
         if forArduino() and dumpDataset():
-            scaleOfX = self.allScales['X'] #computeScale(*self.trainDatasetRange)
+            scaleOfX = self.allScales.get('X', 0) #computeScale(*self.trainDatasetRange)
             Xint, _ = scaleList(self.X[0], scaleOfX)
 
-            writeListAsArray(self.X[0], 'X', self.headerFile, None, self.varsForBitwidth['X'])
-            writeListAsArray(Xint, 'Xint', self.headerFile, None, self.varsForBitwidth['X'])
+            writeListAsArray(self.X[0], 'X', self.headerFile, None, self.varsForBitwidth.get('X', 0))
+            writeListAsArray(Xint, 'Xint', self.headerFile, None, self.varsForBitwidth.get('X', config.wordLength))
             writeVars({'scaleOfX': scaleOfX}, self.headerFile)
             writeVars({'Y': self.Y[0][0]}, self.headerFile)
 
@@ -127,14 +127,14 @@ class Quantizer:
                 self.sparseMatSizes[param.name + 'val'] = len(val)
                 self.sparseMatSizes[param.name + 'idx'] = len(idx)
                 if forArduino():
-                    writeListAsArray(val, param.name + 'val', self.headerFile, None, self.varsForBitwidth[param.name + 'val'])
-                    writeListAsArray(idx, param.name + 'idx', self.headerFile, None, self.varsForBitwidth[param.name + 'idx'])
+                    writeListAsArray(val, param.name + 'val', self.headerFile, None, self.varsForBitwidth.get(param.name + 'val', 0))
+                    writeListAsArray(idx, param.name + 'idx', self.headerFile, None, self.varsForBitwidth.get(param.name + 'idx', config.wordLength))
                 else:
                     writeListAsArray(val, param.name + 'val', self.headerFile)
                     writeListAsArray(idx, param.name + 'idx', self.headerFile)
             else:
                 if forArduino():
-                    writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape), bw=self.varsForBitwidth[param.name])
+                    writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape), bw=self.varsForBitwidth.get(param.name, 0))
                 else:
                     writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape))
 
@@ -279,6 +279,11 @@ class QuantizerFixed(Quantizer):
 
 
 class QuantizerFloat(Quantizer):
+
+    def __init__(self):
+        super().__init__()
+        self.varsForBitwidth = {}
+        self.allScales = {}
 
     # Float model is generated for for training dataset to profile the prediction
     # Hence, X is trimmed down to remove outliers. Prediction profiling is performed on the trimmed X to generate more precise profile data

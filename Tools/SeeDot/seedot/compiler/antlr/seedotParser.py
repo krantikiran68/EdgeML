@@ -1,4 +1,4 @@
-# Generated from .\seedot.g4 by ANTLR 4.7
+# Generated from ..\compiler\antlr\seedot.g4 by ANTLR 4.7
 # encoding: utf-8
 from antlr4 import *
 from io import StringIO
@@ -7,7 +7,7 @@ import sys
 
 def serializedATN():
     with StringIO() as buf:
-        buf.write("\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\'")
+        buf.write("\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3&")
         buf.write("\u00ad\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\3\2\3\2")
         buf.write("\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3")
         buf.write("\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2")
@@ -22,40 +22,40 @@ def serializedATN():
         buf.write("\16\2\u0093\13\2\3\2\3\2\3\2\3\2\3\2\7\2\u009a\n\2\f\2")
         buf.write("\16\2\u009d\13\2\3\3\3\3\3\4\3\4\3\5\3\5\3\6\3\6\3\6\7")
         buf.write("\6\u00a8\n\6\f\6\16\6\u00ab\13\6\3\6\2\3\2\7\2\4\6\b\n")
-        buf.write("\2\5\3\2\17\20\3\2\21\26\3\2\27\34\2\u00bd\2o\3\2\2\2")
+        buf.write("\2\5\3\2\17\20\3\2\21\25\3\2\26\33\2\u00bd\2o\3\2\2\2")
         buf.write("\4\u009e\3\2\2\2\6\u00a0\3\2\2\2\b\u00a2\3\2\2\2\n\u00a4")
-        buf.write("\3\2\2\2\f\r\b\2\1\2\rp\7$\2\2\16p\7%\2\2\17p\7#\2\2\20")
-        buf.write("\21\7\3\2\2\21\22\5\n\6\2\22\23\7\4\2\2\23\24\7\"\2\2")
-        buf.write("\24\25\7\5\2\2\25\26\7%\2\2\26\27\7\6\2\2\27\30\7%\2\2")
-        buf.write("\30\31\7\7\2\2\31p\3\2\2\2\32\33\7\b\2\2\33\34\7\3\2\2")
-        buf.write("\34\35\7\5\2\2\35\36\5\n\6\2\36\37\7\7\2\2\37 \7\6\2\2")
-        buf.write(" !\7%\2\2!\"\7\4\2\2\"p\3\2\2\2#$\7\35\2\2$%\7\3\2\2%")
-        buf.write("&\5\2\2\2&\'\7\6\2\2\'(\7\3\2\2()\5\n\6\2)*\7\4\2\2*+")
-        buf.write("\7\6\2\2+,\7\3\2\2,-\5\n\6\2-.\7\4\2\2./\7\4\2\2/p\3\2")
-        buf.write("\2\2\60\61\7\36\2\2\61\62\7\3\2\2\62\63\5\2\2\2\63\64")
-        buf.write("\7\6\2\2\64\65\7$\2\2\65\66\7\4\2\2\66p\3\2\2\2\678\7")
-        buf.write("#\2\289\7\3\2\29>\5\2\2\2:;\7\6\2\2;=\5\2\2\2<:\3\2\2")
+        buf.write("\3\2\2\2\f\r\b\2\1\2\rp\7#\2\2\16p\7$\2\2\17p\7\"\2\2")
+        buf.write("\20\21\7\3\2\2\21\22\5\n\6\2\22\23\7\4\2\2\23\24\7!\2")
+        buf.write("\2\24\25\7\5\2\2\25\26\7$\2\2\26\27\7\6\2\2\27\30\7$\2")
+        buf.write("\2\30\31\7\7\2\2\31p\3\2\2\2\32\33\7\b\2\2\33\34\7\3\2")
+        buf.write("\2\34\35\7\5\2\2\35\36\5\n\6\2\36\37\7\7\2\2\37 \7\6\2")
+        buf.write("\2 !\7$\2\2!\"\7\4\2\2\"p\3\2\2\2#$\7\34\2\2$%\7\3\2\2")
+        buf.write("%&\5\2\2\2&\'\7\6\2\2\'(\7\3\2\2()\5\n\6\2)*\7\4\2\2*")
+        buf.write("+\7\6\2\2+,\7\3\2\2,-\5\n\6\2-.\7\4\2\2./\7\4\2\2/p\3")
+        buf.write("\2\2\2\60\61\7\35\2\2\61\62\7\3\2\2\62\63\5\2\2\2\63\64")
+        buf.write("\7\6\2\2\64\65\7#\2\2\65\66\7\4\2\2\66p\3\2\2\2\678\7")
+        buf.write("\"\2\289\7\3\2\29>\5\2\2\2:;\7\6\2\2;=\5\2\2\2<:\3\2\2")
         buf.write("\2=@\3\2\2\2><\3\2\2\2>?\3\2\2\2?A\3\2\2\2@>\3\2\2\2A")
         buf.write("B\7\4\2\2Bp\3\2\2\2CD\5\4\3\2DE\5\2\2\13Ep\3\2\2\2FG\5")
-        buf.write("\b\5\2GH\7\3\2\2HI\5\2\2\2IJ\7\4\2\2Jp\3\2\2\2KL\7\37")
-        buf.write("\2\2LM\7\3\2\2MN\7#\2\2NO\7\13\2\2OP\7\5\2\2PQ\7$\2\2")
-        buf.write("QR\7\f\2\2RS\7$\2\2ST\7\7\2\2TU\7\4\2\2Up\5\2\2\7VW\7")
-        buf.write(" \2\2WX\7\3\2\2XY\7#\2\2YZ\7\13\2\2Z[\7\5\2\2[\\\7$\2")
-        buf.write("\2\\]\7\f\2\2]^\7$\2\2^_\7\7\2\2_`\7\6\2\2`a\5\2\2\2a")
-        buf.write("b\7\4\2\2bc\5\2\2\6cp\3\2\2\2de\7!\2\2ef\7#\2\2fg\7\13")
-        buf.write("\2\2gh\5\2\2\2hi\7\"\2\2ij\5\2\2\4jp\3\2\2\2kl\7\3\2\2")
-        buf.write("lm\5\2\2\2mn\7\4\2\2np\3\2\2\2o\f\3\2\2\2o\16\3\2\2\2")
-        buf.write("o\17\3\2\2\2o\20\3\2\2\2o\32\3\2\2\2o#\3\2\2\2o\60\3\2")
-        buf.write("\2\2o\67\3\2\2\2oC\3\2\2\2oF\3\2\2\2oK\3\2\2\2oV\3\2\2")
-        buf.write("\2od\3\2\2\2ok\3\2\2\2p\u009b\3\2\2\2qr\f\n\2\2rs\5\6")
-        buf.write("\4\2st\5\2\2\13t\u009a\3\2\2\2uv\f\t\2\2vw\5\4\3\2wx\5")
-        buf.write("\2\2\nx\u009a\3\2\2\2yz\f\5\2\2z{\7\r\2\2{|\7$\2\2|}\7")
-        buf.write("\16\2\2}~\5\2\2\2~\177\7\f\2\2\177\u0080\5\2\2\6\u0080")
+        buf.write("\b\5\2GH\7\3\2\2HI\5\2\2\2IJ\7\4\2\2Jp\3\2\2\2KL\7\36")
+        buf.write("\2\2LM\7\3\2\2MN\7\"\2\2NO\7\13\2\2OP\7\5\2\2PQ\7#\2\2")
+        buf.write("QR\7\f\2\2RS\7#\2\2ST\7\7\2\2TU\7\4\2\2Up\5\2\2\7VW\7")
+        buf.write("\37\2\2WX\7\3\2\2XY\7\"\2\2YZ\7\13\2\2Z[\7\5\2\2[\\\7")
+        buf.write("#\2\2\\]\7\f\2\2]^\7#\2\2^_\7\7\2\2_`\7\6\2\2`a\5\2\2")
+        buf.write("\2ab\7\4\2\2bc\5\2\2\6cp\3\2\2\2de\7 \2\2ef\7\"\2\2fg")
+        buf.write("\7\13\2\2gh\5\2\2\2hi\7!\2\2ij\5\2\2\4jp\3\2\2\2kl\7\3")
+        buf.write("\2\2lm\5\2\2\2mn\7\4\2\2np\3\2\2\2o\f\3\2\2\2o\16\3\2")
+        buf.write("\2\2o\17\3\2\2\2o\20\3\2\2\2o\32\3\2\2\2o#\3\2\2\2o\60")
+        buf.write("\3\2\2\2o\67\3\2\2\2oC\3\2\2\2oF\3\2\2\2oK\3\2\2\2oV\3")
+        buf.write("\2\2\2od\3\2\2\2ok\3\2\2\2p\u009b\3\2\2\2qr\f\n\2\2rs")
+        buf.write("\5\6\4\2st\5\2\2\13t\u009a\3\2\2\2uv\f\t\2\2vw\5\4\3\2")
+        buf.write("wx\5\2\2\nx\u009a\3\2\2\2yz\f\5\2\2z{\7\r\2\2{|\7#\2\2")
+        buf.write("|}\7\16\2\2}~\5\2\2\2~\177\7\f\2\2\177\u0080\5\2\2\6\u0080")
         buf.write("\u009a\3\2\2\2\u0081\u0082\f\21\2\2\u0082\u009a\7\t\2")
         buf.write("\2\u0083\u0084\f\17\2\2\u0084\u0085\7\5\2\2\u0085\u0086")
-        buf.write("\5\2\2\2\u0086\u0087\7\n\2\2\u0087\u0088\7$\2\2\u0088")
+        buf.write("\5\2\2\2\u0086\u0087\7\n\2\2\u0087\u0088\7#\2\2\u0088")
         buf.write("\u0091\7\7\2\2\u0089\u008a\7\5\2\2\u008a\u008b\5\2\2\2")
-        buf.write("\u008b\u008c\7\n\2\2\u008c\u008d\7$\2\2\u008d\u008e\7")
+        buf.write("\u008b\u008c\7\n\2\2\u008c\u008d\7#\2\2\u008d\u008e\7")
         buf.write("\7\2\2\u008e\u0090\3\2\2\2\u008f\u0089\3\2\2\2\u0090\u0093")
         buf.write("\3\2\2\2\u0091\u008f\3\2\2\2\u0091\u0092\3\2\2\2\u0092")
         buf.write("\u009a\3\2\2\2\u0093\u0091\3\2\2\2\u0094\u0095\f\r\2\2")
@@ -66,8 +66,8 @@ def serializedATN():
         buf.write("\3\2\2\2\u009b\u009c\3\2\2\2\u009c\3\3\2\2\2\u009d\u009b")
         buf.write("\3\2\2\2\u009e\u009f\t\2\2\2\u009f\5\3\2\2\2\u00a0\u00a1")
         buf.write("\t\3\2\2\u00a1\7\3\2\2\2\u00a2\u00a3\t\4\2\2\u00a3\t\3")
-        buf.write("\2\2\2\u00a4\u00a9\7$\2\2\u00a5\u00a6\7\6\2\2\u00a6\u00a8")
-        buf.write("\7$\2\2\u00a7\u00a5\3\2\2\2\u00a8\u00ab\3\2\2\2\u00a9")
+        buf.write("\2\2\2\u00a4\u00a9\7#\2\2\u00a5\u00a6\7\6\2\2\u00a6\u00a8")
+        buf.write("\7#\2\2\u00a7\u00a5\3\2\2\2\u00a8\u00ab\3\2\2\2\u00a9")
         buf.write("\u00a7\3\2\2\2\u00a9\u00aa\3\2\2\2\u00aa\13\3\2\2\2\u00ab")
         buf.write("\u00a9\3\2\2\2\b>o\u0091\u0099\u009b\u00a9")
         return buf.getvalue()
@@ -85,8 +85,8 @@ class seedotParser ( Parser ):
 
     literalNames = [ "<INVALID>", "'('", "')'", "'['", "','", "']'", "'init'", 
                      "'^T'", "':+'", "'='", "':'", "'>='", "'?'", "'+'", 
-                     "'-'", "'*'", "'|*|'", "'<*>'", "'#'", "'<+>'", "'<->'", 
-                     "'relu'", "'exp'", "'argmax'", "'sgn'", "'tanh'", "'sigmoid'", 
+                     "'-'", "'*'", "'|*|'", "'<*>'", "'<+>'", "'<->'", "'relu'", 
+                     "'exp'", "'argmax'", "'sgn'", "'tanh'", "'sigmoid'", 
                      "'reshape'", "'maxpool'", "'$'", "'loop'", "'let'", 
                      "'in'" ]
 
@@ -94,10 +94,10 @@ class seedotParser ( Parser ):
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "ADD", "SUB", "MUL", "SPARSEMUL", "MULCIR", 
-                      "CONV", "ADDCIR", "SUBCIR", "RELU", "EXP", "ARGMAX", 
-                      "SGN", "TANH", "SIGMOID", "Reshape", "Maxpool", "Sum", 
-                      "Loop", "Let", "In", "Id", "IntConst", "FloatConst", 
-                      "WS", "LineComment" ]
+                      "ADDCIR", "SUBCIR", "RELU", "EXP", "ARGMAX", "SGN", 
+                      "TANH", "SIGMOID", "Reshape", "Maxpool", "Sum", "Loop", 
+                      "Let", "In", "Id", "IntConst", "FloatConst", "WS", 
+                      "LineComment" ]
 
     RULE_expr = 0
     RULE_addOp = 1
@@ -125,26 +125,25 @@ class seedotParser ( Parser ):
     MUL=15
     SPARSEMUL=16
     MULCIR=17
-    CONV=18
-    ADDCIR=19
-    SUBCIR=20
-    RELU=21
-    EXP=22
-    ARGMAX=23
-    SGN=24
-    TANH=25
-    SIGMOID=26
-    Reshape=27
-    Maxpool=28
-    Sum=29
-    Loop=30
-    Let=31
-    In=32
-    Id=33
-    IntConst=34
-    FloatConst=35
-    WS=36
-    LineComment=37
+    ADDCIR=18
+    SUBCIR=19
+    RELU=20
+    EXP=21
+    ARGMAX=22
+    SGN=23
+    TANH=24
+    SIGMOID=25
+    Reshape=26
+    Maxpool=27
+    Sum=28
+    Loop=29
+    Let=30
+    In=31
+    Id=32
+    IntConst=33
+    FloatConst=34
+    WS=35
+    LineComment=36
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
         super().__init__(input, output)
@@ -1235,9 +1234,6 @@ class seedotParser ( Parser ):
         def MULCIR(self):
             return self.getToken(seedotParser.MULCIR, 0)
 
-        def CONV(self):
-            return self.getToken(seedotParser.CONV, 0)
-
         def ADDCIR(self):
             return self.getToken(seedotParser.ADDCIR, 0)
 
@@ -1273,7 +1269,7 @@ class seedotParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 158
             _la = self._input.LA(1)
-            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << seedotParser.MUL) | (1 << seedotParser.SPARSEMUL) | (1 << seedotParser.MULCIR) | (1 << seedotParser.CONV) | (1 << seedotParser.ADDCIR) | (1 << seedotParser.SUBCIR))) != 0)):
+            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << seedotParser.MUL) | (1 << seedotParser.SPARSEMUL) | (1 << seedotParser.MULCIR) | (1 << seedotParser.ADDCIR) | (1 << seedotParser.SUBCIR))) != 0)):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)

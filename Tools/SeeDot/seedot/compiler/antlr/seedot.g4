@@ -43,7 +43,6 @@ addOp	:	ADD
 binOp	:	MUL
 		|	SPARSEMUL
 		|	MULCIR
-		|	CONV
 		|	ADDCIR
 		|	SUBCIR
 		;
@@ -60,7 +59,6 @@ SUB		:	'-' ;
 MUL		:	'*' ;
 SPARSEMUL:	'|*|' ;
 MULCIR	:	'<*>' ;
-CONV	:	'#' ;
 ADDCIR	:	'<+>' ;
 SUBCIR	:	'<->' ;
 

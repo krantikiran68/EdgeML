@@ -27,6 +27,8 @@ import seedot.writer as writer
 
 import seedot.config as config
 
+from seedot.util import *
+
 class Compiler:
 
     def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, outputLogFile, generateAllFiles=True, id=None, printSwitch=-1, substitutions={}, scaleForX=None, variableToBitwidthMap={}, sparseMatrixSizes={}, demotedVarsList=[], demotedVarsOffsets={}):
@@ -114,7 +116,8 @@ class Compiler:
         compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
         res = compiler.visit(ast)
 
-        print(compiler.varScales)
+        if debugCompiler():
+            print(compiler.varScales)
         self.varScales = dict(compiler.varScales)
 
         outputLog.close()

@@ -24,16 +24,20 @@ class X86(CodegenBase):
         if generateAllFiles:
             self.out = Writer(cppFile)
         else:
-            print("Opening file to output cpp code: ID" + idStr)
+            if debugCompiler():
+                print("Opening file to output cpp code: ID" + idStr)
             for i in range(3):
-                print("Try %d" % (i+1))
+                if debugCompiler():
+                    print("Try %d" % (i+1))
                 try:
                     self.out = Writer(cppFile, "a")
                 except:
-                    print("OS prevented file from opening. Sleeping for %d seconds" % (i+1))
+                    if debugCompiler():
+                        print("OS prevented file from opening. Sleeping for %d seconds" % (i+1))
                     time.sleep(i+1)
                 else:
-                    print("Opened")
+                    if debugCompiler():
+                        print("Opened")
                     break
 
         self.decls = decls
@@ -341,6 +345,6 @@ class X86(CodegenBase):
                 self.out.printf('}\n', indent=True)
                 self.out.decreaseIndent()
                 self.out.printf('}\n', indent=True)
-
-        print("Closing File after outputting cpp code: ID " + self.idStr)
+        if debugCompiler():
+            print("Closing File after outputting cpp code: ID " + self.idStr)
         self.out.close()

@@ -151,6 +151,7 @@ class CodegenBase:
             self.print(cmd)
         self.out.decreaseIndent()
         self.out.printf('}\n', indent=True)
+        self.updateRAMafterDealloc(ir)
 
     def printForHeader(self, ir):
         self.out.printf('for (%s ', "int", indent=True) #Loop counter must be int16 else indices can overflow
@@ -200,6 +201,7 @@ class CodegenBase:
         self.out.printf(");\n")
         self.out.decreaseIndent()
         self.out.printf("}\n", indent=True)
+        self.updateRAMafterDealloc(ir)
 
     def printMemset(self, ir):
         self.out.printf('memset(', indent=True)
@@ -345,7 +347,20 @@ class CodegenBase:
                     else:
                         assert False
     
+    def updateRAMafterDealloc(self, ir):
+        tempSize = 0
+        for var in ir.varDecls.keys():
+            if forArduino():
+                type = ir.varDecls[var]
+                if Type.isTensor(type):
+                    bw = self.varsForBitwidth[var] if var in self.varsForBitwidth else config.wordLength
+                    size = np.prod(type.shape) * bw // 8
+                    tempSize += (size if var not in self.scratchSubs else 0)
+        if forArduino():
+            self.currentRAMestimate -= tempSize
+
     def printLocalVarDecls(self, ir):
+        tempSize = 0
         for var in ir.varDecls.keys():
             if forFloat() and var not in self.internalVars:
                 typ_str = IR.DataType.getFloatStr()
@@ -364,3 +379,12 @@ class CodegenBase:
                 shape_str = ''.join(['[' + str(n) + ']' for n in type.shape])
             self.out.printf('%s %s%s;\n', typ_str, idf_str,
                             shape_str, indent=True)
+
+            if forArduino():
+                if Type.isTensor(type):
+                    bw = self.varsForBitwidth[var] if var in self.varsForBitwidth else config.wordLength
+                    size = np.prod(type.shape) * bw // 8
+                    tempSize += (size if var not in self.scratchSubs else 0)
+        if forArduino():
+            self.currentRAMestimate += tempSize
+            self.maxRAMestimate = max(self.maxRAMestimate, self.currentRAMestimate)

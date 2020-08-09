@@ -195,8 +195,6 @@ class InferType(astVisitor.ASTVisitor):
             return self.visitBopAddOrSubCir(node, eType, fType)
         elif node.op == seedotParser.seedotParser.MULCIR:
             return self.visitBopMulCir(node, eType, fType)
-        elif node.op == seedotParser.seedotParser.CONV:
-            return self.visitBopConv(node, eType, fType)
         else:
             assert False
 
@@ -243,22 +241,6 @@ class InferType(astVisitor.ASTVisitor):
         assert eType.shape == fType.shape
 
         node.type = eType
-        return node.type
-
-    # e # f
-    def visitBopConv(self, node: ast.Bop1, eType: Type, fType: Type):
-        assert isTensor(eType) and isTensor(fType)
-        assert eType.dim == 4 and fType.dim == 4
-
-        # Implementation does Conv on 4D input on 4D filter
-        # Input is padded with 0s to ensure that the output dimension of the
-        # matrix is same as the input
-        [n, h, w, cin] = eType.shape
-        [_, _, cin_, cout] = fType.shape
-        assert cin == cin_
-
-        shape = [n, h, w, cout]
-        node.type = Tensor(shape)
         return node.type
 
     # e + f OR e - f

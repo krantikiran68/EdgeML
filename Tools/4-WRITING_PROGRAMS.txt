@@ -1,0 +1,106 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                              %
+%    Artifact for OOPSLA Paper 230             %
+%    Shiftry: RNN Inference in 2 KB of RAM     %
+%                                              %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Writing a Program
+=================
+
+This is a tutorial on how to write a program using Shiftry
+
+Check out 'SeeDot\seedot\compiler\antlr\seedot.g4' for the syntax supported.
+The following is a non exhaustive list of operations currently supported. For some of them, example usages are pointed to inside the provided models:
+	-> initialising a tensor to zero (Used in ProtoNN/Bonsai all examples)
+		let var = init([10, 20, 64], 0.0) in
+	-> transpose (Used in ProtoNN all examples)
+		let trans_var = var^T in
+	-> reshape (Used in all provided examples for variable X)
+		let A = init([10, 4, 2, 10], 0.0) in
+		...
+		let Ashape = reshape(A, (20, 40), (1, 3, 2, 4)) in
+		(20, 40) refers to the shape of the reshaped tensor, (1, 4, 3, 2) represents the order in which the original array will be traversed
+		The statement is equivalent to the torch statement Ashape = A.permute(0, 2, 1, 3).reshape(20, 40)
+	-> splice (Used in FastGRNN most examples)
+		let A = B[0:+2][1:+3] in
+		within each square bracket [a:+b], a represents the starting index (can be any expression) and b is a fixed integer represent the size of the splice along that axis
+	-> maxpool
+		let A = maxpool(B, 3) in
+		this is the standard maxpool operator in ML applications. The second argument represents the kernel size
+	-> indexing (Used in Bonsai all examples)
+		let A = init([10, 20, 30], 0.0) in
+		let B = A[7] 			//B now has a size of [20, 30]
+		let C = A[7][18][29] 	//C is a scalar 
+	-> conditional (Used in Bonsai all examples)
+		let A = B >= 0 ? C : D in
+	-> summation loops (Used in ProtoNN all examples)
+		let res = $(i = [0:40])(
+			A[i]
+		) in
+		this translates to res = A[0] + A[1] + A[2] + A[3] + ... + A[39]
+	-> for loops (Used in FastGRNN all examples)
+		let H = init([1, 20], 0.0) in
+		let res = loop(i = [0:40], H)(
+			let G = A * H + B in
+			G
+		) in
+		the variable H is an accumulator here. the accumulator must be specified along with the counter in the loop header. after this, within the loop body, the accumulator will be treated like a global variable whose value can be used and updated. within the loop body, the last expression (in this case G) is what is assigned to the accumulator H in each iteration
+	-> relu, exp (used in ProtoNN), argmax (used in all models which are not binary classifiers), sgn (used in binary classifiers), tanh (used in Bonsai, FastGRNN), sigmoid (used in Bonsai, FastGRNN)
+		let A = <func name>(B) in
+		these operators are applied pointwise (except sgn, which expects a scalar). sgn is the signum operator (1 if the variable is positive, 0 if negative)
+	-> matrix addition, multiplication, subtraction
+		Supported for 2D matrices
+	-> sparse matrix multiplication
+		let X = [1, 100] in (-4, 4) in
+		let val = W |*| X in
+		the second argument MUST be X
+		the first argument MUST be a model parameter
+	-> hadamard multiplication
+		let C = A <*> B in
+		supports 2D matrices, element wise matrix multiplication
+
+
+We take the example of a ProtoNN model for 'letter-multiclass' dataset to demonstrate how to code in Shiftry. This code already exists in the dataset provided, but we give the tutorial in a way that can be extended to any other algorithm on any dataset.
+As a system which generates ML inference code, Shiftry assumes that the user has access to a trained model and atleast some validation data for tuning the scales of variables and judging the performance of the code.
+
+1. In Shiftry, ProtoNN is expressed as follows:
+
+>> let X   = (16, 1)   in [-2.864300, 2.935500] in
+>> let W  = (10, 16)    in [-5.634220, 4.518250] in
+>> let B  = (104, 10, 1) in [-14.832600, 16.682200] in
+>> let Z  = (104, 26, 1) in [-4.798770, 9.011270] in
+>> let g2 = 0.032470 in
+>> 
+>> let WX = W |*| X in
+>> let res = $(i = [0:104])
+>> (
+>> 		let del = WX - B[i] in
+>> 		Z[i] * exp(-g2 * (del^T * del))
+>> ) in
+>> argmax(res)
+
+2. This code should be placed in a file called 'input.sd' and placed in the folder SeeDot\model\<algorithm>\<dataset>\. Here, algorithm is protonn and dataset is letter-multiclass.
+3. In SeeDot-dev.py, class Dataset, add 'letter-multiclass' to either the 'common' or 'extra' field, if not present in either. This is a sanity check to guard against errors like, for example mixing up the algorithm and dataset names while running the compiler.
+4. In SeeDot/config.py class Algorithm, add a parameter append "protonn" to the list parameter 'all'. This is a similar sanity check as in point 3.
+5. In the code above, the first 4 lines signify that X, W, B, Z are tensors which must be read from the file. Shiftry recognises that X is the input datapoint, and rest are the model parameters.
+6. 'let param = (num1, num2, ...) in [min, max] in' means that param is a tensor to be read from file. it's dimensions are (num1, num2, ...) and its minima is 'min' and maxima is 'max' (used for scale computation of model parameters)
+7. All parameters are read from <param_name>.npy file present within SeeDot\model\<algorithm>\<dataset>\. So in this case, there should be files called W.npy, B.npy, Z.npy within Seedot\model\protonn\letter-multiclass.
+IMPORTANT NOTE: While generating the model files, it is recommended to compress the weights into a 2D tensor, as Shiftry will not be able to read .npy's with more than 2 dimensions.
+So in the above example, B has dimensions (104, 10, 1), so while creating B.npy, reshape B to (104, 10) or (1, 1040) or (1040, 1) before saving the tensor.
+8. The variable X will be read from train.npy or test.npy file present within SeeDot\dataset\<algorithm>\<dataset>\. Shiftry expects thes files to have the dimensions (number of datapoints, number of features per datapoint + 1). For each datapoint, we append the class label (which in this case can be a number between 1 and 26 inclusive) at the start of the datapoint. So, in this case, we have a 16-dimensionsal input X and one class Y, so one particular datapoint in train.npy or test.npy can look like
+[Y, X0, X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, X15] 
+9. train.npy and test.npy should be disjoint subsamples of the entire dataset for the best results. For the tuning of scales and bitwidths in the fixed point code, Shiftry uses train.npy and for the final evaluation of accuracy, Shiftry evaluates on test.npy
+10. To run the code on the newly added dataset, run 'python Seedot-dev.py -a <algorithm> -d <dataset> -v fixed -t arduino -m red_disagree'
+
+Known Issues
+============
+1. The variable X, must either be reshaped or sparsematmulled. 
+	-> let Xprocessed = reshape(X, (10, 20), (1, 2)) in ...
+	-> let Xprocessed = W |*| X in ...
+	These are the only two operations supported for variable X, however they do not affect expressibility (reshape can be an identity operation)
+2. The variable X must be declared like:
+	let X = (number of features, 1) in
+	where number of features is a single integer. for multidimensional input, X must be flattened first into a 1D vector and through the reshape command can be brought back to the appropriate shape
+3. Operations are not permitted over arbitrary tensors. Check out SeeDot\seedot\Predictor\library_fixed.h to see what operators support operands of what dimensions. Keep in mind that the reshape command works for arbitrary dimensions, and can be used to bring tensors to the appropriate dimensionality.
+4. exponentiation is only supported for negative numbers. Feeding positive numbers into a exp() will be undefined for fixed point code.

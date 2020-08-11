@@ -232,6 +232,8 @@ class Main:
     # Iterate over multiple scaling factors and store their accuracies
     def performSearch(self):
 
+        #this branch will have hacks so as bring the RAM usage down under all costs
+
         keys1 = {'X':0, 'tmp22':0, 'tmp23':-1, 'tmp25':0} #before rnnpool
         keys2 = {'tmp27':0} #before mbonv
         keys3 = []

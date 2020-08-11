@@ -428,6 +428,7 @@ class X86(CodegenBase):
             self.out.printf("}\n", indent=True)
 
     def computeScratchLocations(self):
+        from bokeh.plotting import figure, output_file, show
         if not Config.x86MemoryOptimize or forFloat():
             return
         else:
@@ -463,6 +464,12 @@ class X86(CodegenBase):
             for ([_,_], var, size, atomSize) in varToLiveRange:
                 listOfDimensions.append(size)
             mode = 75 #(lambda x: np.bincount(x).argmax())(listOfDimensions) if len(listOfDimensions) > 0 else None
+            plot = figure(plot_width=1000, plot_height=1000)
+            x = []
+            y = []
+            w = []
+            h = []
+            c = []
             for ([startIns, endIns], var, size, atomSize) in varToLiveRange:
                 if var in self.notScratch:
                     continue
@@ -482,6 +489,8 @@ class X86(CodegenBase):
                 breakOutOfWhile = True
                 if Config.faceDetectionHacks and var in ['tmp252', 'tmp253', 'tmp364', 'tmp367']: #quick fix for face detection
                     i = 153600 // blockSize
+                if Config.faceDetectionHacks and var in ['tmp249']:
+                    i = 172800 // blockSize
                 while True:
                     potentialStart = int(blockSize * i)
                     potentialEnd = int(blockSize * (i+1)) - 1
@@ -500,14 +509,29 @@ class X86(CodegenBase):
                 if False: #Config.defragmentEnabled and potentialStart + spaceNeeded > 200000:
                     usedSpaceMap = self.defragmentMemory(usedSpaceMap, var, spaceNeeded, endIns, mode)
                 else:
-                    if Config.defragmentEnabled:
-                        usedSpaceMap[var] = (endIns, (potentialStart, potentialStart + spaceNeeded))
+                    if True: #Config.defragmentEnabled:
+                        if Config.faceDetectionHacks and var in ['tmp391', 'tmp405', 'tmp410', 'tmp412']:
+                            potentialStart = potentialEnd - spaceNeeded + 1
+                            usedSpaceMap[var] = (endIns, (potentialEnd - spaceNeeded + 1, potentialEnd))
+                        elif Config.faceDetectionHacks and var in ['tmp392', 'tmp406']:
+                            potentialEnd = 96000
+                            potentialStart = potentialEnd - spaceNeeded + 1
+                            usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
+                        else:
+                            usedSpaceMap[var] = (endIns, (potentialStart, potentialStart + spaceNeeded - 1))
                     else:
                         usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
                     totalScratchSize = max(totalScratchSize, potentialStart + spaceNeeded - 1)
                     if self.numberOfMemoryMaps not in self.scratchSubs.keys():
                         self.scratchSubs[self.numberOfMemoryMaps] = {}
                     self.scratchSubs[self.numberOfMemoryMaps][var] = potentialStart
+                x.append((endIns + 1 + startIns) / 2)
+                w.append(endIns - startIns + 1)
+                y.append((usedSpaceMap[var][1][0] + usedSpaceMap[var][1][1]) / 20000)
+                h.append((usedSpaceMap[var][1][1] - usedSpaceMap[var][1][0]) / 10000)
+                c.append("#" + ''.join([str(int(i)) for i in 10*np.random.rand(6)]))
+            plot.rect(x=x, y=y, width=w, height=h, color=c, width_units="data", height_units="data")
+            show(plot)
             self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
             self.out.printf("/* %s */"%(str(self.scratchSubs)))
 

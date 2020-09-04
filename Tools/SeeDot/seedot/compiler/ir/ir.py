@@ -307,10 +307,12 @@ class Prog:
 
 class DataType:
     intType = {config.Target.arduino: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
-               config.Target.x86: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64}
+               config.Target.x86: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
+               config.Target.m3: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64}
                }
     intStr = {config.Target.arduino: 'MYINT',
-              config.Target.x86: 'MYINT'
+              config.Target.x86: 'MYINT',
+              config.Target.m3: 'MYINT'
               }
     floatStr = "float"
 

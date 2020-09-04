@@ -40,7 +40,7 @@ class CodegenBase:
             if hasattr(self, "varsForBitwidth"):
                 if Config.x86MemoryOptimize:
                     if hasattr(self, 'scratchSubs'):
-                        if ir.idf in self.scratchSubs[self.numberOfMemoryMaps]:
+                        if self.numberOfMemoryMaps in self.scratchSubs and ir.idf in self.scratchSubs[self.numberOfMemoryMaps]:
                             type = self.decls[ir.idf]
                             offset = self.scratchSubs[self.numberOfMemoryMaps][ir.idf]
                             if Type.isTensor(type):
@@ -54,7 +54,10 @@ class CodegenBase:
                                     resIndex += str(s) + '*' + str(remSize) + '+'
                                 resIndex = resIndex[:-1]
                                 resIndex = str(self.varsForBitwidth[ir.idf] // 8) + ('*(%s)'%(resIndex if len(resIndex) > 0 else "0"))
-                                typeCast = "(int%d_t&)" % self.varsForBitwidth[ir.idf]
+                                if forM3():
+                                    typeCast = "(Q%d_T&)" % (self.varsForBitwidth[ir.idf] - 1)
+                                else:
+                                    typeCast = "(int%d_t&)" % self.varsForBitwidth[ir.idf]
                                 self.out.printf("%s(scratch[%d + %s])" % (typeCast, offset, resIndex))
                                 return
                             else:
@@ -229,7 +232,7 @@ class CodegenBase:
 
     def printMemset(self, ir):
         self.out.printf('memset(', indent=True)
-        if Config.x86MemoryOptimize and forFixed() and forX86():
+        if Config.x86MemoryOptimize and forFixed() and forX86() and self.numberOfMemoryMaps in self.scratchSubs:
             self.out.printf("(scratch + %d)", self.scratchSubs[self.numberOfMemoryMaps][ir.e.idf])
         else:
             self.print(ir.e)

@@ -18,6 +18,7 @@ import seedot.compiler.ast.printAST as printAST
 
 import seedot.compiler.codegen.arduino as arduino
 import seedot.compiler.codegen.x86 as x86
+import seedot.compiler.codegen.m3 as m3
 
 import seedot.compiler.ir.irBuilder as irBuilder
 import seedot.compiler.ir.irUtil as irUtil
@@ -33,7 +34,7 @@ import seedot.config as config
 
 class Compiler:
 
-    def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, source, outputLogFile, generateAllFiles=True, id=None, printSwitch=-1, substitutions={}, scaleForX=None, variableToBitwidthMap={}, sparseMatrixSizes={}, demotedVarsList=[], demotedVarsOffsets={}):
+    def __init__(self, algo, version, target, inputFile, outputDir, profileLogFile, maxScale, source, outputLogFile, generateAllFiles=True, id=None, printSwitch=-1, substitutions={}, scaleForX=None, variableToBitwidthMap={}, sparseMatrixSizes={}, demotedVarsList=[], demotedVarsOffsets={}, paramInNativeBitwidth=True):
         if os.path.isfile(inputFile) == False:
             print(inputFile)
             raise Exception("Input file doesn't exist")
@@ -62,6 +63,8 @@ class Compiler:
 
         self.demotedVarsList = demotedVarsList
         self.demotedVarsOffsets = demotedVarsOffsets
+
+        self.paramInNativeBitwidth = paramInNativeBitwidth
 
     def genASTFromFile(self, inputFile):
         # Parse and generate CST for the input
@@ -103,8 +106,10 @@ class Compiler:
 
         if util.forArduino():
             codegen = arduino.Arduino(self.outputDir, *state)
+        elif util.forM3():
+            codegen = m3.M3(self.outputDir, *state)
         elif util.forX86():
-            codegen = x86.X86(self.outputDir, self.generateAllFiles, self.printSwitch, self.id, *state)
+            codegen = x86.X86(self.outputDir, self.generateAllFiles, self.printSwitch, self.id, self.paramInNativeBitwidth, *state)
         else:
             assert False
 

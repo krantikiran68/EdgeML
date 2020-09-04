@@ -70,8 +70,9 @@ class ProblemType:
 class Target:
     arduino = "arduino"
     x86 = "x86"
+    m3 = "m3"
     default = x86
-    all = [arduino, x86]
+    all = [arduino, x86, m3]
 
 class Source:
     seedot = "seedot"

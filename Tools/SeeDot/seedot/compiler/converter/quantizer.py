@@ -131,18 +131,26 @@ class Quantizer:
                 val, idx = convertToSparse(transp)
                 self.sparseMatSizes[param.name + 'val'] = len(val)
                 self.sparseMatSizes[param.name + 'idx'] = len(idx)
-                if forArduino():
+                if forArduino() or forM3():
                     writeListAsArray(val, param.name + 'val', self.headerFile, None, self.varsForBitwidth[param.name + 'val'])
                     writeListAsArray(idx, param.name + 'idx', self.headerFile, None, self.varsForBitwidth[param.name + 'idx'])
                 else:
-                    writeListAsArray(val, param.name + 'val', self.headerFile)
-                    writeListAsArray(idx, param.name + 'idx', self.headerFile)
+                    if hasattr(self, 'varsForBitwidth') and param.name + 'val' in self.varsForBitwidth:
+                        writeListAsArray(val, param.name + 'val', self.headerFile, None, self.varsForBitwidth[param.name + 'val'])
+                    else:
+                        writeListAsArray(val, param.name + 'val', self.headerFile)
+                    if hasattr(self, 'varsForBitwidth') and param.name + 'idx' in self.varsForBitwidth:
+                        writeListAsArray(idx, param.name + 'idx', self.headerFile, None, self.varsForBitwidth[param.name + 'idx'])
+                    else:
+                        writeListAsArray(idx, param.name + 'idx', self.headerFile)
             else:
-                if forArduino():
+                if forArduino() or forM3():
                     writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape), bw=self.varsForBitwidth[param.name])
                 else:
-                    writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape))
-
+                    if hasattr(self, 'varsForBitwidth') and param.name in self.varsForBitwidth:
+                        writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape), bw=self.varsForBitwidth[param.name])
+                    else:
+                        writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape))
 
         self.writeFooter()
 
@@ -153,6 +161,8 @@ class Quantizer:
 
             if forArduino():
                 file.write("namespace model {\n\n")
+            elif forM3():
+                file.write("{\n")
             else:
                 file.write("namespace seedot_%s {\n\n" % (getVersion()))
 
@@ -286,11 +296,14 @@ class QuantizerFixed(Quantizer):
             #print("New range = ", afterRange, "New scale = ", scale_new)
             # print()
 
-            if forArduino():
+            if forArduino() or forM3():
                 scale = self.allScales[param.name]
                 param.data, _ = scaleMat(param.data, scale)
             else:
-                param.data, _ = scaleMat(param.data)
+                if param.name in self.varsForBitwidth:
+                    param.data, _ = scaleMat(param.data, self.allScales[param.name])
+                else:
+                    param.data, _ = scaleMat(param.data)
 
 
 class QuantizerFloat(Quantizer):

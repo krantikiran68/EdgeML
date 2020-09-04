@@ -13,11 +13,13 @@ import seedot.compiler.type as Type
 from seedot.util import *
 from seedot.writer import Writer
 
+from bokeh.plotting import figure, output_file, show
+
 import time
 
 class X86(CodegenBase):
 
-    def __init__(self, outputDir, generateAllFiles, printSwitch, idStr, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals, notScratch):
+    def __init__(self, outputDir, generateAllFiles, printSwitch, idStr, paramInNativeBitwidth, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals, notScratch):
         self.outputDir = outputDir
         cppFile = os.path.join(
             self.outputDir, "seedot_" + getVersion() + ".cpp")
@@ -62,6 +64,8 @@ class X86(CodegenBase):
         self.defragmentationInstructions = []
         self.defragmentationParameters = []
 
+        self.paramInNativeBitwidth = paramInNativeBitwidth
+
     def printPrefix(self):
 
         if self.generateAllFiles:
@@ -73,7 +77,7 @@ class X86(CodegenBase):
 
         self.printCHeader()
 
-        self.computeScratchLocations()
+        self.computeScratchLocationsFirstFitPriority()
 
         self.printModelParamsWithBitwidth()
 
@@ -144,26 +148,27 @@ class X86(CodegenBase):
                 Xindexstr = ''
                 Xintstar = ''.join(["*" for i in size])
 
-                if var != 'X':
-                    self.out.printf(typ_str + " " + var + sizestr + ";\n", indent = True)
-                else:
-                    self.out.printf(typ_str + Xintstar + " " + var + ";\n", indent = True)
+                if self.paramInNativeBitwidth or var == 'X':
+                    if var != 'X':
+                        self.out.printf(typ_str + " " + var + sizestr + ";\n", indent = True)
+                    else:
+                        self.out.printf(typ_str + Xintstar + " " + var + ";\n", indent = True)
 
-                for i in range(len(size)):
-                    Xindexstr += ("[i" + str(i-1) + "]" if i > 0 else "")
-                    if var == 'X':
-                        Xintstar = Xintstar[:-1]
-                        self.out.printf("X%s = new %s%s[%d];\n" % (Xindexstr, typ_str, Xintstar, size[i]), indent=True)
-                    self.out.printf("for (int i%d = 0; i%d < %d; i%d ++) {\n" % (i,i,size[i], i), indent = True)
-                    self.out.increaseIndent()
+                    for i in range(len(size)):
+                        Xindexstr += ("[i" + str(i-1) + "]" if i > 0 else "")
+                        if var == 'X':
+                            Xintstar = Xintstar[:-1]
+                            self.out.printf("X%s = new %s%s[%d];\n" % (Xindexstr, typ_str, Xintstar, size[i]), indent=True)
+                        self.out.printf("for (int i%d = 0; i%d < %d; i%d ++) {\n" % (i,i,size[i], i), indent = True)
+                        self.out.increaseIndent()
 
-                indexstr = ''.join("[i" + str(i) + "]" for i in range(len(size)))
-                divide = int(round(np.ldexp(1, config.wordLength - self.varsForBitwidth[var] + (self.demotedVarsOffsets.get(var, 0) if self.varsForBitwidth[var] != config.wordLength else 0) ))) if var[-3:] != "idx" and var != "X" else 1
-                self.out.printf(var + indexstr + " = " + var + "_temp" + indexstr + "/" + str(divide) + ";\n", indent = True)
+                    indexstr = ''.join("[i" + str(i) + "]" for i in range(len(size)))
+                    divide = int(round(np.ldexp(1, config.wordLength - self.varsForBitwidth[var] + (self.demotedVarsOffsets.get(var, 0) if self.varsForBitwidth[var] != config.wordLength else 0) ))) if var[-3:] != "idx" and var != "X" else 1
+                    self.out.printf(var + indexstr + " = " + var + "_temp" + indexstr + "/" + str(divide) + ";\n", indent = True)
 
-                for i in range(len(size)):
-                    self.out.decreaseIndent()
-                    self.out.printf("}\n", indent = True)
+                    for i in range(len(size)):
+                        self.out.decreaseIndent()
+                        self.out.printf("}\n", indent = True)
 
     def printVarDecls(self, globalVarDecl=True):
         if self.generateAllFiles:
@@ -411,7 +416,7 @@ class X86(CodegenBase):
                     self.out.printf(typeCast)
 
                 
-                if not (isinstance(arg, IR.Var) and arg.idf in self.scratchSubs[self.currentMemMap]):
+                if self.currentMemMap not in self.scratchSubs or not (isinstance(arg, IR.Var) and arg.idf in self.scratchSubs[self.currentMemMap]):
                     if x != 0:
                         self.out.printf("&")
                     self.print(arg)
@@ -428,7 +433,6 @@ class X86(CodegenBase):
             self.out.printf("}\n", indent=True)
 
     def computeScratchLocations(self):
-        from bokeh.plotting import figure, output_file, show
         if not Config.x86MemoryOptimize or forFloat():
             return
         else:
@@ -470,6 +474,7 @@ class X86(CodegenBase):
             w = []
             h = []
             c = []
+            visualisation = []
             for ([startIns, endIns], var, size, atomSize) in varToLiveRange:
                 if var in self.notScratch:
                     continue
@@ -487,10 +492,10 @@ class X86(CodegenBase):
                 else:
                     blockSize = mode / int(2**np.floor(np.log2(mode // spaceNeeded)))
                 breakOutOfWhile = True
-                if Config.faceDetectionHacks and var in ['tmp252', 'tmp253', 'tmp364', 'tmp367']: #quick fix for face detection
-                    i = 153600 // blockSize
-                if Config.faceDetectionHacks and var in ['tmp249']:
-                    i = 172800 // blockSize
+                # if Config.faceDetectionHacks and var in ['tmp252', 'tmp253', 'tmp364', 'tmp367']: #quick fix for face detection
+                #     i = 153600 // blockSize
+                # if Config.faceDetectionHacks and var in ['tmp249']:
+                #     i = 172800 // blockSize
                 while True:
                     potentialStart = int(blockSize * i)
                     potentialEnd = int(blockSize * (i+1)) - 1
@@ -510,14 +515,14 @@ class X86(CodegenBase):
                     usedSpaceMap = self.defragmentMemory(usedSpaceMap, var, spaceNeeded, endIns, mode)
                 else:
                     if True: #Config.defragmentEnabled:
-                        if Config.faceDetectionHacks and var in ['tmp391', 'tmp405', 'tmp410', 'tmp412']:
-                            potentialStart = potentialEnd - spaceNeeded + 1
-                            usedSpaceMap[var] = (endIns, (potentialEnd - spaceNeeded + 1, potentialEnd))
-                        elif Config.faceDetectionHacks and var in ['tmp392', 'tmp406']:
-                            potentialEnd = 96000
-                            potentialStart = potentialEnd - spaceNeeded + 1
-                            usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
-                        else:
+                        # if Config.faceDetectionHacks and var in ['tmp391', 'tmp405', 'tmp410', 'tmp412']:
+                        #     potentialStart = potentialEnd - spaceNeeded + 1
+                        #     usedSpaceMap[var] = (endIns, (potentialEnd - spaceNeeded + 1, potentialEnd))
+                        # elif Config.faceDetectionHacks and var in ['tmp392', 'tmp406']:
+                        #     potentialEnd = 96000
+                        #     potentialStart = potentialEnd - spaceNeeded + 1
+                        #     usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
+                        # else:
                             usedSpaceMap[var] = (endIns, (potentialStart, potentialStart + spaceNeeded - 1))
                     else:
                         usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
@@ -530,10 +535,261 @@ class X86(CodegenBase):
                 y.append((usedSpaceMap[var][1][0] + usedSpaceMap[var][1][1]) / 20000)
                 h.append((usedSpaceMap[var][1][1] - usedSpaceMap[var][1][0]) / 10000)
                 c.append("#" + ''.join([str(int(i)) for i in 10*np.random.rand(6)]))
+                visualisation.append((startIns, var, endIns, usedSpaceMap[var][1][0], usedSpaceMap[var][1][1]))
             plot.rect(x=x, y=y, width=w, height=h, color=c, width_units="data", height_units="data")
             show(plot)
             self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
             self.out.printf("/* %s */"%(str(self.scratchSubs)))
+
+    def computeScratchLocationsFirstFit(self):
+        if not Config.x86MemoryOptimize or forFloat():
+            return
+        else:
+            varToLiveRange = []
+            todelete = []
+            decls = dict(self.decls)
+            for var in decls.keys():
+                if var not in self.varLiveIntervals:
+                    todelete.append(var)
+                    continue
+                if hasattr(self, 'floatConstants'):
+                    if var in self.floatConstants:
+                        todelete.append(var)
+                        continue
+                if hasattr(self, 'intConstants'):
+                    if var in self.intConstants:
+                        todelete.append(var)
+                        continue
+                if hasattr(self, 'internalVars'):
+                    if var in self.internalVars:
+                        todelete.append(var)
+                        continue
+                size = np.prod(decls[var].shape)
+                varToLiveRange.append((self.varLiveIntervals[var], var, size, self.varsForBitwidth[var]))
+            for var in todelete:
+                del decls[var]
+            def sortkey(a):
+                return (a[0][0], -a[0][1], -(a[2]*a[3])//8)
+            varToLiveRange.sort(key=sortkey)
+            freeSpace = {0:-1}
+            freeSpaceRev = {-1:0}
+            usedSpaceMap = {}
+            totalScratchSize = -1
+            listOfDimensions = []
+            for ([_,_], var, size, atomSize) in varToLiveRange:
+                listOfDimensions.append(size)
+            #mode = 75 #(lambda x: np.bincount(x).argmax())(listOfDimensions) if len(listOfDimensions) > 0 else None
+            plot = figure(plot_width=1000, plot_height=1000)
+            x = []
+            y = []
+            w = []
+            h = []
+            c = []
+            visualisation = []
+            for ([startIns, endIns], var, size, atomSize) in varToLiveRange:
+                if var in self.notScratch:
+                    continue
+                spaceNeeded = size * atomSize // 8
+                varsToKill = []
+                for activeVar in usedSpaceMap.keys():
+                    endingIns = usedSpaceMap[activeVar][0]
+                    if endingIns < startIns:
+                        varsToKill.append(activeVar)
+                for tbk in varsToKill:
+                    (st, en) = usedSpaceMap[tbk][1]
+                    en += 1
+                    freeSpace[st] = en
+                    freeSpaceRev[en] = st
+                    if en in freeSpace.keys():
+                        freeSpace[st] = freeSpace[en]
+                        freeSpaceRev[freeSpace[st]] = st
+                        del freeSpace[en]
+                        del freeSpaceRev[en]
+                    if st in freeSpaceRev.keys():
+                        freeSpaceRev[freeSpace[st]] = freeSpaceRev[st]
+                        freeSpace[freeSpaceRev[st]] = freeSpace[st]
+                        del freeSpace[st]
+                        del freeSpaceRev[st]
+                    del usedSpaceMap[tbk]
+                i = 0
+                potentialStart = -1
+                potentialEnd = -1
+                for start in sorted(freeSpace.keys()):
+                    end = freeSpace[start]
+                    if end - start >= spaceNeeded or end == -1:
+                        potentialStart = start
+                        potentialEnd = potentialStart + spaceNeeded - 1
+                        break
+                    else:
+                        continue
+               
+                if False: #Config.defragmentEnabled and potentialStart + spaceNeeded > 200000:
+                    pass
+                    #usedSpaceMap = self.defragmentMemory(usedSpaceMap, var, spaceNeeded, endIns, mode)
+                else:
+                    usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
+                    freeSpaceEnd = freeSpace[potentialStart]
+                    del freeSpace[potentialStart]
+                    if potentialEnd + 1 != freeSpaceEnd:
+                        freeSpace[potentialEnd + 1] = freeSpaceEnd
+                    freeSpaceRev[freeSpaceEnd] = potentialEnd + 1
+                    if freeSpaceEnd == potentialEnd + 1:
+                        del freeSpaceRev[freeSpaceEnd]
+                    totalScratchSize = max(totalScratchSize, potentialEnd)
+                    if self.numberOfMemoryMaps not in self.scratchSubs.keys():
+                        self.scratchSubs[self.numberOfMemoryMaps] = {}
+                    self.scratchSubs[self.numberOfMemoryMaps][var] = potentialStart
+                x.append((endIns + 1 + startIns) / 2)
+                w.append(endIns - startIns + 1)
+                y.append((usedSpaceMap[var][1][0] + usedSpaceMap[var][1][1]) / 20000)
+                h.append((usedSpaceMap[var][1][1] - usedSpaceMap[var][1][0]) / 10000)
+                c.append("#" + ''.join([str(int(i)) for i in 10*np.random.rand(6)]))
+                visualisation.append((startIns, var, endIns, usedSpaceMap[var][1][0], usedSpaceMap[var][1][1]))
+            plot.rect(x=x, y=y, width=w, height=h, color=c, width_units="data", height_units="data")
+            show(plot)
+            self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
+            self.out.printf("/* %s */"%(str(self.scratchSubs)))
+
+    def computeScratchLocationsFirstFitPriority(self):
+        if not Config.x86MemoryOptimize or forFloat():
+            return
+        else:
+            varToLiveRange = []
+            todelete = []
+            decls = dict(self.decls)
+            for var in decls.keys():
+                if var not in self.varLiveIntervals:
+                    todelete.append(var)
+                    continue
+                if hasattr(self, 'floatConstants'):
+                    if var in self.floatConstants:
+                        todelete.append(var)
+                        continue
+                if hasattr(self, 'intConstants'):
+                    if var in self.intConstants:
+                        todelete.append(var)
+                        continue
+                if hasattr(self, 'internalVars'):
+                    if var in self.internalVars:
+                        todelete.append(var)
+                        continue
+                size = np.prod(decls[var].shape)
+                varToLiveRange.append((self.varLiveIntervals[var], var, size, self.varsForBitwidth[var]))
+            for var in todelete:
+                del decls[var]
+            def sortkey(a):
+                return (a[0][0], -a[0][1], -(a[2]*a[3])//8)
+            varToLiveRange.sort(key=sortkey)
+            freeSpace = {0:-1}
+            freeSpaceRev = {-1:0}
+            usedSpaceMap = {}
+            totalScratchSize = -1
+            listOfDimensions = []
+            for ([_,_], var, size, atomSize) in varToLiveRange:
+                listOfDimensions.append(size)
+            #mode = 75 #(lambda x: np.bincount(x).argmax())(listOfDimensions) if len(listOfDimensions) > 0 else None
+            priorityMargin = 19200
+            plot = figure(plot_width=1000, plot_height=1000)
+            x = []
+            y = []
+            w = []
+            h = []
+            c = []
+            visualisation = []
+            i = 0
+            for i in range(len(varToLiveRange)):
+                ([startIns, endIns], var, size, atomSize) = varToLiveRange[i]
+                if var in self.notScratch:
+                    continue
+                spaceNeeded = size * atomSize // 8 #256 * np.ceil(size * atomSize // 8 /256)
+                varsToKill = []
+                for activeVar in usedSpaceMap.keys():
+                    endingIns = usedSpaceMap[activeVar][0]
+                    if endingIns < startIns:
+                        varsToKill.append(activeVar)
+                for tbk in varsToKill:
+                    (st, en) = usedSpaceMap[tbk][1]
+                    en += 1
+                    freeSpace[st] = en
+                    freeSpaceRev[en] = st
+                    if en in freeSpace.keys():
+                        freeSpace[st] = freeSpace[en]
+                        freeSpaceRev[freeSpace[st]] = st
+                        del freeSpace[en]
+                        del freeSpaceRev[en]
+                    if st in freeSpaceRev.keys():
+                        freeSpaceRev[freeSpace[st]] = freeSpaceRev[st]
+                        freeSpace[freeSpaceRev[st]] = freeSpace[st]
+                        del freeSpace[st]
+                        del freeSpaceRev[st]
+                    del usedSpaceMap[tbk]
+                potentialStart = -1
+                potentialEnd = -1
+                offset = 0
+                for j in range(i+1, len(varToLiveRange)):
+                    ([startIns_, endIns_], var_, size_, atomSize_) = varToLiveRange[j]
+                    if var_ in self.notScratch:
+                        continue
+                    if startIns_ > endIns:
+                        break
+                    spaceNeeded_ = (size_ * atomSize_) // 8
+                    if spaceNeeded_ >= priorityMargin and spaceNeeded < priorityMargin:
+                    #if spaceNeeded_ > spaceNeeded or (spaceNeeded_ == spaceNeeded and spaceNeeded < priorityMargin and (endIns_ - startIns_ > endIns - startIns)):
+                        offset = max(offset, spaceNeeded_)
+                
+                if offset not in freeSpace.keys() and offset > 0:
+                    j = 0
+                    for key in sorted(freeSpace.keys()):
+                        j = key
+                        if freeSpace[key] > offset:
+                            break
+                    if key < offset:
+                        st = j
+                        en = freeSpace[j]
+                        freeSpace[st] = offset
+                        freeSpace[offset] = en
+                        freeSpaceRev[en] = offset
+                        freeSpaceRev[offset] = st
+                    
+
+                for start in sorted(freeSpace.keys()):
+                    if start < offset:
+                        continue
+                    end = freeSpace[start]
+                    if end - start >= spaceNeeded or end == -1:
+                        potentialStart = start
+                        potentialEnd = potentialStart + spaceNeeded - 1
+                        break
+                    else:
+                        continue
+               
+                if False: #Config.defragmentEnabled and potentialStart + spaceNeeded > 200000:
+                    pass
+                    #usedSpaceMap = self.defragmentMemory(usedSpaceMap, var, spaceNeeded, endIns, mode)
+                else:
+                    usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
+                    freeSpaceEnd = freeSpace[potentialStart]
+                    del freeSpace[potentialStart]
+                    if potentialEnd + 1 != freeSpaceEnd:
+                        freeSpace[potentialEnd + 1] = freeSpaceEnd
+                    freeSpaceRev[freeSpaceEnd] = potentialEnd + 1
+                    if freeSpaceEnd == potentialEnd + 1:
+                        del freeSpaceRev[freeSpaceEnd]
+                    totalScratchSize = max(totalScratchSize, potentialEnd)
+                    if self.numberOfMemoryMaps not in self.scratchSubs.keys():
+                        self.scratchSubs[self.numberOfMemoryMaps] = {}
+                    self.scratchSubs[self.numberOfMemoryMaps][var] = potentialStart
+                x.append((endIns + 1 + startIns) / 2)
+                w.append(endIns - startIns + 1)
+                y.append((usedSpaceMap[var][1][0] + usedSpaceMap[var][1][1]) / 20000)
+                h.append((usedSpaceMap[var][1][1] - usedSpaceMap[var][1][0]) / 10000)
+                c.append("#" + ''.join([str(int(j)) for j in 10*np.random.rand(6)]))
+                visualisation.append((startIns, var, endIns, usedSpaceMap[var][1][0], usedSpaceMap[var][1][1]))
+            plot.rect(x=x, y=y, width=w, height=h, color=c, width_units="data", height_units="data")
+            # show(plot)
+            self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
+            self.out.printf("/* %s */"%(str(self.scratchSubs)))
+
 
     def defragmentMemory(self, oldUsedSpaceMap, newVar, newVarSpace, endIns, mode):
         varData = []

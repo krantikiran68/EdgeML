@@ -606,7 +606,7 @@ class IRBuilder(ASTVisitor):
             args[IR.Int(i)] = ch
             ch = chr(ord(ch) + 1)
         
-        args[expr_out] = expr_out.idf
+        args[expr_out] = 'B'
 
         comment = IR.Comment(
             "reverse" + '(' + expr_in.idf + ',' + str(node.axis) + ')', self.counter_inst+1)
@@ -797,16 +797,16 @@ class IRBuilder(ASTVisitor):
             expr_out: "C",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            shr_a: "shr1",
-            shr_b: "shr2"
+            shr_a: "shrA",
+            shr_b: "shrB"
         }) if not self.vbwEnabled else IR.FuncCall("ScalarMul<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
             a: "A",
             b: "B",
             expr_out: "C",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            shr_a: "shr1",
-            shr_b: "shr2",
+            shr_a: "shrA",
+            shr_b: "shrB",
             IR.Int(demote): "demote"
         })
 
@@ -920,8 +920,8 @@ class IRBuilder(ASTVisitor):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(K): "K",
-            shr_A: "shr1",
-            shr_B: "shr2",
+            shr_A: "shrA",
+            shr_B: "shrB",
             IR.Int(H1): "H1",
             IR.Int(H2): "H2"
             # , {expr_treeSum.idf: type_treeSum}
@@ -933,8 +933,8 @@ class IRBuilder(ASTVisitor):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(K): "K",
-            shr_A: "shr1",
-            shr_B: "shr2",
+            shr_A: "shrA",
+            shr_B: "shrB",
             IR.Int(H1): "H1",
             IR.Int(H2): "H2",
             IR.Int(demote): "demote"
@@ -1131,14 +1131,14 @@ class IRBuilder(ASTVisitor):
             if scale_raw != scale_out:
                 diff = 2 ** abs(scale_raw - scale_out)
                 if scale_raw > scale_out:
-                    adjust = [IR.FuncCall("AdjustScaleShl", {
+                    adjust = [IR.FuncCall("AdjustScaleShl" + (("<int%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
                                 expr_out: "A",
                                 IR.Int(I): "I",
                                 IR.Int(J): "J",
                                 IR.Int(diff): "scale"
                             })]
                 else:
-                    adjust = [IR.FuncCall("AdjustScaleShr", {
+                    adjust = [IR.FuncCall("AdjustScaleShr" + (("<int%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
                                 expr_out: "A",
                                 IR.Int(I): "I",
                                 IR.Int(J): "J",
@@ -1858,7 +1858,7 @@ class IRBuilder(ASTVisitor):
             if scale_out_unadjusted != scale_out:
                 if scale_out_unadjusted > scale_out:
                     diff_scale = 2 ** (scale_out_unadjusted - scale_out)
-                    adjust = [IR.FuncCall("AdjustScaleShl", {
+                    adjust = [IR.FuncCall("AdjustScaleShl" + (("<int%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
                                             expr_out: "A",
                                             IR.Int(N): "I",
                                             IR.Int(H): "J",
@@ -1873,7 +1873,7 @@ class IRBuilder(ASTVisitor):
                                         })]
                 elif scale_out_unadjusted < scale_out:
                     diff_scale = 2 ** (scale_out - scale_out_unadjusted)
-                    adjust = [IR.FuncCall("AdjustScaleShr", {
+                    adjust = [IR.FuncCall("AdjustScaleShr" + (("<int%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
                                          expr_out: "A",
                                             IR.Int(N): "I",
                                             IR.Int(H): "J",
@@ -2088,7 +2088,7 @@ class IRBuilder(ASTVisitor):
                     if scale_out_unadjusted != scale_out:
                         if scale_out_unadjusted > scale_out:
                             diff_scale = 2 ** (scale_out_unadjusted - scale_out)
-                            adjust = [IR.FuncCall("AdjustScaleShl", {
+                            adjust = [IR.FuncCall("AdjustScaleShl" + (("<int%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
                                                 expr_out: "A",
                                                 IR.Int(I): "I",
                                                 IR.Int(J): "J",
@@ -2096,7 +2096,7 @@ class IRBuilder(ASTVisitor):
                                                 })]
                         elif scale_out_unadjusted < scale_out:
                             diff_scale = 2 ** (scale_out - scale_out_unadjusted)
-                            adjust = [IR.FuncCall("AdjustScaleShr", {
+                            adjust = [IR.FuncCall("AdjustScaleShr" + (("<int%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
                                                 expr_out: "A",
                                                 IR.Int(I): "I",
                                                 IR.Int(J): "J",
@@ -2108,7 +2108,7 @@ class IRBuilder(ASTVisitor):
                     if scale_out_unadjusted != scale_out:
                         if scale_out_unadjusted > scale_out:
                             diff_scale = 2 ** (scale_out_unadjusted - scale_out)
-                            adjust = [IR.FuncCall("AdjustScaleShl", {
+                            adjust = [IR.FuncCall("AdjustScaleShl" + (("<int%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
                                                 expr_out: "A",
                                                 IR.Int(N): "N",
                                                 IR.Int(H): "H",
@@ -2118,7 +2118,7 @@ class IRBuilder(ASTVisitor):
                                                 })]
                         elif scale_out_unadjusted < scale_out:
                             diff_scale = 2 ** (scale_out - scale_out_unadjusted)
-                            adjust = [IR.FuncCall("AdjustScaleShr", {
+                            adjust = [IR.FuncCall("AdjustScaleShr" + (("<int%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
                                                 expr_out: "A",
                                                 IR.Int(N): "N",
                                                 IR.Int(H): "H",
@@ -2221,12 +2221,24 @@ class IRBuilder(ASTVisitor):
                 IR.Int(C): "C",
                 IR.Int(scale_in): "scaleA", 
                 IR.Int(bw_in/2): "shrA"
+            }) if not self.vbwEnabled else IR.FuncCall("NormaliseL2<int%d_t>"%(bw_in), {
+                expr_in: "A",
+                expr_out: "B",
+                IR.Int(N): "N",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Int(C): "C",
+                IR.Int(scale_in): "scaleA", 
+                IR.Int(bw_in/2): "shrA"
             })
         else:
             assert False, "inverseL2Norm only supports 4D tensors."
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
+
+        if Config.faceDetectionHacks and expr_out.idf == 'tmp311':
+            self.updateLiveRange([expr_in], self.counter_inst-1)
 
         prog_func = IR.Prog([comment, funcCall])
 
@@ -2416,6 +2428,8 @@ class IRBuilder(ASTVisitor):
 
         comm = IR.Comment('exp(' + expr_in.idf + ')', self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
+
+        #TODO: Check if saturation/overflows are handled
 
         funcCall = IR.FuncCall("ExpNew%d<int%d_t>" %(bitwidth_in_raw, bitwidth_out), {
             expr_in: "A",

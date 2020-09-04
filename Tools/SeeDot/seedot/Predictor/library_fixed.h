@@ -1254,7 +1254,7 @@ void NormaliseL2(TypeA* A, TypeA* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT s
 				sumSquare += tmp*tmp;
 #else           
 				int32_t tmp = A[n * H * W * C + h * W * C + w * C + c];
-				sumSquare += (((tmp*tmp)/shrAdiv)*shrAdiv);						
+				sumSquare += (((tmp*tmp)/shrAdiv)/shrAdiv);						
 #endif
 				}
 				

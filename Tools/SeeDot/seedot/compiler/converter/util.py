@@ -68,6 +68,10 @@ def forArduino():
     return getTarget() == config.Target.arduino
 
 
+def forM3():
+    return getTarget() == config.Target.m3
+
+
 def forX86():
     return getTarget() == config.Target.x86
 
@@ -380,14 +384,15 @@ def writeMatAsArray(mat, name: str, fileName: str, shapeStr=None, bw=None):
         if not config.vbwEnabled or "float" in fileName:
             file.write('const %s%s %s%s = {\n' % (arduinoStr, dataType, name, shapeStr))
         else:
-            file.write('const %s%s %s%s%s = {\n' % (arduinoStr, dataType, name, "_temp" if forX86() else "", shapeStr))
+            file.write('const %s%s %s%s%s = {\n' % (arduinoStr, dataType, name, "_temp" if (forX86() and bw is None) else "", shapeStr))
 
 
         for row in mat:
             file.write('\t')
             for cell in row:
                 file.write((formatSpecifier + ", ") % cell)
-            file.write('\n')
+            if len(row) > 1: # [1, n] matrices become tedious to read
+                file.write('\n') 
         file.write('};\n\n')
 
 

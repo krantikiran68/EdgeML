@@ -47,10 +47,16 @@ class Main:
         
         copy_tree(os.path.join(curr_dir, "Predictor"), os.path.join(config.tempdir, "Predictor"))
 
-        for fileName in ["arduino.ino", "config.h", "predict.h"]:
-            srcFile = os.path.join(curr_dir, "arduino", fileName)
-            destFile = os.path.join(config.outdir, fileName)
-            shutil.copyfile(srcFile, destFile)
+        if self.target == config.Target.arduino:
+            for fileName in ["arduino.ino", "config.h", "predict.h"]:
+                srcFile = os.path.join(curr_dir, "arduino", fileName)
+                destFile = os.path.join(config.outdir, fileName)
+                shutil.copyfile(srcFile, destFile)
+        elif self.target == config.Target.m3:
+            for fileName in ["datatypes.h", "mbconv.h", "mbconv.c", "utils.h", "utils.c"]:
+                srcFile = os.path.join(curr_dir, "m3", "library", "quantized_%s"%fileName)
+                destFile = os.path.join(config.outdir, "quantized_%s"%fileName)
+                shutil.copyfile(srcFile, destFile)
 
     def get_input_file(self):
         if self.source == config.Source.seedot:
@@ -62,7 +68,7 @@ class Main:
 
     # Generate the fixed-point code using the input generated from the
     # Converter project
-    def compile(self, version, target, sf, generateAllFiles=True, id=None, printSwitch=-1, scaleForX=None, variableToBitwidthMap=None, demotedVarsList=[], demotedVarsOffsets={}):
+    def compile(self, version, target, sf, generateAllFiles=True, id=None, printSwitch=-1, scaleForX=None, variableToBitwidthMap=None, demotedVarsList=[], demotedVarsOffsets={}, paramInNativeBitwidth=True):
         print("Generating code...", end='')
 
         if variableToBitwidthMap is None:
@@ -87,6 +93,10 @@ class Main:
             outdir = os.path.join(config.outdir, str(config.wordLength), self.algo, self.dataset)
             os.makedirs(outdir, exist_ok=True)
             outputDir = os.path.join(outdir)
+        elif target == config.Target.m3:
+            outdir = os.path.join(config.outdir)
+            os.makedirs(outdir, exist_ok=True)
+            outputDir = os.path.join(outdir)
         elif target == config.Target.x86:
             outputDir = os.path.join(config.tempdir, "Predictor")
 
@@ -94,7 +104,8 @@ class Main:
                         profileLogFile, sf, self.source, outputLogFile, 
                         generateAllFiles, id, printSwitch, self.variableSubstitutions, 
                         scaleForX,
-                        variableToBitwidthMap, self.sparseMatrixSizes, demotedVarsList, demotedVarsOffsets)
+                        variableToBitwidthMap, self.sparseMatrixSizes, demotedVarsList, demotedVarsOffsets,
+                        paramInNativeBitwidth)
         obj.run()
         self.allScales = dict(obj.varScales)
         if version == config.Version.floatt:
@@ -120,6 +131,9 @@ class Main:
 
         # Create output dirs
         if target == config.Target.arduino:
+            outputDir = os.path.join(config.outdir, "input")
+            datasetOutputDir = outputDir
+        elif target == config.Target.m3:
             outputDir = os.path.join(config.outdir, "input")
             datasetOutputDir = outputDir
         elif target == config.Target.x86:
@@ -167,11 +181,11 @@ class Main:
         return execMap
 
     # Compile and run the generated code once for a given scaling factor
-    def partialCompile(self, version, target, scale, generateAllFiles, id, printSwitch, variableToBitwidthMap=None, demotedVarsList=[], demotedVarsOffsets={}):
+    def partialCompile(self, version, target, scale, generateAllFiles, id, printSwitch, variableToBitwidthMap=None, demotedVarsList=[], demotedVarsOffsets={}, paramInNativeBitwidth=True):
         if config.ddsEnabled:
-            res = self.compile(version, target, None, generateAllFiles, id, printSwitch, scale, variableToBitwidthMap, demotedVarsList, demotedVarsOffsets)
+            res = self.compile(version, target, None, generateAllFiles, id, printSwitch, scale, variableToBitwidthMap, demotedVarsList, demotedVarsOffsets, paramInNativeBitwidth)
         else:
-            res = self.compile(version, target, scale, generateAllFiles, id, printSwitch, None, variableToBitwidthMap, demotedVarsList, demotedVarsOffsets)
+            res = self.compile(version, target, scale, generateAllFiles, id, printSwitch, None, variableToBitwidthMap, demotedVarsList, demotedVarsOffsets, paramInNativeBitwidth)
         if res == False:
             return False
         else:
@@ -232,50 +246,67 @@ class Main:
     # Iterate over multiple scaling factors and store their accuracies
     def performSearch(self):
 
-        keys1 = {'X':0, 'tmp22':0, 'tmp23':-1, 'tmp25':0} #before rnnpool
-        keys2 = {'tmp27':0} #before mbonv
-        keys3 = []
-        for i in [9, 10, 11, 12, 13]:
-            for j in range(1, 4):
-                keys3.append('L%dF%d'%(i, j))
-                keys3.append('L%dW%d'%(i, j))
-                keys3.append('L%dB%d'%(i, j))
-        keys4 = {'tmp433':0, 'tmp446':0, 'tmp449':0, 'tmp460':0, 'tmp463':0, 'tmp469':0, 'tmp470':0} #after 3rd detection mbconvs
+        # # #for face-2
 
-        a = {}
-        b = {}
-        c = []
-        for key in self.variableToBitwidthMap.keys():
-            a[key] = 16
-            b[key] = 0
-        for key in keys1.keys():
-            a[key] = 8
-            b[key] = keys1[key]
-            c.append(key)
-        for key in keys2.keys():
-            a[key] = 8
-            b[key] = keys2[key]
-            c.append(key)
-        for key in keys3:
-            a[key] = 8
-            b[key] = 0
-            c.append(key)
-        for key in keys4.keys():
-            a[key] = 8
-            b[key] = keys4[key]
-            c.append(key)
-        self.sf = -7
-        self.partialCompile(config.Version.fixed, config.Target.x86, self.sf, True, None, 0, a, c, b)
-        self.convert(config.Version.fixed,
-                    config.DatasetType.testing, config.Target.x86)
-        self.runAll(config.Version.fixed, config.DatasetType.testing, None, {}, True)
+        # keys1 = {'X':0, 'tmp22':0, 'tmp23':-1, 'tmp25':0} #before rnnpool
+        # keys2 = {'tmp27':0} #before mbonv
+        # keys3 = []
+        # for i in [9, 10, 11, 12, 13]:
+        #     for j in range(1, 4):
+        #         keys3.append('L%dF%d'%(i, j))
+        #         keys3.append('L%dW%d'%(i, j))
+        #         keys3.append('L%dB%d'%(i, j))
+        # keys4 = {'tmp433':0, 'tmp446':0, 'tmp449':0, 'tmp460':0, 'tmp463':0, 'tmp469':0, 'tmp470':0} #after 3rd detection mbconvs
+
+        # #for face 3                             # TODO:
+        #                                         # v theres a bug if we dont demote tmp25 but demote tmp24 in conv mem optimiisaiton
+        # # keys1 = {'X':0, 'tmp22':-1, 'tmp23':-1, 'tmp25':0} #before rnnpool
+        # # keys2 = {}#{'tmp27':0} #before mbonv
+        # # keys3 = []
+        # # for i in []: #[2, 3]:
+        # #     for j in range(1, 4):
+        # #         keys3.append('L%dF%d'%(i, j))
+        # #         keys3.append('L%dW%d'%(i, j))
+        # #         keys3.append('L%dB%d'%(i, j)) # 1. not needed for face-3, if done it tanks accuracy
+        # # keys4 = {}#{'tmp433':0, 'tmp446':0, 'tmp449':0, 'tmp460':0, 'tmp463':0, 'tmp469':0, 'tmp470':0} #after 3rd detection mbconvs
 
 
+        # a = {}
+        # b = {}
+        # c = []
+        # for key in self.variableToBitwidthMap.keys():
+        #     a[key] = 16
+        # for key in keys1.keys():
+        #     a[key] = 8
+        #     b[key] = keys1[key]
+        #     c.append(key)
+        # for key in keys2.keys():
+        #     a[key] = 8
+        #     b[key] = keys2[key]
+        #     c.append(key)
+        # for key in keys3:
+        #     a[key] = 8
+        #     b[key] = 0
+        #     c.append(key)
+        # for key in keys4.keys():
+        #     a[key] = 8
+        #     b[key] = keys4[key]
+        #     c.append(key)
+        # self.sf = -7
+        # self.partialCompile(config.Version.fixed, config.Target.x86, self.sf, True, None, 0, a, c, b, paramInNativeBitwidth=False)
+        # self.convert(config.Version.fixed,
+        #             config.DatasetType.testing, config.Target.x86, a, b)
+        # self.runAll(config.Version.fixed, config.DatasetType.testing, None, {}, True)
+
+        # self.demotedVarsOffsets = b
+        # self.variableToBitwidthMap = a
+        # self.demotedVarsList = c
+        # self.compileFixedForTarget()
+
+        # return
 
 
-
-
-        #######################################################
+        # #######################################################
 
         start, end = config.maxScaleRange
 
@@ -430,7 +461,9 @@ class Main:
                 acceptedAcc = lastStageAcc
                 for ((demotedVars, _), metrics) in self.varDemoteDetails:
                     acc = metrics[0]
-                    if (self.flAccuracy - acc) > 2.0:
+                    if self.problemType == config.ProblemType.classification and (self.flAccuracy - acc) > 2.0:
+                        break
+                    elif self.problemType == config.ProblemType.regression and acc > 90.0:
                         break
                     else:
                         okToDemote = demotedVars
@@ -561,17 +594,23 @@ class Main:
             return False
 
         # Copy file
-        srcFile = os.path.join(config.outdir, "input", "model_fixed.h")
-        destFile = os.path.join(config.outdir, str(config.wordLength), self.algo, self.dataset, "model.h")
-        os.makedirs(os.path.join(config.outdir, str(config.wordLength), self.algo, self.dataset), exist_ok=True)
+        if self.target == config.Target.arduino:
+            srcFile = os.path.join(config.outdir, "input", "model_fixed.h")
+            destFile = os.path.join(config.outdir, str(config.wordLength), self.algo, self.dataset, "model.h")
+            os.makedirs(os.path.join(config.outdir, str(config.wordLength), self.algo, self.dataset), exist_ok=True)
+        elif self.target == config.Target.m3:
+            srcFile = os.path.join(config.outdir, "input", "model_fixed.h")
+            destFile = os.path.join(config.outdir, "model.h")
+            os.makedirs(os.path.join(config.outdir), exist_ok=True)
         shutil.copyfile(srcFile, destFile)
 
         # Copy library.h file
         curr_dir = os.path.dirname(os.path.realpath(__file__))
 
-        srcFile = os.path.join(curr_dir, self.target, "library", "library_fixed.h")
-        destFile = os.path.join(config.outdir, "library.h")
-        shutil.copyfile(srcFile, destFile)
+        if self.target == config.Target.arduino:
+            srcFile = os.path.join(curr_dir, self.target, "library", "library_fixed.h")
+            destFile = os.path.join(config.outdir, "library.h")
+            shutil.copyfile(srcFile, destFile)
 
 
         modifiedBitwidths = dict.fromkeys(self.variableToBitwidthMap.keys(), config.wordLength) if hasattr(self, 'variableToBitwidthMap') else {}
@@ -603,7 +642,7 @@ class Main:
             self.testingAccuracy = self.accuracy[self.sf]
 
         # Generate code for target
-        if self.target == config.Target.arduino:
+        if self.target != config.Target.x86:
             self.compileFixedForTarget()
 
             print("\nArduino sketch dumped in the folder %s\n" % (config.outdir))
@@ -611,6 +650,8 @@ class Main:
         return True
 
     def compileFloatForTarget(self):
+        assert self.target == config.Target.arduino, "Floating point code supported for Arduino only"
+
         print("------------------------------")
         print("Generating code for %s..." % (self.target))
         print("------------------------------\n")

@@ -71,6 +71,10 @@ def forArduino():
     return Config.target == config.Target.arduino
 
 
+def forM3():
+    return Config.target == config.Target.m3
+
+
 def forHls():
     return Config.target == config.Target.Hls
 

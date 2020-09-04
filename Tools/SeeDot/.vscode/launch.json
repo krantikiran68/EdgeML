@@ -14,17 +14,17 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "rnnpool",
+                "rnn",
                 "-v",
                 "fixed",
                 "-d",
-                "face-2",
+                "Wakeword-2",
                 "-m",
-                "disagree",
-                // "-t",
-                // "arduino",
+                "red_disagree",
+                "-t",
+                "arduino",
                 "-n",
-                "18000"
+                "1"
             ]
         }
     ]

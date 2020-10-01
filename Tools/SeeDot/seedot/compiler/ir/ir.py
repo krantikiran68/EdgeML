@@ -264,6 +264,21 @@ class Memset(Cmd):
         return Memset(self.e.subst(from_idf, to_e), self.len)
 
 
+class Memcpy(Cmd):
+
+    def __init__(self, to: Var, start: Var, length: int, toIndex: list, startIndex: list):
+        self.to = to
+        self.start = start
+        self.length = length
+        self.toIndex = toIndex
+        self.startIndex = startIndex
+
+    def subst(self, from_idf: str, to_e: Expr):
+        return Memcpy(self.to.subst(from_idf, to_e), self.start.subst(from_idf, to_e), self.length,
+            list(map(lambda var: var.subst(from_idf, to_e), self.toIndex)), 
+            list(map(lambda var: var.subst(from_idf, to_e), self.startIndex)))
+
+
 class Print(Cmd):
 
     def __init__(self, expr: Expr):

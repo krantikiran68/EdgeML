@@ -98,6 +98,9 @@ class IRBuilder(ASTVisitor):
         self.curDepth = 0
         self.allDepths = {}
 
+        self.biasShifts = {}
+        self.coLocatedVariables = {}
+
         # Mutable variables declared in the 'loop' operator is stored in mutableVars
         # The range of run-time values see by mutable variables is stored in mutableVarsProfile. This information is obtained from collecting run-time profile on the floating-point code
         self.mutableVars = []
@@ -314,6 +317,28 @@ class IRBuilder(ASTVisitor):
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
+        # In case the target variable is contiguous, we can use memcpy instead of a loop
+        canOptimize = True
+        loopShapeMustBeOne = False
+        for i in range(len(loopShape) - 1, -1, -1):
+            if loopShapeMustBeOne:
+                if loopShape[i] != 1:
+                    canOptimize = False
+            else:
+                if loopShape[i] == type_in.shape[i]:
+                    continue
+                elif loopShape[i] < type_in.shape[i]:
+                    loopShapeMustBeOne = True
+                    continue
+                else:
+                    assert False, "Illegal State, subtensor dimensions must be less than original tensor dimensions"
+        canOptimize = canOptimize and (expr_in.idf not in self.globalVars)
+
+        if canOptimize:
+            prog_splice = IR.Prog([comment, IR.Memcpy(expr_out, expr_in, np.prod(loopShape), [IR.Int(0) for i in range(len(vars_in))], vars_in)])
+        else:
+            assert True
+
         prog_out = IR.Prog([])
         prog_out = IRUtil.concatPrograms(prog_out, prog_in)
         for prog in progs_in:
@@ -406,11 +431,23 @@ class IRBuilder(ASTVisitor):
         loop = IRUtil.loop(loopShape, loopIters, [IR.Assn(IRUtil.addIndex(
             expr_out, iters_out), IRUtil.addIndex(expr_in, iters_in))] + cmd5)
 
-        # Finalize
+        #Finalize
         comment = IR.Comment("reshape(" + expr_in.idf + ", (" + ', '.join(str(e)
-            for e in type_out.shape) + "), (" + ', '.join(str(e) for e in node.order), self.counter_inst+1)
+            for e in type_out.shape) + "), (" + ', '.join(str(e) for e in node.order) + ")", self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
-        prog_reshape = IR.Prog([comment] + cmd1 + loop)
+
+        # In case the reshaped array's memory layout is identical to original array, we use memcpy
+        canOptimize = True
+        for i in range(len(node.order)):
+            if node.order[i] != i+1:
+                canOptimize = False
+        canOptimize = canOptimize and expr_in.idf not in self.globalVars
+
+        if canOptimize:
+            prog_memcpy = IR.Memcpy(expr_out, expr_in, type_out.size(), [IR.Int(0) for i in range(type_out.dim)], [IR.Int(0) for i in range(type_in.dim)])
+            prog_reshape = IR.Prog([comment] + [prog_memcpy])
+        else:
+            prog_reshape = IR.Prog([comment] + cmd1 + loop)
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
@@ -966,6 +1003,7 @@ class IRBuilder(ASTVisitor):
         self.varIntervals[expr_treeSum.idf] = (0, 0)
 
         #self.varDeclarations[expr_treeSum.idf] = type_treeSum
+        # self.notScratch.append(expr_treeSum.idf)
 
         self.log.print(comment.msg)
         self.log.print("\tInput1: scale = %d, interval = [%d, %d]" % (
@@ -1380,7 +1418,9 @@ class IRBuilder(ASTVisitor):
             self.varsForBitwidth[expr_bufX.idf] = bitwidth_x
 
         # if Config.faceDetectionHacks:
-        #     self.notScratch.append(expr_bufX.idf)
+        # self.notScratch.append(expr_bufX.idf)
+        # self.notScratch.append(expr_bufT.idf)
+        # self.notScratch.append(expr_treeSum.idf)
 
         comment = IR.Comment('MBconv(%s)' %(expr_in_A.idf), self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
@@ -1429,6 +1469,10 @@ class IRBuilder(ASTVisitor):
         for i in range(9):
             argMap[shl[i]] = "shl%d" % (i+1)
 
+        self.biasShifts[expr_in_B1.idf] = int(np.log2(shr[1].n)) - int(np.log2(shl[1].n))
+        self.biasShifts[expr_in_B2.idf] = int(np.log2(shr[4].n)) - int(np.log2(shl[4].n))
+        self.biasShifts[expr_in_B3.idf] = int(np.log2(shr[7].n)) - int(np.log2(shl[7].n))
+        
         if forFloat():
             argMap[IR.String(expr_out)] = "name"
 
@@ -1566,8 +1610,10 @@ class IRBuilder(ASTVisitor):
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out, expr_treeSum])
 
-        if Config.faceDetectionHacks and Hf == Wf == CinF == CoutF == 1:        #quick fix for face detection
-                self.updateLiveRange([expr_in_A], self.counter_inst - 1)
+        # if Config.faceDetectionHacks and Hf == Wf == CinF == CoutF == 1:        #quick fix for face detection
+        #         self.updateLiveRange([expr_in_A], self.counter_inst - 1)
+        if Hf == Wf == CinF == CoutF == 1 and bitwidth_in_A == bitwidth_out:
+            self.setMemorySharableVariables(expr_in_A, expr_out)
 
         profile = IR.FuncCall("Profile4", {
             expr_out: "Var",
@@ -1583,6 +1629,8 @@ class IRBuilder(ASTVisitor):
         prog_conv = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_conv)
+
+        # self.notScratch.append(expr_treeSum.idf)
 
         # Update context for output variable
         self.varDeclarations[expr_out.idf] = type_out
@@ -1850,8 +1898,10 @@ class IRBuilder(ASTVisitor):
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
 
-        if Config.faceDetectionHacks:        #quick fix for face detection
-            self.updateLiveRange([expr_in_A], self.counter_inst - 1)
+        # if Config.faceDetectionHacks:        #quick fix for face detection
+        #     self.updateLiveRange([expr_in_A], self.counter_inst - 1)
+        if bitwidth_in_A == bitwidth_out:
+            self.setMemorySharableVariables(expr_in_A, expr_out)
 
         adjust = []
         if forFixed():
@@ -2057,8 +2107,13 @@ class IRBuilder(ASTVisitor):
             self.counter_inst += 1
             self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
 
-            if Config.faceDetectionHacks and type_out.dim == 4:        #quick fix for face detection
-                self.updateLiveRange([expr_in_A], self.counter_inst - 1)
+            # if Config.faceDetectionHacks and type_out.dim == 4:        #quick fix for face detection
+            #     self.updateLiveRange([expr_in_A], self.counter_inst - 1)
+            if type_out.dim == 4:
+                if expr_in_A.idf not in self.globalVars and bitwidth_in_A == bitwidth_out:
+                    self.setMemorySharableVariables(expr_in_A, expr_out)
+                elif expr_in_B.idf not in self.globalVars and bitwidth_in_B == bitwidth_out:
+                    self.setMemorySharableVariables(expr_in_B, expr_out)
 
             if type_out.dim == 2:
                 profile = IR.FuncCall("Profile2", {
@@ -2237,9 +2292,10 @@ class IRBuilder(ASTVisitor):
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        if Config.faceDetectionHacks and expr_out.idf == 'tmp311':
-            self.updateLiveRange([expr_in], self.counter_inst-1)
-
+        # if Config.faceDetectionHacks and expr_out.idf == 'tmp311':
+        #     self.updateLiveRange([expr_in], self.counter_inst-1)
+        self.setMemorySharableVariables(expr_in, expr_out)
+        
         prog_func = IR.Prog([comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_func)
@@ -3112,7 +3168,7 @@ class IRBuilder(ASTVisitor):
 
         return (prog_out, expr_out)
 
-    def visitLeftSplice(self, node: AST.LeftSplice, expr_in):
+    def visitLeftSplice(self, node: AST.LeftSplice, expr_in, nodeVarType):
         
         vars_in = []
         progs_in = []
@@ -3164,6 +3220,29 @@ class IRBuilder(ASTVisitor):
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
+
+        # In case the target variable is contiguous, we can use memcpy instead of a loop
+        canOptimize = True
+        loopShapeMustBeOne = False
+        for i in range(len(loopShape) - 1, -1, -1):
+            if loopShapeMustBeOne:
+                if loopShape[i] != 1:
+                    canOptimize = False
+            else:
+                if loopShape[i] == nodeVarType.shape[i]:
+                    continue
+                elif loopShape[i] < nodeVarType.shape[i]:
+                    loopShapeMustBeOne = True
+                    continue
+                else:
+                    assert False, "Illegal State, subtensor dimensions must be less than original tensor dimensions"
+        canOptimize = canOptimize and (expr_in.idf not in self.globalVars) and bw_in == bw_out and scale_in == scale_out
+
+        if canOptimize:
+            prog_splice = IR.Prog([comment, IR.Memcpy(expr_out, expr_in, np.prod(loopShape), vars_in, [IR.Int(0) for i in range(len(vars_in))])])
+        else:
+            assert True
+
 
         prog_out = IR.Prog([])
         for prog in progs_in:
@@ -3445,7 +3524,10 @@ class IRBuilder(ASTVisitor):
 
         # Left Splice case
         elif node.leftSplice is not None:
-            (prog_splice, expr_splice) = self.visitLeftSplice(node.leftSplice, expr_decl)
+            parentVar = node.name
+            while parentVar in self.substitutions:
+                parentVar = self.substitutions[parentVar]
+            (prog_splice, expr_splice) = self.visitLeftSplice(node.leftSplice, expr_decl, self.varDeclarations[parentVar])
             (prog_in, expr_in) = self.visit(node.expr)
             
             profile = IR.Prog([])
@@ -3548,6 +3630,17 @@ class IRBuilder(ASTVisitor):
             else:
                 prog_for_mutable = IR.Prog([])
 
+            if forFloat():
+                if expr_decl.idf != idf:
+                    if idf in self.substitutions.keys():
+                        assert False, "What kind of subtitutions are going on?"
+                    self.substitutions[idf] = expr_decl.idf
+
+                # To ensure loop variable is correctly fed for data driven scaling
+                for i in range(len(self.independentVars)):
+                    while self.independentVars[i] in self.substitutions.keys(): 
+                        self.independentVars[i] = self.substitutions[self.independentVars[i]]
+
             (prog_in, expr_in) = self.visit(node.expr)
 
             # TODO: When is this triggered and why is this required?
@@ -3570,17 +3663,6 @@ class IRBuilder(ASTVisitor):
 
             prog_decl = IRUtil.concatPrograms(
                 prog_decl, IR.Prog([prog_for_mutable]))
-
-            if forFloat():
-                if expr_decl.idf != idf:
-                    if idf in self.substitutions.keys():
-                        assert False, "What kind of subtitutions are going on?"
-                    self.substitutions[idf] = expr_decl.idf
-
-                # To ensure loop variable is correctly fed for data driven scaling
-                for i in range(len(self.independentVars)):
-                    while self.independentVars[i] in self.substitutions.keys(): 
-                        self.independentVars[i] = self.substitutions[self.independentVars[i]]
 
             prog_in = prog_in.subst(idf, expr_decl)
             expr_in = expr_in.subst(idf, expr_decl)
@@ -4004,3 +4086,13 @@ class IRBuilder(ASTVisitor):
                     self.varLiveIntervals[varName][1] = counter_inst
                 else:
                     self.varLiveIntervals[varName] = [counter_inst, counter_inst]
+
+    def setMemorySharableVariables(self, expr_in, expr_out):
+        assert hasattr(expr_in, 'idf') and hasattr(expr_out, 'idf'), "Illegal State"
+        expr_in_idf = expr_in.idf
+        expr_out_idf = expr_out.idf
+        while expr_in_idf in self.substitutions:
+            expr_in_idf = self.substitutions[expr_in_idf]
+        while expr_out_idf in self.substitutions:
+            expr_out_idf = self.substitutions[expr_out_idf]
+        self.coLocatedVariables[expr_in_idf] = expr_out_idf

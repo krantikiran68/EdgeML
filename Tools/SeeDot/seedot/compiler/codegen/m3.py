@@ -13,13 +13,11 @@ import seedot.compiler.type as Type
 from seedot.util import *
 from seedot.writer import Writer
 
-from bokeh.plotting import figure, output_file, show
-
 import time
 
 class M3(CodegenBase):
 
-    def __init__(self, outputDir, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals, notScratch):
+    def __init__(self, outputDir, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals, notScratch, coLocatedVariables):
         self.outputDir = outputDir
         cppFile = os.path.join(
             self.outputDir, "predict.c")
@@ -47,6 +45,7 @@ class M3(CodegenBase):
         self.currentMemMap = 0
         self.defragmentationInstructions = []
         self.defragmentationParameters = []
+        self.coLocatedVariables = dict(coLocatedVariables)
 
     def printPrefix(self):
 
@@ -56,7 +55,7 @@ class M3(CodegenBase):
 
         self.printCHeader()
 
-        self.computeScratchLocationsFirstFitPriority()
+        self.computeScratchLocationsDLX()
 
         self.printVarDecls(globalVarDecl=False)
 
@@ -65,12 +64,12 @@ class M3(CodegenBase):
         self.out.printf('\n')
 
     def printCincludes(self):
-        self.out.printf('#include <math.h>\n\n', indent=True)
+        self.out.printf('#include <math.h>\n', indent=True)
+        self.out.printf('#include <stdbool.h>\n\n', indent=True)
         self.out.printf('#include "quantized_datatypes.h"\n', indent=True)
-        self.out.printf('#include "quantized_library.h"\n', indent=True)
+        self.out.printf('#include "quantized_utils.h"\n', indent=True)
         self.out.printf('#include "quantized_mbconv.h"\n', indent=True)
-        self.out.printf('#include "model_%s.h"\n' %
-                        (getVersion()), indent=True)
+        self.out.printf('#include "model.h"\n', indent=True)
     
 
     def printCHeader(self):
@@ -188,6 +187,48 @@ class M3(CodegenBase):
         self.out.printf(', 0, sizeof(%s) * %d);\n' %
                         ("float" if forFloat() else typ_str, ir.len))
 
+    def printMemcpy(self, ir):
+        def printFlattenedIndices(indices, shape):
+            remSize = np.prod(shape)
+            for i in range(len(shape)):
+                remSize //= shape[i]
+                self.out.printf("%d*(", remSize)
+                self.print(indices[i])
+                self.out.printf(")")
+                if i + 1 < len(shape):
+                    self.out.printf("+")
+        typ_str = "Q15_T"
+        if config.vbwEnabled:
+            if hasattr(self, 'varsForBitwidth'):
+                # Note ir.to and ir.start are constrained to have the same bitwidth
+                typ_str = ("Q%d_T" % (self.varsForBitwidth[ir.to.idf] - 1)) if ir.to.idf in self.varsForBitwidth else typ_str
+            else:
+                assert False, "Illegal state, VBW mode but no variable information present"
+        typ_str = "float" if forFloat() else typ_str
+        self.out.printf('memcpy(', indent=True)
+        if Config.x86MemoryOptimize and forFixed() and self.numberOfMemoryMaps in self.scratchSubs:
+            for (a, b, c) in [(ir.to.idf, ir.toIndex, 0), (ir.start.idf, ir.startIndex, 1)]:
+                self.out.printf("((scratch + %d + sizeof(%s)*(", self.scratchSubs[self.numberOfMemoryMaps][a], typ_str)
+                toIndexed = IRUtil.addIndex(IR.Var(""), b)
+                if len(b) == 0:
+                    self.out.printf("0")
+                elif len(b) == len(self.decls[a].shape):
+                    printFlattenedIndices(b, self.decls[a].shape)
+                else:
+                    assert False, "Illegal state, number of offsets to memcpy should be 0 or match the original tensor dimensions"
+                self.out.printf(")))")
+                if c == 0:
+                    self.out.printf(", ")
+        else:
+            toIndexed = IRUtil.addIndex(IR.Var(ir.to.idf), ir.toIndex)
+            startIndexed = IRUtil.addIndex(IR.Var(ir.start.idf), ir.startIndex)
+            self.out.printf("&")
+            self.print(toIndexed)
+            self.out.printf(", &")
+            self.print(startIndexed)
+        self.out.printf(', sizeof(%s) * %d);\n' % (typ_str, ir.length))
+
+
     def printFuncCall(self, ir):
         if forFloat():
             super().printFuncCall(ir)
@@ -210,9 +251,9 @@ class M3(CodegenBase):
                 else:
                     x = 0
 
-                if forFixed():
-                    typeCast = ("(Q%d_T*)" % (self.varsForBitwidth[arg.idf] - 1)) if x > 0 else ""
-                    self.out.printf(typeCast)
+                # if forFixed():
+                #     typeCast = ("(Q%d_T*)" % (self.varsForBitwidth[arg.idf] - 1)) if x > 0 else ""
+                #     self.out.printf(typeCast)
                 
                 if not (isinstance(arg, IR.Var) and arg.idf in self.scratchSubs[self.currentMemMap]):
                     if x != 0:
@@ -245,8 +286,8 @@ class M3(CodegenBase):
         
         # Type checking has already been done so no exhaustive checks here
         if name[:-2] == "MatAdd" or name == "MatSub":   #MatAddNC MatAddCN MatAddCC MatAddNN
-            shapeA = self.decls[revArgList["A"].idf].shape
-            if shapeA[0] == 1:  
+            shapeB = self.decls[revArgList["B"].idf].shape
+            if shapeB[1] == 1:  
                 op = "add" if name[3:6] == "Add" else "sub"
                 assert bitwidths[0] == bitwidths[1] == bitwidths[3]
                 if op == "add":
@@ -256,7 +297,7 @@ class M3(CodegenBase):
                 args = {
                     revArgList["A"] : "vec1",
                     revArgList["B"] : "vec2",
-                    revArgList["J"] : "len",
+                    revArgList["I"] : "len",
                     revArgList["C"] : "ret",
                     revArgList["shrA"]: "scvec1",
                     revArgList["shrB"]: "scvec2",
@@ -275,7 +316,6 @@ class M3(CodegenBase):
             else:
                 assert False, "Not Implemented for M3"
         elif name[:-1] == "MatAdd": #MatAdd4
-            shapeA = self.decls[revArgList["A"].idf].shape
             assert bitwidths[0] == bitwidths[1] == bitwidths[3]
             funcName = "q%d_t_add" % (bitwidths[0] - 1)
             scret = revArgList["shrC"].n * revArgList["demote"].n
@@ -307,14 +347,14 @@ class M3(CodegenBase):
                 scscalar = revArgList["shrB"]
             else:
                 assert False, "Illegal State"
-            if shapeVec[0] == 1:
+            if shapeVec[1] == 1:
                 assert bitwidths[0] == bitwidths[1] == bitwidths[3] == 16
                 funcName = "q15_v_scalar_add"
                 scret = revArgList["shrC"].n * revArgList["demote"].n
                 args = {
-                    scalar : "scalar",
+                    IR.Int(self.cnsts[scalar.idf]) : "scalar", #scalar : "scalar",
                     vec : "vec",
-                    revArgList["J"] : "len",
+                    revArgList["I"] : "len",
                     revArgList["C"] : "ret",
                     scscalar : "scscalar",
                     scvec : "scvec",
@@ -328,30 +368,19 @@ class M3(CodegenBase):
             scret = revArgList["shrC"].n * revArgList["demote"].n
             if name[-1] == "A":
                 shapeB = self.decls[revArgList["B"].idf].shape
-                assert shapeB[0] == 1
+                assert shapeB[1] == 1
                 funcName = "q15_v_scalar_sub"
                 args = {
-                    revArgList["A"] : "scalar",
+                    IR.Int(self.cnsts[revArgList["A"].idf]) : "scalar", #revArgList["A"] : "scalar",
                     revArgList["B"] : "vec",
-                    revArgList["J"] : "len",
+                    revArgList["I"] : "len",
                     revArgList["C"] : "ret",
                     revArgList["shrA"] : "scscalar",
                     revArgList["shrB"] : "scvec",
                     IR.Int(scret) : "scret"
                 }   
             elif name[-1] == "B":
-                shapeA = self.decls[revArgList["A"].idf].shape
-                assert shapeA[0] == 1
-                funcName = "q15_v_sub_scalar"
-                args = {
-                    revArgList["A"] : "vec",
-                    revArgList["B"] : "scalar",
-                    revArgList["J"] : "len",
-                    revArgList["C"] : "ret",
-                    revArgList["shrA"] : "scvec",
-                    revArgList["shrB"] : "scscalar",
-                    IR.Int(scret) : "scret"
-                } 
+                assert False, "Not implemented on M3"
             return funcName, args
         elif name[:-2] == "AddOrSubCir": #AddOrSubCir2D AddOrSubCir4D
             addOrSub = "add" if revArgList["add"].b else "sub"
@@ -361,20 +390,7 @@ class M3(CodegenBase):
             dim = 2 if name[-2:] == "2D" else 4
             scret = revArgList["shrC"].n * revArgList["demote"].n
             if dim == 2:
-                args = {
-                    revArgList["A"] : "mat",
-                    revArgList["B"] : "vec",
-                    revArgList["H"] : "nrows",
-                    revArgList["W"] : "ncols",
-                    revArgList["X"] : "ret",
-                    revArgList["shrA"] : "scmat",
-                    revArgList["shrB"] : "scvec",
-                    IR.Int(scret) : "scret"
-                }
-                if bwA == bwB == bwX == 16:
-                    bwString = "q15_m"
-                else:
-                    assert False, "Not implemented for M3"
+                assert False, "Not implemented for M3"
             else:
                 args = {
                     revArgList["A"] : "mat",
@@ -396,15 +412,15 @@ class M3(CodegenBase):
                     assert False, "Not implemented for M3"
             return ("%s_%s_vec" % (bwString, addOrSub)), args
         elif name == "MulCir": #MulCir
-            shapeA = self.decls[revArgList["A"].idf].shape
-            if shapeA[0] == 1:  
+            shapeB = self.decls[revArgList["B"].idf].shape
+            if shapeB[1] == 1:  
                 assert bitwidths[0] == bitwidths[1] == bitwidths[3]
                 funcName = "q%d_v_hadamard" % (bitwidths[0] - 1)
                 scvec2 = revArgList["shrB"].n * revArgList["demote"].n
                 args = {
                     revArgList["A"] : "vec1",
                     revArgList["B"] : "vec2",
-                    revArgList["J"] : "len",
+                    revArgList["I"] : "len",
                     revArgList["C"] : "ret",
                     revArgList["shrA"]: "scvec1",
                     IR.Int(scvec2) : "scvec2"
@@ -415,12 +431,12 @@ class M3(CodegenBase):
         elif name[:7] == "Sigmoid": #Sigmoid SigmoidNew16
             shapeA = self.decls[revArgList["A"].idf].shape
             use_tables = useNewTableExp() or useMathExp()
-            if shapeA[0] == 1:
+            if shapeA[1] == 1:
                 assert self.varsForBitwidth[revArgList["A"].idf] == 16
                 funcName = "q15_v_sigmoid"
                 args = {
                     revArgList["A"] : "vec",
-                    revArgList["J"] : "len",
+                    revArgList["I"] : "len",
                     revArgList["B"] : "ret",
                     revArgList.get("div", IR.Int(0)) : "div",
                     revArgList.get("add", IR.Int(0)) : "add",
@@ -435,12 +451,12 @@ class M3(CodegenBase):
         elif name[:4] == "TanH": #TanH TanHNew16
             shapeA = self.decls[revArgList["A"].idf].shape
             use_tables = useNewTableExp() or useMathExp()
-            if shapeA[0] == 1:
+            if shapeA[1] == 1:
                 assert self.varsForBitwidth[revArgList["A"].idf] == 16
                 funcName = "q15_v_tanh"
                 args = {
                     revArgList["A"] : "vec",
-                    revArgList["J"] : "len",
+                    revArgList["I"] : "len",
                     revArgList["B"] : "ret",
                     revArgList.get("scale_in", IR.Int(0)) : "scale_in",
                     revArgList.get("scale_out", IR.Int(0)) : "scale_out",
@@ -450,29 +466,7 @@ class M3(CodegenBase):
             else:
                 assert False, "Not Implemented for M3"
         elif name[:3] == "Exp": #Exp ExpNew16
-            shapeA = self.decls[revArgList["A"].idf].shape
-            use_tables = useNewTableExp() 
-            assert not useTableExp(), "Not implemented for M3"
-            if shapeA[0] == 1:
-                assert self.varsForBitwidth[revArgList["A"].idf] == 16
-                funcName = "q15_v_exp"
-                if useMathExp():
-                    scvec = IR.Int(revArgList["shrA"].n * revArgList["demote"].n)
-                    scret = revArgList["shrB"]
-                else:
-                    scvec = IR.Int(1)
-                    scret = revArgList["adjust"]
-                args = {
-                    revArgList["A"] : "vec",
-                    revArgList["J"] : "len",
-                    revArgList["B"] : "ret",
-                    scvec : "scvec",
-                    scret : "scret",
-                    IR.Bool(use_tables) : "use_tables"
-                }
-                return funcName, args
-            else:
-                assert False, "Not Implemented for M3"
+            assert False, "Not Implemented for M3"
         elif name[:11] == "AdjustScale": #AdjustScaleShl AdjustScaleShr AdjustScaleShlSaturate
             if name[-8:] == "Saturate":
                 assert False, "Not implemented for M3"
@@ -480,28 +474,20 @@ class M3(CodegenBase):
             shapeA = self.decls[revArgList["A"].idf].shape
             if name[-3:] == "Shl":
                 assert len(shapeA) == 2, "Not implemented for M3"
-            if shapeA[0] == 1:
+            if shapeA[1] == 1:
                 funcName = "q15_v_scale_%s" % ("up" if name[-3:] == "Shl" else "down")
                 ret = IR.Var(revArgList["A"].idf)
                 ret.inputVar = revArgList["A"].inputVar
                 ret.internalVar = revArgList["A"].internalVar
                 args = {
                     revArgList["A"] : "vec",
-                    revArgList["J"] : "len",
+                    revArgList["I"] : "len",
                     ret : "ret",
                     revArgList["scale"] : "scvec"
                 }
                 return funcName, args
         elif name == "Transpose": #Transpose
-            assert bitwidths[0] == 16, "Not implemented for M3"
-            funcName = "q15_m_transpose"
-            args = {
-                revArgList["A"] : "mat",
-                revArgList["I"] : "nrows",
-                revArgList["J"] : "ncols",
-                revArgList["B"] : "ret"
-            }
-            return funcName, args
+            assert False, "Not implemented for M3"
         elif name == "Reverse2": #Reverse
             assert bitwidths[0] == 16, "Not implemented for M3"
             funcName = "q15_m_reverse"
@@ -515,14 +501,14 @@ class M3(CodegenBase):
             return funcName, args
         elif name == "ScalarMul": #ScalarMul
             shapeB = self.decls[revArgList["B"].idf].shape
-            if shapeB[0] == 1:  
+            if shapeB[1] == 1:  
                 assert bitwidths[0] == bitwidths[1] == bitwidths[3] == 16
                 funcName = "q15_v_scalar_mul"
                 scvec = revArgList["shrB"].n * revArgList["demote"].n
                 args = {
-                    revArgList["A"] : "scalar",
+                    IR.Int(self.cnsts[revArgList["A"].idf]) : "scalar", #revArgList["A"] : "scalar",
                     revArgList["B"] : "vec",
-                    revArgList["J"] : "len",
+                    revArgList["I"] : "len",
                     revArgList["C"] : "ret",
                     revArgList["shrA"]: "scscalar",
                     IR.Int(scvec) : "scvec"
@@ -531,26 +517,27 @@ class M3(CodegenBase):
             else:
                 assert False, "Not Implemented for M3"
         elif name[:6] == "MatMul": #MatMulNN MatMulNC MatMulCC MatMulCN
-            shapeA = self.decls[revArgList["A"].idf].shape
-            if shapeA[0] == 1:  
+            shapeB = self.decls[revArgList["B"].idf].shape
+            if shapeB[1] == 1:  
                 bwA = bitwidths[0] 
                 bwB = bitwidths[1] 
                 bwC = bitwidths[3]
-                scvec = revArgList["shrA"].n * revArgList["demote"].n
+                scvec = IR.Int(revArgList["shrA"].n * revArgList["demote"].n)
+                shrB = IR.Int(revArgList["shrB"].n * revArgList["H1"].n)
                 args = {
-                    revArgList["B"] : "mat",
-                    revArgList["A"] : "vec",
+                    revArgList["A"] : "mat",
+                    revArgList["B"] : "vec",
                     revArgList["I"] : "nrows",
                     revArgList["J"] : "ncols",
                     revArgList["C"] : "ret",
-                    revArgList["shrB"]: "scmat",
-                    IR.Int(scvec) : "scvec",
+                    shrB : "scmat", #revArgList["shrB"]: "scmat",
+                    scvec : "scvec",
                     revArgList["H1"] : "H1",
                     revArgList["H2"] : "H2",
                 }
-                if bwB == bwA == bwC == 16: #Note the order of inputs is reversed
+                if bwA == bwB == bwC == 16: #Note the order of inputs is reversed
                     bwString = "q15"
-                elif bwB == bwC == 16 and bwA == 8:
+                elif bwA == bwC == 16 and bwB == 8:
                     bwString = "q15xq7_q15"
                 else:
                     assert False, "Not implemented for M3"
@@ -559,53 +546,23 @@ class M3(CodegenBase):
             else:
                 assert False, "Not Implemented for M3"
         elif name == "SparseMatMul": #SparseMatMul
-            # only implemented for matrix vector multiplication
-            assert bitwidths[0] == bitwidths[2] == bitwidths[4] == 16
-            scret = revArgList["shrC"].n * revArgList["demote"].n
-            args = {
-                revArgList["Aidx"] : "col_indices",
-                revArgList["Aval"] : "mat_values",
-                revArgList["B"] : "vec",
-                revArgList["K"] : "ndims",
-                revArgList["C"] : "ret",
-                revArgList["shrA"]: "scmat",
-                revArgList["shrB"]: "scvec",
-                IR.Int(scvec) : "scret",
-            }
-            funcName = "q15_m_sparse_mulvec"
-            return funcName, args
+            assert False, "Not implemented for M3"
         elif name == "ArgMax": #ArgMax 
             shapeA = self.decls[revArgList["A"].idf].shape
-            if shapeA[0] == 1: 
+            if shapeA[1] == 1: 
                 assert bitwidths[0] == 16, "Not implemented for M3"
                 funcName = "q15_v_argmax"
                 args = {
                     revArgList["A"] : "vec",
-                    revArgList["J"] : "len",
+                    revArgList["I"] : "len",
                     revArgList["index"] : "ret"
                 }
                 return funcName, args
             else:
                 assert False, "Not implemented for M3"
         elif name[:4] == "Relu": #Relu2D Relu4D Relu6
-            if name[-2:] == "4D":
+            if name[-2:] == "4D" or name[-2:] == "2D":
                 assert False, "Not implemented for M3"
-            elif name[-2:] == "2D":
-                shapeA = self.decls[revArgList["A"].idf].shape
-                if shapeA[0] == 1:
-                    assert bitwidths[0] == 16, "Not implemented for M3"
-                    funcName = "q15_v_relu"
-                    ret = IR.Var(revArgList["A"].idf)
-                    ret.inputVar = revArgList["A"].inputVar
-                    ret.internalVar = revArgList["A"].internalVar
-                    args = {
-                        revArgList["A"] : "vec",
-                        revArgList["J"] : "len",
-                        ret : "ret",
-                    }
-                    return funcName, args
-                else:
-                    assert False, "Not implemented for M3"
             elif name[-1] == "6":
                 assert bitwidths[0] == 8, "Not implemented for M3"
                 funcName = "q7_t_relu"
@@ -637,16 +594,17 @@ class M3(CodegenBase):
             }
             return funcName, args
         elif name == "Maxpool": #Maxpool
-            assert False, "Library Implementation has bugs, please correct and then write the C++ to C translator in m3.py"
+            assert False, "Not implemented for M3"
         elif name == "Convolution": #Convolution
             bwA = bitwidths[0]
             bwB = bitwidths[1]
             bwC = bitwidths[3]
+            shrA = IR.Int(revArgList["shrA"].n * 2 ** revArgList["H1"].n)
             args = {
                 revArgList["A"] : "input",
                 revArgList["B"] : "filter",
                 revArgList["C"] : "output",
-                revArgList["tmp"] : "treesumBuffer",
+                # revArgList["tmp"] : "treesumBuffer",
                 revArgList["N"] : "N",
                 revArgList["H"] : "H",
                 revArgList["W"] : "W",
@@ -666,9 +624,9 @@ class M3(CodegenBase):
                 revArgList["WSTR"] : "WStride",
                 revArgList["HDL"] : "HDilation",
                 revArgList["WDL"] : "WDilation",
-                revArgList["H1"] : "H1",
-                revArgList["H2"] : "H2",
-                revArgList["shrA"] : "scinput",
+                # revArgList["H1"] : "H1",
+                # revArgList["H2"] : "H2",
+                shrA : "scinput", # revArgList["shrA"] : "scinput",
                 revArgList["shrB"] : "scoutput",
                 revArgList["demote"] : "demote"
             }
@@ -693,6 +651,9 @@ class M3(CodegenBase):
             assert bwF1 == bwW1 == bwB1 == bwF2 == bwW2 == bwB2 == bwF3 == bwW3 == bwB3, "Not implemented for M3"
             bwB = bwF1
             bwC = bitwidths[10]
+            shr1 = IR.Int(revArgList["shr1"].n * 2 ** revArgList["D1"].n)
+            shr4 = IR.Int(revArgList["shr4"].n * 2 ** revArgList["D2"].n)
+            shr7 = IR.Int(revArgList["shr7"].n * 2 ** revArgList["D3"].n)
             args = {
                 revArgList["A"] : "input",
                 revArgList["F1"] : "filter1",
@@ -707,7 +668,7 @@ class M3(CodegenBase):
                 revArgList["C"] : "output",
                 revArgList["X"] : "convBuffer1",
                 revArgList["T"] : "convBuffer2",
-                revArgList["U"] : "treesumBuffer",
+                # revArgList["U"] : "treesumBuffer",
                 revArgList["N"] : "N",
                 revArgList["H"] : "H",
                 revArgList["W"] : "W",
@@ -724,179 +685,38 @@ class M3(CodegenBase):
                 revArgList["WPADR"] : "WPadR",
                 revArgList["HSTR"] : "HStride",
                 revArgList["WSTR"] : "WStride",
-                revArgList["D1"] : "depth1",
-                revArgList["D2"] : "depth2",
-                revArgList["D3"] : "depth3",
+                # revArgList["D1"] : "depth1",
+                # revArgList["D2"] : "depth2",
+                # revArgList["D3"] : "depth3",
                 revArgList["SIX_1"] : "limit1",
                 revArgList["SIX_2"] : "limit2",
-                revArgList["shr1"] : "shrU1",
-                revArgList["shr2"] : "shrB1",
+                shr1 : "shrU1", #revArgList["shr1"] : "shrU1",
+                # revArgList["shr2"] : "shrB1",
                 revArgList["shr3"] : "shrX1",
-                revArgList["shr4"] : "shrU2",
-                revArgList["shr5"] : "shrB2",
+                shr4 : "shrU2", #revArgList["shr4"] : "shrU2",
+                # revArgList["shr5"] : "shrB2",
                 revArgList["shr6"] : "shrX2",
-                revArgList["shr7"] : "shrU3",
-                revArgList["shr8"] : "shrB3",
+                shr7 : "shrU3", #revArgList["shr7"] : "shrU3",
+                # revArgList["shr8"] : "shrB3",
                 revArgList["shr9"] : "shrX3",
                 revArgList["shl1"] : "shlU1",
-                revArgList["shl2"] : "shlB1",
+                # revArgList["shl2"] : "shlB1",
                 revArgList["shl3"] : "shlX1",
                 revArgList["shl4"] : "shlU2",
-                revArgList["shl5"] : "shlB2",
+                # revArgList["shl5"] : "shlB2",
                 revArgList["shl6"] : "shlX2",
                 revArgList["shl7"] : "shlU3",
-                revArgList["shl8"] : "shlB3",
+                # revArgList["shl8"] : "shlB3",
                 revArgList["shl9"] : "shlX3",
             }
             if bwA == bwB == bwC:
-                bwString = "q%d" % bwA
+                bwString = "q%d" % (bwA - 1)
             elif bwA == 8 and bwB == bwC == 16:
                 bwString = "q7xq15_q15"
             elif bwA == 16 and bwB == 8:
-                bwString = "q15xq7_q%d" % bwC
+                bwString = "q15xq7_q%d" % (bwC - 1)
             else:
                 assert False, "Not implemented for M3"
             return "%s_mbconv_block" % bwString, args
         else:
             assert False, "Not implemented for M3"
-
-
-    def computeScratchLocationsFirstFitPriority(self):
-        if not Config.x86MemoryOptimize or forFloat():
-            return
-        else:
-            varToLiveRange = []
-            todelete = []
-            decls = dict(self.decls)
-            for var in decls.keys():
-                if var not in self.varLiveIntervals:
-                    todelete.append(var)
-                    continue
-                if hasattr(self, 'floatConstants'):
-                    if var in self.floatConstants:
-                        todelete.append(var)
-                        continue
-                if hasattr(self, 'intConstants'):
-                    if var in self.intConstants:
-                        todelete.append(var)
-                        continue
-                if hasattr(self, 'internalVars'):
-                    if var in self.internalVars:
-                        todelete.append(var)
-                        continue
-                size = np.prod(decls[var].shape)
-                varToLiveRange.append((self.varLiveIntervals[var], var, size, self.varsForBitwidth[var]))
-            for var in todelete:
-                del decls[var]
-            def sortkey(a):
-                return (a[0][0], -a[0][1], -(a[2]*a[3])//8)
-            varToLiveRange.sort(key=sortkey)
-            freeSpace = {0:-1}
-            freeSpaceRev = {-1:0}
-            usedSpaceMap = {}
-            totalScratchSize = -1
-            listOfDimensions = []
-            for ([_,_], var, size, atomSize) in varToLiveRange:
-                listOfDimensions.append(size)
-            #mode = 75 #(lambda x: np.bincount(x).argmax())(listOfDimensions) if len(listOfDimensions) > 0 else None
-            priorityMargin = 38400
-            plot = figure(plot_width=1000, plot_height=1000)
-            x = []
-            y = []
-            w = []
-            h = []
-            c = []
-            visualisation = []
-            i = 0
-            for i in range(len(varToLiveRange)):
-                ([startIns, endIns], var, size, atomSize) = varToLiveRange[i]
-                if var in self.notScratch:
-                    continue
-                spaceNeeded = size * atomSize // 8
-                varsToKill = []
-                for activeVar in usedSpaceMap.keys():
-                    endingIns = usedSpaceMap[activeVar][0]
-                    if endingIns < startIns:
-                        varsToKill.append(activeVar)
-                for tbk in varsToKill:
-                    (st, en) = usedSpaceMap[tbk][1]
-                    en += 1
-                    freeSpace[st] = en
-                    freeSpaceRev[en] = st
-                    if en in freeSpace.keys():
-                        freeSpace[st] = freeSpace[en]
-                        freeSpaceRev[freeSpace[st]] = st
-                        del freeSpace[en]
-                        del freeSpaceRev[en]
-                    if st in freeSpaceRev.keys():
-                        freeSpaceRev[freeSpace[st]] = freeSpaceRev[st]
-                        freeSpace[freeSpaceRev[st]] = freeSpace[st]
-                        del freeSpace[st]
-                        del freeSpaceRev[st]
-                    del usedSpaceMap[tbk]
-                potentialStart = -1
-                potentialEnd = -1
-                offset = 0
-                for j in range(i+1, len(varToLiveRange)):
-                    ([startIns_, endIns_], var_, size_, atomSize_) = varToLiveRange[j]
-                    if var_ in self.notScratch:
-                        continue
-                    if startIns_ > endIns:
-                        break
-                    spaceNeeded_ = (size_ * atomSize_) // 8
-                    if spaceNeeded_ >= priorityMargin and spaceNeeded < priorityMargin:
-                    #if spaceNeeded_ > spaceNeeded or (spaceNeeded_ == spaceNeeded and spaceNeeded < priorityMargin and (endIns_ - startIns_ > endIns - startIns)):
-                        offset = max(offset, spaceNeeded_)
-                
-                if offset not in freeSpace.keys() and offset > 0:
-                    j = 0
-                    for key in sorted(freeSpace.keys()):
-                        j = key
-                        if freeSpace[key] > offset:
-                            break
-                    if key < offset:
-                        st = j
-                        en = freeSpace[j]
-                        freeSpace[st] = offset
-                        freeSpace[offset] = en
-                        freeSpaceRev[en] = offset
-                        freeSpaceRev[offset] = st
-                    
-
-                for start in sorted(freeSpace.keys()):
-                    if start < offset:
-                        continue
-                    end = freeSpace[start]
-                    if end - start >= spaceNeeded or end == -1:
-                        potentialStart = start
-                        potentialEnd = potentialStart + spaceNeeded - 1
-                        break
-                    else:
-                        continue
-               
-                if False: #Config.defragmentEnabled and potentialStart + spaceNeeded > 200000:
-                    pass
-                    #usedSpaceMap = self.defragmentMemory(usedSpaceMap, var, spaceNeeded, endIns, mode)
-                else:
-                    usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
-                    freeSpaceEnd = freeSpace[potentialStart]
-                    del freeSpace[potentialStart]
-                    if potentialEnd + 1 != freeSpaceEnd:
-                        freeSpace[potentialEnd + 1] = freeSpaceEnd
-                    freeSpaceRev[freeSpaceEnd] = potentialEnd + 1
-                    if freeSpaceEnd == potentialEnd + 1:
-                        del freeSpaceRev[freeSpaceEnd]
-                    totalScratchSize = max(totalScratchSize, potentialEnd)
-                    if self.numberOfMemoryMaps not in self.scratchSubs.keys():
-                        self.scratchSubs[self.numberOfMemoryMaps] = {}
-                    self.scratchSubs[self.numberOfMemoryMaps][var] = potentialStart
-                x.append((endIns + 1 + startIns) / 2)
-                w.append(endIns - startIns + 1)
-                y.append((usedSpaceMap[var][1][0] + usedSpaceMap[var][1][1]) / 20000)
-                h.append((usedSpaceMap[var][1][1] - usedSpaceMap[var][1][0]) / 10000)
-                c.append("#" + ''.join([str(int(j)) for j in 10*np.random.rand(6)]))
-                visualisation.append((startIns, var, endIns, usedSpaceMap[var][1][0], usedSpaceMap[var][1][1]))
-            plot.rect(x=x, y=y, width=w, height=h, color=c, width_units="data", height_units="data")
-            show(plot)
-            self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
-            self.out.printf("/* %s */"%(str(self.scratchSubs)))

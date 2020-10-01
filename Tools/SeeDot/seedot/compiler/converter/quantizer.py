@@ -125,6 +125,11 @@ class Quantizer:
             writeVars({'scaleOfX': scaleOfX}, self.headerFile)
             writeVars({'Y': self.Y[0][0]}, self.headerFile) 
 
+        if forM3() and dumpDataset():
+            writeVars({'scaleForX': self.allScales['X']}, self.scalesFile)
+            assert self.scaleForY is not None, "Illegal state for M3 codegen"
+            writeVars({'scaleForY': self.scaleForY}, self.scalesFile)
+
         for param in self.params:
             if param.sparse:
                 transp = matTranspose(param.data)
@@ -132,7 +137,8 @@ class Quantizer:
                 self.sparseMatSizes[param.name + 'val'] = len(val)
                 self.sparseMatSizes[param.name + 'idx'] = len(idx)
                 if forArduino() or forM3():
-                    writeListAsArray(val, param.name + 'val', self.headerFile, None, self.varsForBitwidth[param.name + 'val'])
+                    bw = self.varsForBitwidth[param.name + 'val'] if param.name not in self.promoteParam else 2 * self.varsForBitwidth[param.name]
+                    writeListAsArray(val, param.name + 'val', self.headerFile, None, bw)
                     writeListAsArray(idx, param.name + 'idx', self.headerFile, None, self.varsForBitwidth[param.name + 'idx'])
                 else:
                     if hasattr(self, 'varsForBitwidth') and param.name + 'val' in self.varsForBitwidth:
@@ -145,7 +151,8 @@ class Quantizer:
                         writeListAsArray(idx, param.name + 'idx', self.headerFile)
             else:
                 if forArduino() or forM3():
-                    writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape), bw=self.varsForBitwidth[param.name])
+                    bw = self.varsForBitwidth[param.name] if param.name not in self.promoteParam else 2 * self.varsForBitwidth[param.name]
+                    writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape), bw=bw)
                 else:
                     if hasattr(self, 'varsForBitwidth') and param.name in self.varsForBitwidth:
                         writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape), bw=self.varsForBitwidth[param.name])
@@ -162,13 +169,14 @@ class Quantizer:
             if forArduino():
                 file.write("namespace model {\n\n")
             elif forM3():
-                file.write("{\n")
+                file.write("")
             else:
                 file.write("namespace seedot_%s {\n\n" % (getVersion()))
 
     def writeFooter(self):
         with open(self.headerFile, 'a') as file:
-            file.write("}\n")
+            if not forM3():
+                file.write("}\n")
 
     def processModel(self):
         self.readModel()
@@ -220,6 +228,9 @@ class Quantizer:
     def run(self, source):
         self.headerFile = os.path.join(
             getOutputDir(), "model_%s.h" % (getVersion()))
+        if forM3():
+            self.scalesFile = os.path.join(getOutputDir(), "scales.h")
+            open(self.scalesFile, 'w').close()
         self.infoFile = os.path.join(getOutputDir(), "info.txt")
 
         open(self.headerFile, 'w').close()
@@ -238,11 +249,14 @@ class Quantizer:
         
 class QuantizerFixed(Quantizer):
 
-    def __init__(self, varsForBitwidth, allScales, numOutputs):
+    def __init__(self, varsForBitwidth, allScales, numOutputs, biasShifts, scaleForY):
         super().__init__()
         self.varsForBitwidth = varsForBitwidth
         self.allScales = allScales
         self.numOutputs = numOutputs
+        self.biasShifts = biasShifts
+        self.scaleForY = scaleForY
+        self.promoteParam = []
 
     # The X matrix is quantized using a scale factor computed from the training dataset.
     # The range of X_train is used to compute the scale factor.
@@ -298,6 +312,10 @@ class QuantizerFixed(Quantizer):
 
             if forArduino() or forM3():
                 scale = self.allScales[param.name]
+                if forM3() and param.name in self.biasShifts.keys():
+                    if self.biasShifts[param.name] < 0:
+                        self.promoteParam.append(param.name)
+                    scale += self.biasShifts[param.name]
                 param.data, _ = scaleMat(param.data, scale)
             else:
                 if param.name in self.varsForBitwidth:

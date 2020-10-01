@@ -66,6 +66,8 @@ class Compiler:
 
         self.paramInNativeBitwidth = paramInNativeBitwidth
 
+        self.biasShifts = {}
+
     def genASTFromFile(self, inputFile):
         # Parse and generate CST for the input
         lexer = seedotLexer.seedotLexer(antlr.FileStream(inputFile))
@@ -107,6 +109,7 @@ class Compiler:
         if util.forArduino():
             codegen = arduino.Arduino(self.outputDir, *state)
         elif util.forM3():
+            assert self.problemType == config.ProblemType.regression, "M3 codegen only for Regression problems"
             codegen = m3.M3(self.outputDir, *state)
         elif util.forX86():
             codegen = x86.X86(self.outputDir, self.generateAllFiles, self.printSwitch, self.id, self.paramInNativeBitwidth, *state)
@@ -129,11 +132,12 @@ class Compiler:
         res = compiler.visit(ast)
 
         print(compiler.varScales)
+        self.biasShifts = compiler.biasShifts
         self.varScales = dict(compiler.varScales)
 
         outputLog.close()
 
-        state = [compiler.varDeclarations, compiler.varDeclarationsLocal, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants, compiler.substitutions, compiler.demotedVarsOffsets, compiler.varsForBitwidth, compiler.varLiveIntervals, compiler.notScratch]
+        state = [compiler.varDeclarations, compiler.varDeclarationsLocal, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants, compiler.substitutions, compiler.demotedVarsOffsets, compiler.varsForBitwidth, compiler.varLiveIntervals, compiler.notScratch, compiler.coLocatedVariables]
 
         state[12] = self.adjustLiveRanges(state[12], compiler.allDepths)
 

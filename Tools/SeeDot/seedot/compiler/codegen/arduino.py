@@ -25,7 +25,7 @@ import operator
 
 class Arduino(CodegenBase):
 
-    def __init__(self, outputDir, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals, notScratch):
+    def __init__(self, outputDir, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals, notScratch, coLocatedVariables):
         outputFile = os.path.join(outputDir, "predict.cpp")
         self.outputDir = outputDir
         self.out = Writer(outputFile)
@@ -46,6 +46,7 @@ class Arduino(CodegenBase):
         self.varLiveIntervals = varLiveIntervals
         self.scratchSubs = {}
         self.notScratch = notScratch
+        self.coLocatedVariables = dict(coLocatedVariables)
 
     def printCompilerConfig(self):
         configFile = os.path.join(self.outputDir, "compileConfig.h")

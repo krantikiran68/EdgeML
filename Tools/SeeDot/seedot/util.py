@@ -13,11 +13,11 @@ class Config:
     codegen = "funcCall"  # "funcCall" "inline"
     debug = False
     debugCompiler = True
-    saturateArithmetic = True
+    saturateArithmetic = False
     fastApproximations = False
     x86MemoryOptimize = True
     defragmentEnabled = False
-    faceDetectionHacks = True # quick fix for face detection model
+    faceDetectionHacks = False # quick fix for face detection model
 
 def isSaturate():
     return Config.saturateArithmetic

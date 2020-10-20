@@ -421,7 +421,7 @@ def writeListAsArray(list, name: str, fileName: str, shapeStr=None, bw=None):
         if not config.vbwEnabled or "float" in fileName:
             file.write('const %s%s %s%s = {\n' % (arduinoStr, dataType, name, shapeStr))
         else:
-            file.write('const %s%s %s%s%s = {\n' % (arduinoStr, dataType, name, "_temp" if forX86() else "", shapeStr))
+            file.write('const %s%s %s%s%s = {\n' % (arduinoStr, dataType, name, "_temp" if (forX86() and bw is None) else "", shapeStr))
 
         file.write('\t')
         for cell in list:

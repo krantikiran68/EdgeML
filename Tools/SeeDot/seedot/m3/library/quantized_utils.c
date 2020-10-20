@@ -607,6 +607,65 @@ void q15_m_mulvec(const Q15_T* mat, const Q15_T* const vec, ITER_T nrows,
   }
 }
 
+void q15xq7_q15_m_sparse_mulvec(const Q15_T* row_indices,
+                                const Q15_T* mat_values, const Q7_T* vec,
+                                ITER_T nelem, Q15_T* ret,
+                                SCALE_T scmat, SCALE_T scvec, SCALE_T scret) {
+  ITER_T index;
+  Q31_T vec_offset;
+  #ifdef SHIFT
+    SCALE_T scale = scmat + scvec + scret;
+  #else
+    // Be careful, the below implementation would not work if the denominator
+    // exceeds the range of Q31_T range. In such a case, cast the denominator
+    // to int64_t.
+    SCALE_T scale = scmat * scvec * scret;
+  #endif
+
+  while (nelem--) {
+    index = *row_indices++;
+    vec_offset = *vec++;
+
+    while (index != 0) {
+      #ifdef SHIFT
+        ret[index - 1] += ((*mat_values++) * vec_offset) >> scale;
+      #else
+        ret[index - 1] += ((*mat_values++) * vec_offset) / scale;
+      #endif
+      index = *row_indices++;
+    }
+  }
+}
+
+void q15_m_sparse_mulvec(const Q15_T* row_indices, const Q15_T* mat_values,
+                         const Q15_T* vec, ITER_T nelem, Q15_T* ret, SCALE_T scmat, 
+                         SCALE_T scvec, SCALE_T scret) {
+  ITER_T index;
+  Q31_T vec_offset;
+  #ifdef SHIFT
+    SCALE_T scale = scmat + scvec + scret;
+  #else
+    // Be careful, the below implementation would not work if the denominator
+    // exceeds the range of Q31_T range. In such a case, cast the denominator
+    // to int64_t.
+    SCALE_T scale = scmat * scvec * scret;
+  #endif
+
+  while (nelem--) {
+    index = *row_indices++;
+    vec_offset = *vec++;
+
+    while (index != 0) {
+      #ifdef SHIFT
+        ret[index - 1] += ((*mat_values++) * vec_offset) >> scale;
+      #else
+        ret[index - 1] += ((*mat_values++) * vec_offset) / scale;
+      #endif
+      index = *row_indices++;
+    }
+  }
+}
+
 void q7_t_add(const Q7_T* ten1, const Q7_T* ten2, ITER_T nbatches, ITER_T nrows,
               ITER_T ncols, ITER_T nchannels, Q7_T* ret, SCALE_T scten1,
               SCALE_T scten2, SCALE_T scret) {

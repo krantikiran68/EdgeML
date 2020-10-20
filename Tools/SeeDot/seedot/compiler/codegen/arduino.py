@@ -46,6 +46,11 @@ class Arduino(CodegenBase):
         self.varLiveIntervals = varLiveIntervals
         self.scratchSubs = {}
         self.notScratch = notScratch
+
+        self.numberOfMemoryMaps = 0
+        self.currentMemMap = 0
+        self.defragmentationInstructions = []
+        self.defragmentationParameters = []
         self.coLocatedVariables = dict(coLocatedVariables)
 
     def printCompilerConfig(self):
@@ -70,6 +75,8 @@ class Arduino(CodegenBase):
         self.printExpTables()
 
         self.printArduinoHeader()
+
+        self.computeScratchLocationsFirstFitPriority()
 
         self.printVarDecls()
 

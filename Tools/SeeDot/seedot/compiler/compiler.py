@@ -179,7 +179,7 @@ class Compiler:
                     endIns += 1
                 endIns -= 1
             elif endingDepth < beginningDepth:
-                while depthData[begIns] < endingDepth:
+                while depthData[begIns] > endingDepth:
                     begIns -= 1
                 begIns += 1
             newRanges[var] = [begIns, endIns]

@@ -264,8 +264,7 @@ class Main:
                 keys3.append('L%dB%d'%(i, j))
         keys4 = {'tmp433':0, 'tmp446':0, 'tmp449':0, 'tmp460':0, 'tmp463':0, 'tmp469':0, 'tmp470':0} #after 3rd detection mbconvs
 
-        #for face 3                             # TODO:
-                                                # v theres a bug if we dont demote tmp25 but demote tmp24 in conv mem optimiisaiton
+        #for face 3                             
         # keys1 = {'X':0, 'tmp22':-1, 'tmp23':-1, 'tmp25':0} #before rnnpool
         # keys2 = {}#{'tmp27':0} #before mbonv
         # keys3 = []
@@ -276,6 +275,11 @@ class Main:
         #         keys3.append('L%dB%d'%(i, j)) # 1. not needed for face-3, if done it tanks accuracy
         # keys4 = {}#{'tmp433':0, 'tmp446':0, 'tmp449':0, 'tmp460':0, 'tmp463':0, 'tmp469':0, 'tmp470':0} #after 3rd detection mbconvs
 
+        #for face 4
+        # keys1 = {'X':0, 'tmp22':0, 'tmp23':0, 'tmp25':0}
+        # keys2 = {'tmp27':0}
+        # keys3 = []
+        # keys4 = {}
 
         a = {}
         b = {}
@@ -307,7 +311,6 @@ class Main:
         self.demotedVarsOffsets = b
         self.variableToBitwidthMap = a
         self.demotedVarsList = c
-        # self.compileFixedForTarget()
 
         return
 

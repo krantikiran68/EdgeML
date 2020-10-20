@@ -45,7 +45,7 @@ class CodegenBase:
     def printFloat(self, ir):
         self.out.printf('%ff', ir.n)
 
-    def printVar(self, ir):
+    def printVar(self, ir, isPointer=False):
         if config.vbwEnabled and forFixed():
             if hasattr(self, "varsForBitwidth"):
                 if Config.x86MemoryOptimize:
@@ -56,20 +56,37 @@ class CodegenBase:
                             if Type.isTensor(type):
                                 resIndex = ' '
                                 remSize = np.prod(type.shape)
+                                if forM3():
+                                    typeCast = "(Q%d_T*)" % (self.varsForBitwidth[ir.idf] - 1)
+                                    if isPointer:
+                                        self.out.printf("(scratch + %d +" % (offset))
+                                    else:
+                                        self.out.printf("*(%s(&(scratch[%d + " % (typeCast, offset))
+                                else:
+                                    typeCast = "(int%d_t&)" % self.varsForBitwidth[ir.idf]
+                                    if isPointer:
+                                        self.out.printf("(scratch + %d +" % (offset))
+                                    else:
+                                        self.out.printf("%s(scratch[%d + " % (typeCast, offset))
+                                self.out.printf("%d * ("% (self.varsForBitwidth[ir.idf] // 8))
                                 for i in range(type.dim):
                                     if i >= len(ir.idx):
                                         break
-                                    s = ir.idx[i].idf
                                     remSize = remSize // type.shape[i]
-                                    resIndex += str(s) + '*' + str(remSize) + '+'
-                                resIndex = resIndex[:-1]
-                                resIndex = str(self.varsForBitwidth[ir.idf] // 8) + ('*(%s)'%(resIndex if len(resIndex) > 0 else "0"))
+                                    self.print(ir.idx[i])
+                                    self.out.printf("*%d" % remSize)
+                                    self.out.printf("+")
+                                self.out.printf("0")
                                 if forM3():
-                                    typeCast = "(Q%d_T*)" % (self.varsForBitwidth[ir.idf] - 1)
-                                    self.out.printf("*(%s(&(scratch[%d + %s])))" % (typeCast, offset, resIndex))
+                                    if isPointer:
+                                        self.out.printf("))")
+                                    else:
+                                        self.out.printf(")])))")
                                 else:
-                                    typeCast = "(int%d_t&)" % self.varsForBitwidth[ir.idf]
-                                    self.out.printf("%s(scratch[%d + %s])" % (typeCast, offset, resIndex))
+                                    if isPointer:
+                                        self.out.printf("))")
+                                    else:
+                                        self.out.printf(")])")
                                 return
                             else:
                                 pass
@@ -276,21 +293,21 @@ class CodegenBase:
         typ_str = "float" if forFloat() else typ_str
         self.out.printf('memcpy(', indent=True)
         if Config.x86MemoryOptimize and forFixed() and self.numberOfMemoryMaps in self.scratchSubs:
-            for (a, b, c) in [(ir.to.idf, ir.toIndex, 0), (ir.start.idf, ir.startIndex, 1)]:
+            for (a, b, c, d) in [(ir.to.idf, ir.toIndex, 0, ir.to.idx), (ir.start.idf, ir.startIndex, 1, ir.start.idx)]:
                 self.out.printf("((scratch + %d + sizeof(%s)*(", self.scratchSubs[self.numberOfMemoryMaps][a], typ_str)
                 toIndexed = IRUtil.addIndex(IR.Var(""), b)
-                if len(b) == 0:
+                if len(d + b) == 0:
                     self.out.printf("0")
-                elif len(b) == len(self.decls[a].shape):
-                    printFlattenedIndices(b, self.decls[a].shape)
+                elif len(d + b) == len(self.decls[a].shape):
+                    printFlattenedIndices(d + b, self.decls[a].shape)
                 else:
                     assert False, "Illegal state, number of offsets to memcpy should be 0 or match the original tensor dimensions"
                 self.out.printf(")))")
                 if c == 0:
                     self.out.printf(", ")
         else:
-            toIndexed = IRUtil.addIndex(IR.Var(ir.to.idf), ir.toIndex)
-            startIndexed = IRUtil.addIndex(IR.Var(ir.start.idf), ir.startIndex)
+            toIndexed = IRUtil.addIndex(IR.Var(ir.to.idf), ir.to.idx + ir.toIndex)
+            startIndexed = IRUtil.addIndex(IR.Var(ir.start.idf), ir.start.idx + ir.startIndex)
             self.out.printf("&")
             self.print(toIndexed)
             self.out.printf(", &")
@@ -542,7 +559,7 @@ class CodegenBase:
                 c.append("#" + ''.join([str(int(i)) for i in 10*np.random.rand(6)]))
                 visualisation.append((startIns, var, endIns, usedSpaceMap[var][1][0], usedSpaceMap[var][1][1]))
             plot.rect(x=x, y=y, width=w, height=h, color=c, width_units="data", height_units="data")
-            show(plot)
+            # show(plot)
             self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
             self.out.printf("/* %s */"%(str(self.scratchSubs)))
 
@@ -634,7 +651,7 @@ class CodegenBase:
                 c.append("#" + ''.join([str(int(i)) for i in 10*np.random.rand(6)]))
                 visualisation.append((startIns, var, endIns, usedSpaceMap[var][1][0], usedSpaceMap[var][1][1]))
             plot.rect(x=x, y=y, width=w, height=h, color=c, width_units="data", height_units="data")
-            show(plot)
+            # show(plot)
             self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
             self.out.printf("/* %s */"%(str(self.scratchSubs)))
 
@@ -757,8 +774,8 @@ class CodegenBase:
                 c.append("#" + ''.join([str(int(j)) for j in 10*np.random.rand(6)]))
                 visualisation.append((startIns, var, endIns, usedSpaceMap[var][1][0], usedSpaceMap[var][1][1]))
             plot.rect(x=x, y=y, width=w, height=h, color=c, width_units="data", height_units="data")
-            #if not forX86():
-            show(plot)
+            if not forX86():
+                show(plot)
             self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
             self.out.printf("/* %s */"%(str(self.scratchSubs)))
 

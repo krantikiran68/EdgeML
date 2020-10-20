@@ -946,7 +946,7 @@ inline __attribute__((always_inline)) void MatMulCC(const TypeA* A, const TypeB*
 
 // C = A |*| B
 // TODO: K is int16_t because K is usually very high and int8_t will overflow in 8-bit code.
-inline __attribute__((always_inline)) void SparseMatMul(const MYINT *Aidx, const MYINT *Aval, MYINT *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC) {
+inline __attribute__((always_inline)) void SparseMatMulX(const MYINT *Aidx, const MYINT *Aval, MYINT *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC) {
 
 	MYITE ite_idx = 0, ite_val = 0;
 	for (MYITE k = 0; k < K; k++) {
@@ -1001,12 +1001,122 @@ inline __attribute__((always_inline)) void SparseMatMul(const MYINT *Aidx, const
 }
 // C = A |*| B
 // TODO: K is int16_t because K is usually very high and int8_t will overflow in 8-bit code.
+inline __attribute__((always_inline)) void SparseMatMul(const MYINT *Aidx, const MYINT *Aval, MYINT *B, MYINT *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC) {
+
+	MYITE ite_idx = 0, ite_val = 0;
+	for (MYITE k = 0; k < K; k++) {
+		MYINT b = B[k];
+#ifdef FASTAPPROX
+		b = b / shrB;
+#endif
+
+		#if defined(INT8)
+		MYINT idx = ((MYINT) pgm_read_byte_near(&Aidx[ite_idx]));
+		#elif defined(INT16)
+		MYINT idx = ((MYINT) pgm_read_word_near(&Aidx[ite_idx]));
+		#else
+		MYINT idx = ((MYINT) pgm_read_dword_near(&Aidx[ite_idx]));
+		#endif
+
+		while (idx != 0) {
+			#if defined(INT8)
+			MYINT a = ((MYINT) pgm_read_byte_near(&Aval[ite_val]));
+			#elif defined(INT16)
+			MYINT a = ((MYINT) pgm_read_word_near(&Aval[ite_val]));
+			#else
+			MYINT a = ((MYINT) pgm_read_dword_near(&Aval[ite_val]));
+			#endif
+#ifdef FASTAPPROX
+			a = a / shrA;
+
+			MYINT c = a * b;
+			c = c / shrC;
+#else
+			MYINT c = Saturate<MYINT>(((int64_t)a * (int64_t)b) / ((int64_t)shrC * (int64_t)shrA * (int64_t)shrB));
+#endif
+
+			C[idx - 1] += c;
+
+			ite_idx++;
+			ite_val++;
+
+			#if defined(INT8)
+			idx = ((MYINT) pgm_read_byte_near(&Aidx[ite_idx]));
+			#elif defined(INT16)
+			idx = ((MYINT) pgm_read_word_near(&Aidx[ite_idx]));
+			#else
+			idx = ((MYINT) pgm_read_dword_near(&Aidx[ite_idx]));
+			#endif
+		}
+		ite_idx++;
+	}
+
+	return;
+}
+// C = A |*| B
+// TODO: K is int16_t because K is usually very high and int8_t will overflow in 8-bit code.
 template<class TypeA, class TypeAidx, class TypeB, class TypeTemp, class TypeC>
-inline __attribute__((always_inline)) void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+inline __attribute__((always_inline)) void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
 
 	MYITE ite_idx = 0, ite_val = 0;
 	for (MYITE k = 0; k < K; k++) {
 		TypeTemp b = (TypeTemp)getIntFeature(k);
+		
+		//b = b / shrB;
+
+		TypeAidx idx;
+		if (isSame<TypeAidx, int8_t>()) {
+			idx = (TypeAidx)pgm_read_byte_near(&Aidx[ite_idx]);
+		}
+		else if (isSame<TypeAidx, int16_t>()) {
+			idx = (TypeAidx)pgm_read_word_near(&Aidx[ite_idx]);
+		}
+		else if (isSame<TypeAidx, int32_t>()) {
+			idx = (TypeAidx)pgm_read_dword_near(&Aidx[ite_idx]);
+		}
+		while (idx != 0) {
+			TypeTemp a;
+			if (isSame<TypeA, int8_t>()) {
+				a = (TypeA)pgm_read_byte_near(&Aval[ite_val]);
+			}
+			else if (isSame<TypeTemp, int16_t>()) {
+				a = (TypeA)pgm_read_word_near(&Aval[ite_val]);
+			}
+			else if (isSame<TypeTemp, int32_t>()) {
+				a = (TypeA)pgm_read_dword_near(&Aval[ite_val]);
+			}
+			//a = a / shrA;
+			TypeTemp c = (TypeTemp)(a * b);
+			//c = c / shrC;
+
+			C[idx - 1] += Saturate<TypeC>((((c / shrA) / shrB) / shrC) / demote);
+
+			ite_idx++;
+			ite_val++;
+
+			if (isSame<TypeAidx, int8_t>()) {
+				idx = (TypeAidx)pgm_read_byte_near(&Aidx[ite_idx]);
+			}
+			else if (isSame<TypeAidx, int16_t>()) {
+				idx = (TypeAidx)pgm_read_word_near(&Aidx[ite_idx]);
+			}
+			else if (isSame<TypeAidx, int32_t>()) {
+				idx = (TypeAidx)pgm_read_dword_near(&Aidx[ite_idx]);
+			}
+		}
+		ite_idx++;
+	}
+
+	return;
+}
+// C = A |*| B
+// TODO: K is int16_t because K is usually very high and int8_t will overflow in 8-bit code.
+template<class TypeA, class TypeAidx, class TypeB, class TypeTemp, class TypeC>
+inline __attribute__((always_inline)) void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+
+	MYITE ite_idx = 0, ite_val = 0;
+	for (MYITE k = 0; k < K; k++) {
+		TypeTemp b = (TypeTemp)B[k];
 		
 		//b = b / shrB;
 

@@ -29,7 +29,7 @@ class Dataset:
              "interactive-cane", "spectakoms", "usps10", "whale-binary",
              "HAR-2", "HAR-6", "MNIST-10", "Google-12", "Google-30", "Wakeword-2",
              "wider-regression", "wider-mbconv", "face-1", "face-2", "face-2-rewrite", 
-             "face-3"]
+             "face-3", "face-4"]
     #default = common
     default = ["spectakoms", "usps10", "HAR-2", "HAR-6", "dsa", "MNIST-10", "Google-12", "Google-30", "Wakeword-2"]
     all = common + extra

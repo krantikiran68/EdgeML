@@ -76,7 +76,7 @@ class X86(CodegenBase):
 
         self.printCHeader()
 
-        self.computeScratchLocationsDLX()
+        self.computeScratchLocationsFirstFitPriority()
 
         self.printModelParamsWithBitwidth()
 
@@ -423,7 +423,8 @@ class X86(CodegenBase):
                     if x != 0 and x != -1:
                         self.out.printf("[0]" * x)
                 else:
-                    self.out.printf("(scratch + %d)"%(self.scratchSubs[self.currentMemMap][arg.idf]))
+                    self.printVar(arg, isPointer=True)
+                    # self.out.printf("(scratch + %d)"%(self.scratchSubs[self.currentMemMap][arg.idf]))
                 if i != len(keys) - 1:
                     self.out.printf(", ")
 

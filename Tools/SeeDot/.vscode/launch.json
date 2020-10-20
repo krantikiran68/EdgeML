@@ -20,9 +20,9 @@
                 "-d",
                 "face-2-rewrite",
                 "-m",
-                "disagree",
+                "red_disagree",
                 "-t",
-                "m3",
+                "arduino",
                 "-n",
                 "18000"
             ]

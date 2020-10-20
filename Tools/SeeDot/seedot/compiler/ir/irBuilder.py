@@ -681,11 +681,15 @@ class IRBuilder(ASTVisitor):
         assert node.op == SeeDotParser.SUB
 
         type_out = node.type
+        
+        self.allDepths[self.counter_inst+1] = self.curDepth
 
         # e : Int
         if Type.isInt(type_out):
             prog_out = prog_in
             expr_out = IRUtil.negate(expr_in)
+
+            self.notScratch.append(expr_out.idf)
 
             # Just to be safe, check that the scaling factor of the integer variable is never tracked
             assert expr_in.idf not in self.varScales and expr_in.idf not in self.varIntervals
@@ -694,6 +698,9 @@ class IRBuilder(ASTVisitor):
         else:
             expr_out = self.getTempVar()
             iters = self.getTempIterators(type_out.dim)
+
+            if type_out.isShapeOne():
+                self.notScratch.append(expr_out.idf)
 
             bitwidth_out, scale_out = self.getBitwidthAndScale(expr_in.idf)
 
@@ -949,6 +956,9 @@ class IRBuilder(ASTVisitor):
         bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
         if self.vbwEnabled:
             self.varsForBitwidth[expr_treeSum.idf] = bitwidth_mul
+
+        assert expr_in_A.idf + "idx" not in self.sparseMatrixSizes.keys(), "Cannot use same matrix %s for both sparse and dense multiplication" % expr_in_A.idf
+
         funcCall = IR.FuncCall("MatMul" + c, {
             expr_in_A: "A",
             expr_in_B: "B",
@@ -1058,9 +1068,9 @@ class IRBuilder(ASTVisitor):
         intv_out = (0, 0) #self.getIntervalForTreeSum(
         #    intv_treeSum, Q, H1, H2)
 
-        in_A_idx = IR.Var(expr_in_A.idf[0] +
+        in_A_idx = IR.Var(expr_in_A.idf +
                           'idx', expr_in_A.idx, inputVar=True)
-        in_A_val = IR.Var(expr_in_A.idf[0] +
+        in_A_val = IR.Var(expr_in_A.idf +
                           'val', expr_in_A.idx, inputVar=True)
 
         shr_A = self.formatShr(shr_A)
@@ -1077,7 +1087,13 @@ class IRBuilder(ASTVisitor):
 
         cmd1 = IR.Memset(expr_out, type_out.size())
         bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
-        funcCall = IR.FuncCall("SparseMatMul", {
+
+        if expr_in_B.idf == 'X':
+            funcName = "SparseMatMulX"
+        else:
+            funcName = "SparseMatMul"
+
+        funcCall = IR.FuncCall(funcName, {
             in_A_idx: "Aidx",
             in_A_val: "Aval",
             expr_in_B: "B",
@@ -1086,7 +1102,7 @@ class IRBuilder(ASTVisitor):
             shr_A: "shrA",
             shr_B: "shrB",
             height_shr: "shrC"
-        }) if not self.vbwEnabled else IR.FuncCall("SparseMatMul<int%d_t, int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_Aid, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
+        }) if not self.vbwEnabled else IR.FuncCall("%s<int%d_t, int%d_t, int%d_t, int%d_t, int%d_t>"%(funcName, bitwidth_in_A, bitwidth_in_Aid, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
             in_A_idx: "Aidx",
             in_A_val: "Aval",
             expr_in_B: "B",
@@ -1118,11 +1134,14 @@ class IRBuilder(ASTVisitor):
         self.varScales[expr_out.idf] = scale_out
         self.varIntervals[expr_out.idf] = intv_out
 
-        self.varDeclarations.update({in_A_idx.idf: Type.Tensor([self.sparseMatrixSizes[expr_in_A.idf[0] + 'idx']]),
-                                     in_A_val.idf: Type.Tensor([self.sparseMatrixSizes[expr_in_A.idf[0] + 'val']]),
+        self.varDeclarations.update({in_A_idx.idf: Type.Tensor([self.sparseMatrixSizes[expr_in_A.idf + 'idx']]),
+                                     in_A_val.idf: Type.Tensor([self.sparseMatrixSizes[expr_in_A.idf + 'val']]),
                                      })
-        self.globalVars.append(in_A_idx.idf)
-        self.globalVars.append(in_A_val.idf)
+
+        if in_A_idx.idf not in self.globalVars:
+            self.globalVars.append(in_A_idx.idf)
+        if in_A_val.idf not in self.globalVars:
+            self.globalVars.append(in_A_val.idf)
 
         self.log.print(comment.msg)
         self.log.print("\tInput1: scale = %d, interval = [%d, %d]" % (
@@ -3275,9 +3294,15 @@ class IRBuilder(ASTVisitor):
         self.varDeclarations[var_idf] = Type.Int()
         self.internalVars.append(var_idf)
 
+        start, end = node.start, node.end
+        comment = IR.Comment("sum(i = [%d, %d])" % (start, end), self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+        self.counter_inst += 1
+        self.curDepth += 1
+
         (prog_in, expr_in) = self.visit(node.expr)
 
-        start, end = node.start, node.end
+        self.curDepth -= 1
 
         expr_out = self.getTempVar()
         type_out = node.type
@@ -3306,9 +3331,6 @@ class IRBuilder(ASTVisitor):
         # Tree sum to sum output of each iteration
         expr_in_idx = IRUtil.addIndex(expr_in, iters)
         expr_out_idx = IRUtil.addIndex(expr_out, iters)
-
-        comment = IR.Comment("sum(i = [%d, %d])" % (start, end), self.counter_inst+1)
-        self.allDepths[self.counter_inst+1] = self.curDepth
 
         cmd1 = IR.Memset(expr_out, type_out.size())
         if self.ddsEnabled:
@@ -3340,7 +3362,6 @@ class IRBuilder(ASTVisitor):
                            prog_in.cmd_l + treeSum + (profile if forFloat() and self.ddsEnabled else []) + [IR.Assn(var, IRUtil.inc(var))])
                     ]
 
-        self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
         prog_out = IR.Prog([comment] + prog_sum)
@@ -3495,6 +3516,7 @@ class IRBuilder(ASTVisitor):
             self.varScales[expr_out.idf] = scale_out
             self.varIntervals[expr_out.idf] = intv_out
 
+        self.allDepths[self.counter_inst+1] = self.curDepth
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_in_cond, expr_out])
 

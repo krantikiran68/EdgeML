@@ -55,7 +55,7 @@ class M3(CodegenBase):
 
         self.printCHeader()
 
-        self.computeScratchLocationsDLX()
+        self.computeScratchLocationsFirstFitPriority()
 
         self.printVarDecls(globalVarDecl=False)
 
@@ -545,8 +545,34 @@ class M3(CodegenBase):
                 return funcName, args
             else:
                 assert False, "Not Implemented for M3"
-        elif name == "SparseMatMul": #SparseMatMul
-            assert False, "Not implemented for M3"
+        elif name[:12] == "SparseMatMul": #SparseMatMul
+            shapeB = self.decls[revArgList["B"].idf].shape
+            assert revArgList["B"].idf != "X", "Sparse MatMul for X not supported on M3"
+            if shapeB[1] == 1:  
+                bwA = bitwidths[0] 
+                bwB = bitwidths[2] 
+                bwC = bitwidths[4]
+                shrC = IR.Int(revArgList["shrC"].n * revArgList["demote"].n)
+                args = {
+                    revArgList["Aidx"] : "row_indices",
+                    revArgList["Aval"] : "mat_values",
+                    revArgList["B"] : "vec",
+                    revArgList["K"] : "nelem",
+                    revArgList["C"] : "ret",
+                    revArgList["shrA"] : "scmat", 
+                    revArgList["shrB"] : "scvec",
+                    shrC : "scret",
+                }
+                if bwA == bwB == bwC == 16: #Note the order of inputs is reversed
+                    bwString = "q15"
+                elif bwA == bwC == 16 and bwB == 8:
+                    bwString = "q15xq7_q15"
+                else:
+                    assert False, "Not implemented for M3"
+                funcName = "%s_m_sparse_mulvec" % bwString
+                return funcName, args
+            else:
+                assert False, "Not Implemented for M3"
         elif name == "ArgMax": #ArgMax 
             shapeA = self.decls[revArgList["A"].idf].shape
             if shapeA[1] == 1: 

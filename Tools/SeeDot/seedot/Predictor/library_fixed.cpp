@@ -464,7 +464,7 @@ void MatMulCC(const MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT I, MYI
 
 // C = A |*| B
 // TODO: K is int16_t because K is usually very high and int8_t will overflow in 8-bit code.
-void SparseMatMul(const MYINT *Aidx, const MYINT *Aval, MYINT **B, MYINT *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC)
+void SparseMatMulX(const MYINT *Aidx, const MYINT *Aval, MYINT **B, MYINT *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC)
 {
 
 	MYITE ite_idx = 0, ite_val = 0;
@@ -472,6 +472,46 @@ void SparseMatMul(const MYINT *Aidx, const MYINT *Aval, MYINT **B, MYINT *C, int
 	{
 		// MYINT b = getIntFeature(k);
 		MYINT b = B[k * 1][0];
+#ifdef FASTAPPROX
+		b = b / shrB;
+#endif
+
+		MYITE idx = Aidx[ite_idx];
+		while (idx != 0)
+		{
+			MYINT a = Aval[ite_val];
+#ifdef FASTAPPROX
+			a = a / shrA;
+
+			MYINT c = a * b;
+			c = c / shrC;
+#else
+			MYINT c = Saturate<MYINT>(((int64_t)a * (int64_t)b) / ((int64_t)shrC * (int64_t)shrA * (int64_t)shrB));
+#endif
+
+			C[idx - 1] += c;
+
+			ite_idx++;
+			ite_val++;
+
+			idx = Aidx[ite_idx];
+		}
+		ite_idx++;
+	}
+
+	return;
+}
+
+// C = A |*| B
+// TODO: K is int16_t because K is usually very high and int8_t will overflow in 8-bit code.
+void SparseMatMul(const MYINT *Aidx, const MYINT *Aval, MYINT *B, MYINT *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC)
+{
+
+	MYITE ite_idx = 0, ite_val = 0;
+	for (MYITE k = 0; k < K; k++)
+	{
+		// MYINT b = getIntFeature(k);
+		MYINT b = B[k];
 #ifdef FASTAPPROX
 		b = b / shrB;
 #endif

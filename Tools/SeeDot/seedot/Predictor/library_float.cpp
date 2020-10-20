@@ -392,7 +392,7 @@ void MatMulCC(const float *A, const float *B, float *C, float *tmp, MYINT I, MYI
 }
 
 // C = A |*| B
-void SparseMatMul(const MYINT *Aidx, const float *Aval, float **B, float *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC)
+void SparseMatMulX(const MYINT *Aidx, const float *Aval, float **B, float *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC)
 {
 
 	MYITE ite_idx = 0, ite_val = 0;
@@ -400,6 +400,35 @@ void SparseMatMul(const MYINT *Aidx, const float *Aval, float **B, float *C, int
 	{
 		// float b = getIntFeature(k);
 		float b = B[k * 1][0];
+
+		MYINT idx = Aidx[ite_idx];
+		while (idx != 0)
+		{
+			float a = Aval[ite_val];
+
+			float c = a * b;
+
+			C[idx - 1] += c;
+
+			ite_idx++;
+			ite_val++;
+
+			idx = Aidx[ite_idx];
+		}
+		ite_idx++;
+	}
+
+	return;
+}
+
+// C = A |*| B
+void SparseMatMul(const MYINT *Aidx, const float *Aval, float *B, float *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC)
+{
+
+	MYITE ite_idx = 0, ite_val = 0;
+	for (MYITE k = 0; k < K; k++)
+	{
+		float b = B[k];
 
 		MYINT idx = Aidx[ite_idx];
 		while (idx != 0)

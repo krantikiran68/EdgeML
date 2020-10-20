@@ -122,7 +122,8 @@ void MatMulCC(const MYINT *A, const MYINT *B, MYINT *C, MYINT *tmp, MYINT I, MYI
  * shrA, shrB, shrC are constants used to scale down the result of individual multiplications to not cause overflows. 
  * 		Computed at irBuilder.py::getShrTreeSumAndDemoteParamsForMul(bw(A), sc(A), bw(B), sc(B), bw(C), sc(C), bw(C), sc(C), J)
  */
-void SparseMatMul(const MYINT *Aidx, const MYINT *Aval, MYINT **B, MYINT *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC);
+void SparseMatMulX(const MYINT *Aidx, const MYINT *Aval, MYINT **B, MYINT *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC);
+void SparseMatMul(const MYINT *Aidx, const MYINT *Aval, MYINT *B, MYINT *C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC);
 
 /**
  * Dimensions: 	A, B, C are matrices, dim(A) = dim(B) = dim(C) = [I][J]; I, J, shrA, shrB, shrC are integers
@@ -711,7 +712,7 @@ void MatMulCC(const TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, 
 }
 
 template<class TypeA, class TypeAidx, class TypeB, class TypeTemp, class TypeC>
-void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
 
 	MYITE ite_idx = 0, ite_val = 0;
 	for (MYITE k = 0; k < K; k++) {
@@ -738,6 +739,34 @@ void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C, 
 
 	return;
 }
+template<class TypeA, class TypeAidx, class TypeB, class TypeTemp, class TypeC>
+void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+
+	MYITE ite_idx = 0, ite_val = 0;
+	for (MYITE k = 0; k < K; k++) {
+		TypeTemp b = (TypeTemp)B[k];
+		//b = b / shrB;
+
+		MYITE idx = Aidx[ite_idx];
+		while (idx != 0) {
+			TypeTemp a = (TypeTemp)Aval[ite_val];
+			//a = a / shrA;
+			TypeTemp c = (TypeTemp)(a * b);
+			//c = c / shrC;
+
+			C[idx - 1] += Saturate<TypeC>((((c / shrA) / shrB) / shrC) / demote);
+
+			ite_idx++;
+			ite_val++;
+
+			idx = Aidx[ite_idx];
+		}
+		ite_idx++;
+	}
+
+	return;
+}
+
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MulCir(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT demote) {
 	for (MYITE i = 0; i < I; i++) {

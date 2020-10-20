@@ -320,12 +320,46 @@ inline __attribute__((always_inline)) void MatMulCC(const float* A, const float*
 }
 
 // C = A |*| B
-inline __attribute__((always_inline)) void SparseMatMul(const MYINT * Aidx, const float* Aval, float* C, MYINT K, MYINT shrA, MYINT shrB, MYINT shrC) {
+inline __attribute__((always_inline)) void SparseMatMulX(const MYINT * Aidx, const float* Aval, float* C, MYINT K, MYINT shrA, MYINT shrB, MYINT shrC) {
 
 	MYITE ite_idx = 0, ite_val = 0;
 	for (MYITE k = 0; k < K; k++) {
 		float b = getFloatFeature(k);
 		//float b = B[k * 1][0];
+
+		#ifdef INT16
+		MYINT idx = ((MYINT) pgm_read_word_near(&Aidx[ite_idx]));
+		#else
+		MYINT idx = ((MYINT) pgm_read_dword_near(&Aidx[ite_idx]));
+		#endif
+
+		while (idx != 0) {
+			float a = ((float) pgm_read_float_near(&Aval[ite_val]));
+
+			float c = a * b;
+
+			C[idx - 1] += c;
+
+			ite_idx++;
+			ite_val++;
+
+			#ifdef INT16
+			idx = ((MYINT) pgm_read_word_near(&Aidx[ite_idx]));
+			#else
+			idx = ((MYINT) pgm_read_dword_near(&Aidx[ite_idx]));
+			#endif
+		}
+		ite_idx++;
+	}
+
+	return;
+}
+// C = A |*| B
+inline __attribute__((always_inline)) void SparseMatMul(const MYINT * Aidx, const float* Aval, float* B, float* C, MYINT K, MYINT shrA, MYINT shrB, MYINT shrC) {
+
+	MYITE ite_idx = 0, ite_val = 0;
+	for (MYITE k = 0; k < K; k++) {
+		float b = B[k];
 
 		#ifdef INT16
 		MYINT idx = ((MYINT) pgm_read_word_near(&Aidx[ite_idx]));

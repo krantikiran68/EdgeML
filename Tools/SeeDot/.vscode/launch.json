@@ -14,17 +14,17 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "rnnpool",
+                "lenet",
                 "-v",
                 "fixed",
                 "-d",
-                "face-2-rewrite",
+                "mnist-multiclass",
                 "-m",
                 "red_disagree",
                 "-t",
-                "arduino",
+                "x86",
                 "-n",
-                "18000"
+                "1"
             ]
         }
     ]

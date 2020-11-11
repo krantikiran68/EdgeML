@@ -14,11 +14,11 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "lenet",
+                "rnn",
                 "-v",
                 "fixed",
                 "-d",
-                "mnist-multiclass",
+                "spectakoms",
                 "-m",
                 "red_disagree",
                 "-t",

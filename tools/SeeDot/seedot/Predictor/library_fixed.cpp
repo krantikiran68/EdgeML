@@ -779,19 +779,38 @@ void AddOrSubCir4D(MYINT* A, const MYINT* B, MYINT* X, MYINT N, MYINT H, MYINT W
 // A = A <+> B
 // A[N][H][W][C], B[C]
 void AddOrSubCir2D(MYINT* A, const MYINT* B, MYINT* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
+	#ifdef SHIFT
+		MYINT lshrA = lookup_log2(shrA);
+		MYINT lshrB = lookup_log2(shrB);
+		MYINT lshrC = lookup_log2(shrC);
+	#endif
+	
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			MYINT a = A[h * W + w];
+
+			#ifndef SHIFT
 			a = a / shrA;
+			#endif
 
 			MYINT b = B[w];
+			#ifndef SHIFT
 			b = b / shrB;
+			#endif
 
 			MYINT res;
 			if (add) {
+				#ifdef SHIFT
+				res = Saturate<MYINT>(a >> (lshrA + lshrC) + b >> (lshrB + lshrC));
+				#else
 				res = Saturate<MYINT>(a / shrC + b / shrC);
+				#endif
 			} else {
+				#ifdef SHIFT
+				res = Saturate<MYINT>(a >> (lshrA + lshrC) - b >> (lshrB + lshrC));
+				#else
 				res = Saturate<MYINT>(a / shrC - b / shrC);
+				#endif
 			}
 
 			X[h * W + w] = res;

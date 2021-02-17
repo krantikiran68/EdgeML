@@ -333,17 +333,31 @@ inline int8_t Saturate(int32_t inp) {
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAddNN(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
+
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a = (TypeTemp) A[i * J + j];
 			TypeTemp b = (TypeTemp) B[i * J + j];
 
-			a = a / shrA;
-			b = b / shrB;
+			#ifndef SHIFT
+				a = a / shrA;
+				b = b / shrB;
+			#endif
 
-			TypeTemp c = a / shrC + b / shrC;
+			#ifdef SHIFT
+				TypeTemp c = (a >>  (lshrA + lshrC)) + (b  >> (lshrB + lshrC));
+				C[i * J + j] = Saturate<TypeC>(c >> ldemote);
+			#else
+				TypeTemp c = a / shrC + b / shrC;
+				C[i * J + j] = Saturate<TypeC>(c / demote);
+			#endif
 
-			C[i * J + j] = Saturate<TypeC>(c / demote);
 		}
 	}
 	return;
@@ -351,17 +365,30 @@ void MatAddNN(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT 
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAddCN(const TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
+
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a = (TypeTemp) A[i * J + j];
 			TypeTemp b = (TypeTemp) B[i * J + j];
 
-			a = a / shrA;
-			b = b / shrB;
+			#ifndef SHIFT
+				a = a / shrA;
+				b = b / shrB;
+			#endif
 
-			TypeTemp c = a / shrC + b / shrC;
-
-			C[i * J + j] = Saturate<TypeC>(c / demote);
+			#ifdef SHIFT
+				TypeTemp c = (a >>  (lshrA + lshrC)) + (b  >> (lshrB + lshrC));
+				C[i * J + j] = Saturate<TypeC>(c >> ldemote);
+			#else
+				TypeTemp c = a / shrC + b / shrC;
+				C[i * J + j] = Saturate<TypeC>(c / demote);
+			#endif
 		}
 	}
 	return;
@@ -369,17 +396,30 @@ void MatAddCN(const TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, 
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAddNC(TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
+
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a = (TypeTemp) A[i * J + j];
 			TypeTemp b = (TypeTemp) B[i * J + j];
 
-			a = a / shrA;
-			b = b / shrB;
+			#ifndef SHIFT
+				a = a / shrA;
+				b = b / shrB;
+			#endif
 
-			TypeTemp c = a / shrC + b / shrC;
-
-			C[i * J + j] = Saturate<TypeC>(c / demote);
+			#ifdef SHIFT
+				TypeTemp c = (a >>  (lshrA + lshrC)) + (b  >> (lshrB + lshrC));
+				C[i * J + j] = Saturate<TypeC>(c >> ldemote);
+			#else
+				TypeTemp c = a / shrC + b / shrC;
+				C[i * J + j] = Saturate<TypeC>(c / demote);
+			#endif
 		}
 	}
 	return;
@@ -387,17 +427,29 @@ void MatAddNC(TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, 
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAddCC(const TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a = (TypeTemp) A[i * J + j];
 			TypeTemp b = (TypeTemp) B[i * J + j];
 
-			a = a / shrA;
-			b = b / shrB;
+			#ifndef SHIFT
+				a = a / shrA;
+				b = b / shrB;
+			#endif
 
-			TypeTemp c = a / shrC + b / shrC;
-
-			C[i * J + j] = Saturate<TypeC>(c / demote);
+			#ifdef SHIFT
+				TypeTemp c = (a >>  (lshrA + lshrC)) + (b  >> (lshrB + lshrC));
+				C[i * J + j] = Saturate<TypeC>(c >> ldemote);
+			#else
+				TypeTemp c = a / shrC + b / shrC;
+				C[i * J + j] = Saturate<TypeC>(c / demote);
+			#endif
 		}
 	}
 	return;
@@ -405,17 +457,30 @@ void MatAddCC(const TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT 
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
+	
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a = (TypeTemp) *A;
 			TypeTemp b = (TypeTemp) B[i * J + j];
 
-			a = a / shrA;
-			b = b / shrB;
+			#ifndef SHIFT
+				a = a / shrA;
+				b = b / shrB;
+			#endif
 
-			TypeTemp c = a / shrC + b / shrC;
-
-			C[i * J + j] = Saturate<TypeC>(c / demote);
+			#ifdef SHIFT
+				TypeTemp c = (a >>  (lshrA + lshrC)) + (b  >> (lshrB + lshrC));
+				C[i * J + j] = Saturate<TypeC>(c >> ldemote);
+			#else
+				TypeTemp c = a / shrC + b / shrC;
+				C[i * J + j] = Saturate<TypeC>(c / demote);
+			#endif
 		}
 	}
 	return;
@@ -423,17 +488,30 @@ void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
+
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a = (TypeTemp) A[i * J + j];
 			TypeTemp b = (TypeTemp) *B;
 
-			a = a / shrA;
-			b = b / shrB;
+			#ifndef SHIFT
+				a = a / shrA;
+				b = b / shrB;
+			#endif
 
-			TypeTemp c = a / shrC + b / shrC;
-
-			C[i * J + j] = Saturate<TypeC>(c / demote);
+			#ifdef SHIFT
+				TypeTemp c = (a >>  (lshrA + lshrC)) + (b  >> (lshrB + lshrC));
+				C[i * J + j] = Saturate<TypeC>(c >> ldemote);
+			#else
+				TypeTemp c = a / shrC + b / shrC;
+				C[i * J + j] = Saturate<TypeC>(c / demote);
+			#endif
 		}
 	}
 	return;
@@ -441,6 +519,13 @@ void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeX>
 void MatAdd4(TypeA* A, TypeB* B, TypeX* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
+
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -448,12 +533,18 @@ void MatAdd4(TypeA* A, TypeB* B, TypeX* X, MYINT N, MYINT H, MYINT W, MYINT C, M
 					TypeTemp a = (TypeTemp) A[n * H * W * C + h * W * C + w * C + c];
 					TypeTemp b = (TypeTemp) B[n * H * W * C + h * W * C + w * C + c];
 
-					a = a / shrA;
-					b = b / shrB;
+					#ifndef SHIFT
+						a = a / shrA;
+						b = b / shrB;
+					#endif
 
-					TypeTemp x = a / shrC + b / shrC;
-
-					X[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeX>(x / demote);
+					#ifdef SHIFT
+						TypeTemp x =  (a >>  (lshrA + lshrC)) + (b  >> (lshrB + lshrC));
+						X[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeX>(x >> ldemote);
+					#else
+						TypeTemp x = a / shrC + b / shrC;
+						X[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeX>(x / demote);
+					#endif
 				}
 			}
 		}
@@ -464,17 +555,30 @@ void MatAdd4(TypeA* A, TypeB* B, TypeX* X, MYINT N, MYINT H, MYINT W, MYINT C, M
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 // TODO: shrB is int32_t because in 8-bit/16-bit code, shrB is usually very high and int8_t/int16_t will overflow.
 void MatSub(TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, int32_t shrB, MYINT shrC, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
+	
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a = (TypeTemp) A[i * J + j];
 			TypeTemp b = (TypeTemp) B[i * J + j];
 
-			a = a / shrA;
-			b = b / shrB;
+			#ifndef SHIFT
+				a = a / shrA;
+				b = b / shrB;
+			#endif
 
-			TypeTemp c = a / shrC - b / shrC;
-
-			C[i * J + j] = Saturate<TypeC>(c / demote);
+			#ifdef SHIFT
+				TypeTemp c =  (a >>  (lshrA + lshrC)) - (b  >> (lshrB + lshrC));
+				C[i * J + j] = Saturate<TypeC>(c >> ldemote);
+			#else
+				TypeTemp c = a / shrC - b / shrC;
+				C[i * J + j] = Saturate<TypeC>(c / demote);
+			#endif
 		}
 	}
 	return;
@@ -482,17 +586,30 @@ void MatSub(TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, in
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
+	
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a = (TypeTemp) *A;
 			TypeTemp b = (TypeTemp) B[i * J + j];
 
-			a = a / shrA;
-			b = b / shrB;
+			#ifndef SHIFT
+				a = a / shrA;
+				b = b / shrB;
+			#endif
 
-			TypeTemp c = a / shrC - b / shrC;
-
-			C[i * J + j] = Saturate<TypeC>(c / demote);
+			#ifdef SHIFT
+				TypeTemp c =  (a >>  (lshrA + lshrC)) - (b  >> (lshrB + lshrC));
+				C[i * J + j] = Saturate<TypeC>(c >> ldemote);
+			#else
+				TypeTemp c = a / shrC - b / shrC;
+				C[i * J + j] = Saturate<TypeC>(c / demote);
+			#endif
 		}
 	}
 	return;
@@ -500,17 +617,30 @@ void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatSubBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
+	
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a = (TypeTemp) A[i * J + j];
 			TypeTemp b = (TypeTemp) *B;
 
-			a = a / shrA;
-			b = b / shrB;
+			#ifndef SHIFT
+				a = a / shrA;
+				b = b / shrB;
+			#endif
 
-			TypeTemp c = a / shrC - b / shrC;
-
-			C[i * J + j] = Saturate<TypeC>(c / demote);
+			#ifdef SHIFT
+				TypeTemp c =  (a >>  (lshrA + lshrC)) - (b  >> (lshrB + lshrC));
+				C[i * J + j] = Saturate<TypeC>(c >> ldemote);
+			#else
+				TypeTemp c = a / shrC - b / shrC;
+				C[i * J + j] = Saturate<TypeC>(c / demote);
+			#endif
 		}
 	}
 	return;
@@ -518,6 +648,12 @@ void MatSubBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatMulNN(TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT ldemote = log2(demote);
+	#endif
+
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			for (MYITE k = 0; k < K; k++) {
@@ -541,13 +677,21 @@ void MatMulNN(TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYI
 					TypeTemp sum;
 					if (p < (count >> 1)) {
 						if (shr) {
-							sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
+							#ifdef SHIFT
+								sum = (tmp[2 * p] >> 1) + (tmp[(2 * p) + 1] >> 1);
+							#else 
+								sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
+							#endif
 						} else {
 							sum = tmp[2 * p] + tmp[(2 * p) + 1];
 						}
 					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
 						if (shr) {
-							sum = tmp[2 * p] / 2;
+							#ifdef SHIFT
+								sum = tmp[2 * p] >> 1;
+							#else 
+								sum = tmp[2 * p] / 2;
+							#endif
 						} else {
 							sum = tmp[2 * p];
 						}
@@ -562,7 +706,11 @@ void MatMulNN(TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYI
 				depth++;
 			}
 
-			C[i * J + j] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+			#ifdef SHIFT
+				C[i * J + j] = Saturate<TypeC>(((tmp[0] >> lshrA) >> lshrB) >> ldemote);
+			#else
+				C[i * J + j] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+			#endif
 		}
 	}
 	return;
@@ -570,6 +718,12 @@ void MatMulNN(TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYI
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatMulCN(const TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT ldemote = log2(demote);
+	#endif
+
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			for (MYITE k = 0; k < K; k++) {
@@ -593,13 +747,21 @@ void MatMulCN(const TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT 
 					TypeTemp sum;
 					if (p < (count >> 1)) {
 						if (shr) {
-							sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
+							#ifdef SHIFT
+								sum = (tmp[2 * p] >> 1) + (tmp[(2 * p) + 1] >> 1);
+							#else 
+								sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
+							#endif
 						} else {
 							sum = tmp[2 * p] + tmp[(2 * p) + 1];
 						}
 					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
 						if (shr) {
-							sum = tmp[2 * p] / 2;
+							#ifdef SHIFT
+								sum = tmp[2 * p] >> 1;
+							#else 
+								sum = tmp[2 * p] / 2;
+							#endif
 						} else {
 							sum = tmp[2 * p];
 						}
@@ -613,8 +775,11 @@ void MatMulCN(const TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT 
 				count = (count + 1) >> 1;
 				depth++;
 			}
-
-			C[i * J + j] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+			#ifdef SHIFT
+				C[i * J + j] = Saturate<TypeC>(((tmp[0] >> lshrA) >> lshrB) >> ldemote);
+			#else
+				C[i * J + j] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+			#endif
 		}
 	}
 	return;
@@ -622,6 +787,12 @@ void MatMulCN(const TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT 
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatMulNC(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT ldemote = log2(demote);
+	#endif
+
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			for (MYITE k = 0; k < K; k++) {
@@ -645,13 +816,21 @@ void MatMulNC(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT 
 					TypeTemp sum;
 					if (p < (count >> 1)) {
 						if (shr) {
-							sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
+							#ifdef SHIFT
+								sum = (tmp[2 * p] >> 1) + (tmp[(2 * p) + 1] >> 1);
+							#else 
+								sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
+							#endif
 						} else {
 							sum = tmp[2 * p] + tmp[(2 * p) + 1];
 						}
 					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
 						if (shr) {
-							sum = tmp[2 * p] / 2;
+							#ifdef SHIFT
+								sum = tmp[2 * p] >> 1;
+							#else 
+								sum = tmp[2 * p] / 2;
+							#endif
 						} else {
 							sum = tmp[2 * p];
 						}
@@ -666,7 +845,11 @@ void MatMulNC(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT 
 				depth++;
 			}
 
-			C[i * J + j] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+			#ifdef SHIFT
+				C[i * J + j] = Saturate<TypeC>(((tmp[0] >> lshrA) >> lshrB) >> ldemote);
+			#else
+				C[i * J + j] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+			#endif
 		}
 	}
 	return;
@@ -674,6 +857,12 @@ void MatMulNC(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT 
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatMulCC(const TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT ldemote = log2(demote);
+	#endif
+
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			for (MYITE k = 0; k < K; k++) {
@@ -697,13 +886,21 @@ void MatMulCC(const TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, 
 					TypeTemp sum;
 					if (p < (count >> 1)) {
 						if (shr) {
-							sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
+							#ifdef SHIFT
+								sum = (tmp[2 * p] >> 1) + (tmp[(2 * p) + 1] >> 1);
+							#else 
+								sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
+							#endif
 						} else {
 							sum = tmp[2 * p] + tmp[(2 * p) + 1];
 						}
 					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
 						if (shr) {
-							sum = tmp[2 * p] / 2;
+							#ifdef SHIFT
+								sum = tmp[2 * p] >> 1;
+							#else 
+								sum = tmp[2 * p] / 2;
+							#endif
 						} else {
 							sum = tmp[2 * p];
 						}
@@ -718,7 +915,11 @@ void MatMulCC(const TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, 
 				depth++;
 			}
 
-			C[i * J + j] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+			#ifdef SHIFT
+				C[i * J + j] = Saturate<TypeC>(((tmp[0] >> lshrA) >> lshrB) >> ldemote);
+			#else
+				C[i * J + j] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+			#endif
 		}
 	}
 	return;
@@ -726,6 +927,13 @@ void MatMulCC(const TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, 
 
 template<class TypeA, class TypeAidx, class TypeB, class TypeTemp, class TypeC>
 void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
+
 	MYITE ite_idx = 0, ite_val = 0;
 	for (MYITE k = 0; k < K; k++) {
 		TypeTemp b = (TypeTemp) B[k * 1][0];
@@ -734,8 +942,11 @@ void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C,
 		while (idx != 0) {
 			TypeTemp a = (TypeTemp) Aval[ite_val];
 			TypeTemp c = (TypeTemp) (a * b);
-
-			C[idx - 1] += Saturate<TypeC>((((c / shrA) / shrB) / shrC) / demote);
+			#ifdef SHIFT
+				C[idx - 1] += Saturate<TypeC>((((c >> lshrA) >> lshrB) >> lshrC) >> ldemote);
+			#else
+				C[idx - 1] += Saturate<TypeC>((((c / shrA) / shrB) / shrC) / demote);
+			#endif
 
 			ite_idx++;
 			ite_val++;
@@ -749,6 +960,13 @@ void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C,
 
 template<class TypeA, class TypeAidx, class TypeB, class TypeTemp, class TypeC>
 void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
+
 	MYITE ite_idx = 0, ite_val = 0;
 	for (MYITE k = 0; k < K; k++) {
 		TypeTemp b = (TypeTemp) B[k];
@@ -758,7 +976,11 @@ void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, i
 			TypeTemp a = (TypeTemp) Aval[ite_val];
 			TypeTemp c = (TypeTemp) (a * b);
 
-			C[idx - 1] += Saturate<TypeC>((((c / shrA) / shrB) / shrC) / demote);
+			#ifdef SHIFT
+				C[idx - 1] += Saturate<TypeC>((((c >> lshrA) >> lshrB) >> lshrC) >> ldemote);
+			#else
+				C[idx - 1] += Saturate<TypeC>((((c / shrA) / shrB) / shrC) / demote);
+			#endif
 
 			ite_idx++;
 			ite_val++;
@@ -772,13 +994,23 @@ void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, i
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MulCir(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT ldemote = log2(demote);
+	#endif
+	
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a = (TypeTemp) A[i * J + j];
 			TypeTemp b = (TypeTemp) B[i * J + j];
 
 			TypeTemp prod = a * b;
-			C[i * J + j] = Saturate<TypeC>(((prod / shrA) / shrB) / demote);
+			#ifdef SHIFT
+				C[i * J + j] = Saturate<TypeC>(((prod >> lshrA) >> lshrB) >> ldemote);
+			#else
+				C[i * J + j] = Saturate<TypeC>(((prod / shrA) / shrB) / demote);
+			#endif
 		}
 	}
 	return;
@@ -860,13 +1092,23 @@ void Transpose(TypeA* A, TypeA* B, MYINT I, MYINT J) {
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void ScalarMul(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, int demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT ldemote = log2(demote);
+	#endif
+	
 	TypeTemp a = (TypeTemp) *A;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp b = (TypeTemp) B[i * J + j];
 
 			TypeTemp prod = a * b;
-			C[i * J + j] = Saturate<TypeC>(((prod / shrA) / shrB) / demote);
+			#ifdef SHIFT
+				C[i * J + j] = Saturate<TypeC>(((prod >> lshrA) >> lshrB) >> ldemote);
+			#else
+				C[i * J + j] = Saturate<TypeC>(((prod / shrA) / shrB) / demote);
+			#endif
 		}
 	}
 	return;
@@ -874,6 +1116,18 @@ void ScalarMul(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT
 
 template<class TypeA, class TypeF1, class TypeB1W, class TypeB1B, class TypeF2, class TypeB2W, class TypeB2B, class TypeF3, class TypeB3W, class TypeB3B, class TypeC, class TypeX, class TypeT, class TypeU, class TypeUB1W, class TypeUB2W, class TypeUB3W>
 void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, TypeB2W* BN2W, TypeB2B* BN2B, TypeF3* F3, TypeB3W* BN3W, TypeB3B* BN3B, TypeC* C, TypeX* X, TypeT* T, TypeU* U, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE D1, MYITE D2, MYITE D3, TypeUB1W SIX_1, TypeUB2W SIX_2, TypeUB1W shr1, TypeUB1W shr2, TypeUB1W shr3, TypeUB2W shr4, TypeUB2W shr5, TypeUB2W shr6, TypeUB3W shr7, TypeUB3W shr8, TypeUB3W shr9, TypeUB1W shl1, TypeUB1W shl2, TypeUB1W shl3, TypeUB2W shl4, TypeUB2W shl5, TypeUB2W shl6, TypeUB3W shl7, TypeUB3W shl8, TypeUB3W shl9) {
+	#ifdef SHIFT
+		MYINT lshr1 = log2(shr1);
+		MYINT lshr2 = log2(shr2);
+		MYINT lshr3 = log2(shr3);
+		MYINT lshr4 = log2(shr4);
+		MYINT lshr5 = log2(shr5);
+		MYINT lshr6 = log2(shr6);
+		MYINT lshr7 = log2(shr7);
+		MYINT lshr8 = log2(shr8);
+		MYINT lshr9 = log2(shr9);
+	#endif
+
 	MYITE HOffsetL = (HF / 2) - HPADL;
 	MYITE WOffsetL = (WF / 2) - WPADL;
 	MYITE HOffsetR = (HF / 2) - HPADR;
@@ -895,9 +1149,17 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 					while (depth < D1) {
 						for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
 							if (p < count / 2) {
-								U[p] = U[2 * p] / 2 + U[(2 * p) + 1] / 2;
+								#ifdef SHIFT
+									U[p] = (U[2 * p] >> 1) + (U[(2 * p) + 1] >> 1);
+								#else
+									U[p] = U[2 * p] / 2 + U[(2 * p) + 1] / 2;
+								#endif
 							} else if ((p == (count / 2)) && ((count % 2) == 1)) {
-								U[p] = U[2 * p] / 2;
+								#ifdef SHIFT
+									U[p] = U[2 * p] >> 1;
+								#else
+									U[p] = U[2 * p] / 2;
+								#endif
 							} else {
 								U[p] = 0;
 							}
@@ -905,11 +1167,20 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 						count = (count + 1) / 2;
 						depth++;
 					}
-	
-					TypeUB1W x = (((TypeUB1W)((U[0] * shl1) / shr1 + (BN1B[k] * shl2) / shr2)) * ((TypeUB1W) BN1W[k]));
+					#ifdef SHIFT
+						TypeUB1W x = (((TypeUB1W)(((U[0] * shl1) >> lshr1) + ((BN1B[k] * shl2) >> lshr2))) * ((TypeUB1W) BN1W[k]));
+					#else
+						TypeUB1W x = (((TypeUB1W)((U[0] * shl1) / shr1 + (BN1B[k] * shl2) / shr2)) * ((TypeUB1W) BN1W[k]));
+					#endif
 					x = x < 0 ? 0 : x;
 					x = x > SIX_1 ? SIX_1 : x;
-					X[i * W * Ct + j * Ct + k] =  Saturate<TypeX>((x * shl3) / shr3);
+					
+					#ifdef SHIFT
+						X[i * W * Ct + j * Ct + k] =  Saturate<TypeX>((x * shl3) >> lshr3);
+					#else
+						X[i * W * Ct + j * Ct + k] =  Saturate<TypeX>((x * shl3) / shr3);
+					#endif
+					
 				}
 			}
 		}
@@ -932,9 +1203,17 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 						while (depth < D1) {
 							for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
 								if (p < count / 2) {
-									U[p] = U[2 * p] / 2 + U[(2 * p) + 1] / 2;
+									#ifdef SHIFT
+										U[p] = (U[2 * p] >> 1) + (U[(2 * p) + 1] >> 1);
+									#else
+										U[p] = U[2 * p] / 2 + U[(2 * p) + 1] / 2;
+									#endif
 								} else if ((p == (count / 2)) && ((count % 2) == 1)) {
-									U[p] = U[2 * p] / 2;
+									#ifdef SHIFT
+										U[p] = U[2 * p] >> 1;
+									#else
+										U[p] = U[2 * p] / 2;
+									#endif
 								} else {
 									U[p] = 0;
 								}
@@ -942,11 +1221,18 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 							count = (count + 1) / 2;
 							depth++;
 						}
-
-						TypeUB1W x = (((TypeUB1W)((U[0] * shl1) / shr1 + (BN1B[k] * shl2) / shr2)) * ((TypeUB1W) BN1W[k]));
+						#ifdef SHIFT
+							TypeUB1W x = (((TypeUB1W)(((U[0] * shl1) >> lshr1) + ((BN1B[k] * shl2) >> lshr2))) * ((TypeUB1W) BN1W[k]));
+						#else
+							TypeUB1W x = (((TypeUB1W)((U[0] * shl1) / shr1 + (BN1B[k] * shl2) / shr2)) * ((TypeUB1W) BN1W[k]));
+						#endif
 						x = x < 0 ? 0 : x;
 						x = x > SIX_1 ? SIX_1 : x;
-						X[iRed * W * Ct + j * Ct + k] =  Saturate<TypeX>((x * shl3) / shr3);
+						#ifdef SHIFT
+							X[iRed * W * Ct + j * Ct + k] =  Saturate<TypeX>((x * shl3) >> lshr3);
+						#else
+							X[iRed * W * Ct + j * Ct + k] =  Saturate<TypeX>((x * shl3) / shr3);
+						#endif
 					}
 				}
 			}
@@ -969,9 +1255,17 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 					while (depth < D2) {
 						for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
 							if (p < count / 2) {
-								U[p] = U[2 * p] / 2 + U[(2 * p) + 1] / 2;
+								#ifdef SHIFT
+									U[p] = (U[2 * p] >> 1) + (U[(2 * p) + 1] >> 1);
+								#else
+									U[p] = U[2 * p] / 2 + U[(2 * p) + 1] / 2;
+								#endif
 							} else if ((p == (count / 2)) && ((count % 2) == 1)) {
-								U[p] = U[2 * p] / 2;
+								#ifdef SHIFT
+									U[p] = U[2 * p] >> 1;
+								#else
+									U[p] = U[2 * p] / 2;
+								#endif
 							} else {
 								U[p] = 0;
 							}
@@ -979,11 +1273,18 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 						count = (count + 1) / 2;
 						depth++;
 					}
-
-					TypeUB2W x = (((TypeUB2W)((U[0] * shl4) / shr4 + (BN2B[g] * shl5) / shr5)) * ((TypeUB2W) BN2W[g]));
+					#ifdef SHIFT
+						TypeUB2W x = (((TypeUB2W)(((U[0] * shl4) >> lshr4) + ((BN2B[g] * shl5) >> lshr5))) * ((TypeUB2W) BN2W[g]));
+					#else
+						TypeUB2W x = (((TypeUB2W)((U[0] * shl4) / shr4 + (BN2B[g] * shl5) / shr5)) * ((TypeUB2W) BN2W[g]));
+					#endif
 					x = x < 0 ? 0 : x;
 					x = x > SIX_2 ? SIX_2 : x;
-					T[g] =  Saturate<TypeT>((x * shl6) / shr6);
+					#ifdef SHIFT
+						T[g] =  Saturate<TypeT>((x * shl6) >> lshr6);
+					#else
+						T[g] =  Saturate<TypeT>((x * shl6) / shr6);
+					#endif
 				}
 
 				for (MYITE i = 0; i < Cout; i++) {
@@ -997,9 +1298,17 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 					while (depth < D3) {
 						for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
 							if (p < count / 2) {
-								U[p] = U[2 * p] / 2 + U[(2 * p) + 1] / 2;
+								#ifdef SHIFT
+									U[p] = (U[2 * p] >> 1) + (U[(2 * p) + 1] >> 1);
+								#else
+									U[p] = U[2 * p] / 2 + U[(2 * p) + 1] / 2;
+								#endif
 							} else if ((p == (count / 2)) && ((count % 2) == 1)) {
-								U[p] = U[2 * p] / 2;
+								#ifdef SHIFT
+									U[p] = U[2 * p] >> 1;
+								#else
+									U[p] = U[2 * p] / 2;
+								#endif
 							} else {
 								U[p] = 0;
 							}
@@ -1007,7 +1316,11 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 						count = (count + 1) / 2;
 						depth++;
 					}
-					C[n * Hout * Wout * Cout + hout * Wout * Cout + wout * Cout + i] = Saturate<TypeC>(((((TypeUB3W)((U[0] * shl7) / shr7 + (BN3B[i] * shl8) / shr8)) * ((TypeUB3W)BN3W[i])) * shl9) / shr9);
+					#ifdef SHIFT
+						C[n * Hout * Wout * Cout + hout * Wout * Cout + wout * Cout + i] = Saturate<TypeC>(((((TypeUB3W)(((U[0] * shl7) >> lshr7) + ((BN3B[i] * shl8) >> lshr8))) * ((TypeUB3W)BN3W[i])) * shl9) >> lshr9);
+					#else
+						C[n * Hout * Wout * Cout + hout * Wout * Cout + wout * Cout + i] = Saturate<TypeC>(((((TypeUB3W)((U[0] * shl7) / shr7 + (BN3B[i] * shl8) / shr8)) * ((TypeUB3W)BN3W[i])) * shl9) / shr9);
+					#endif
 				}
 			}
 		}
@@ -1016,6 +1329,12 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void Conv(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT ldemote = log2(demote);
+	#endif
+
 	MYITE padH = (HF - 1) / 2;
 	MYITE padW = (WF - 1) / 2;
 
@@ -1051,13 +1370,21 @@ void Conv(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYINT H, M
 							TypeTemp sum;
 							if (p < (count >> 1)) {
 								if (shr) {
-									sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
+									#ifdef SHIFT
+										sum = (tmp[2 * p] >> 1) + (tmp[(2 * p) + 1] >> 1);
+									#else
+										sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
+									#endif
 								} else {
 									sum = tmp[2 * p] + tmp[(2 * p) + 1];
 								}
 							} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
 								if (shr) {
-									sum = tmp[2 * p] / 2;
+									#ifdef SHIFT
+										sum = tmp[2 * p] >> 1;
+									#else
+										sum = tmp[2 * p] / 2;
+									#endif
 								} else {
 									sum = tmp[2 * p];
 								}
@@ -1071,8 +1398,11 @@ void Conv(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYINT H, M
 						count = (count + 1) >> 1;
 						depth++;
 					}
-
-					C[n * H * W * CO + h * W * CO + w * CO + co] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+					#ifdef SHIFT
+						C[n * H * W * CO + h * W * CO + w * CO + co] = Saturate<TypeC>(((tmp[0] >> lshrA) >> lshrB) >> ldemote);
+					#else
+						C[n * H * W * CO + h * W * CO + w * CO + co] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+					#endif
 				}
 			}
 		}
@@ -1084,6 +1414,12 @@ void Conv(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYINT H, M
 // A[N][H][W][CIN], B[G][HF][WF][CINF][COUTF], C[N][HOUT][WOUT][COUTF*G]
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void Convolution(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT ldemote = log2(demote);
+	#endif
+	
 	MYITE HOffsetL = HDL*(HF/2) - HPADL;
 	MYITE WOffsetL = WDL*(WF/2) - WPADL;
 	MYITE HOffsetR = HDL*(HF/2) - HPADR;
@@ -1123,13 +1459,21 @@ void Convolution(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYI
 								TypeTemp sum;
 								if (p < (count >> 1)) {
 									if (shr) {
-										sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
+										#ifdef SHIFT
+											sum = (tmp[2 * p] >> 1) + (tmp[(2 * p) + 1] >> 1);
+										#else
+											sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
+										#endif
 									} else {
 										sum = tmp[2 * p] + tmp[(2 * p) + 1];
 									}
 								} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
 									if (shr) {
-										sum = tmp[2 * p] / 2;
+										#ifdef SHIFT
+											sum = tmp[2 * p] >> 1;
+										#else
+											sum = tmp[2 * p] / 2;
+										#endif
 									} else {
 										sum = tmp[2 * p];
 									}
@@ -1143,8 +1487,11 @@ void Convolution(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYI
 							count = (count + 1) >> 1;
 							depth++;
 						}
-
-						C[n * HOUT * WOUT * (COUTF * G) + hout * WOUT * (COUTF * G) + wout * (COUTF * G) + (co + g * COUTF)] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+						#ifdef SHIFT
+							C[n * HOUT * WOUT * (COUTF * G) + hout * WOUT * (COUTF * G) + wout * (COUTF * G) + (co + g * COUTF)] = Saturate<TypeC>(((tmp[0] >> lshrA) >> lshrB) >> ldemote);
+						#else
+							C[n * HOUT * WOUT * (COUTF * G) + hout * WOUT * (COUTF * G) + wout * (COUTF * G) + (co + g * COUTF)] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+						#endif
 					}
 				}
 			}
@@ -1154,24 +1501,47 @@ void Convolution(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYI
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void AddOrSubCir4D(TypeA* A, const TypeB* B, TypeC* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
 				for (MYITE c = 0; c < C; c++) {
 					TypeTemp a = (TypeTemp)A[n * H * W * C + h * W * C + w * C + c];
-					a = a / shrA;
+					#ifndef SHIFT
+						a = a / shrA;
+					#endif
+
 
 					TypeTemp b = (TypeTemp)B[c];
-					b = b / shrB;
+					#ifndef SHIFT
+						b = b / shrB;
+					#endif
 
 					TypeTemp res;
 					if (add) {
-						res = a / shrC + b / shrC;
+						#ifdef SHIFT
+							res = (a >> (lshrA + lshrC)) + (b >> (lshrB + lshrC));
+						#else
+							res = a / shrC + b / shrC;
+						#endif
 					} else {
-						res = a / shrC - b / shrC;
+						#ifdef SHIFT
+							res = (a >> (lshrA + lshrC)) - (b >> (lshrB + lshrC));
+						#else
+							res = a / shrC - b / shrC;
+						#endif
 					}
 
-					X[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeC>(res / demote);
+					#ifdef SHIFT
+						X[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeC>(res >> ldemote);
+					#else
+						X[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeC>(res / demote);
+					#endif
 				}
 			}
 		}
@@ -1181,22 +1551,44 @@ void AddOrSubCir4D(TypeA* A, const TypeB* B, TypeC* X, MYINT N, MYINT H, MYINT W
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void AddOrSubCir2D(TypeA* A, const TypeB* B, TypeC* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add, MYINT demote) {
+	#ifdef SHIFT
+		MYINT lshrA = log2(shrA);
+		MYINT lshrB = log2(shrB);
+		MYINT lshrC = log2(shrC);
+		MYINT ldemote = log2(demote);
+	#endif
+	
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			TypeTemp a = (TypeTemp) A[h * W + w];
+			#ifndef SHIFT
 			a = a / shrA;
+			#endif
 
 			TypeTemp b = (TypeTemp) B[w];
+			#ifndef SHIFT
 			b = b / shrB;
+			#endif
 
 			TypeTemp res;
 			if (add) {
-				res = a / shrC + b / shrC;
+				#ifdef SHIFT
+					res = (a >> (lshrA + lshrC)) + (b >> (lshrB + lshrC));
+				#else
+					res = a / shrC + b / shrC;
+				#endif
 			} else {
-				res = a / shrC - b / shrC;
+				#ifdef SHIFT
+					res = (a >> (lshrA + lshrC)) - (b >> (lshrB + lshrC));
+				#else
+					res = a / shrC - b / shrC;
+				#endif
 			}
-
-			X[h * W + w] = Saturate<TypeC>(res / demote);
+			#ifdef SHIFT
+				X[h * W + w] = Saturate<TypeC>(res >> ldemote);
+			#else
+				X[h * W + w] = Saturate<TypeC>(res / demote);
+			#endif
 		}
 	}
 	return;
@@ -1295,11 +1687,19 @@ void NormaliseL2(TypeA* A, TypeA* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT s
 
 				for (MYITE c = 0; c < C; c++) {
 					#ifdef FASTAPPROX
-						MYINT tmp = (A[n * H * W * C + h * W * C + w * C + c] / shrAdiv);
+						#ifdef SHIFT
+							MYINT tmp = (A[n * H * W * C + h * W * C + w * C + c] >> shrA);
+						#else
+							MYINT tmp = (A[n * H * W * C + h * W * C + w * C + c] / shrAdiv);
+						#endif
 						sumSquare += tmp * tmp;
 					#else
 						int32_t tmp = A[n * H * W * C + h * W * C + w * C + c];
-						sumSquare += (((tmp * tmp) / shrAdiv) / shrAdiv);
+						#ifdef SHIFT
+							sumSquare += (((tmp * tmp) >> shrA) >> shrA);
+						#else
+							sumSquare += (((tmp * tmp) / shrAdiv) / shrAdiv);
+						#endif
 					#endif
 				}
 
@@ -1332,7 +1732,11 @@ void NormaliseL2(TypeA* A, TypeA* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT s
 
 				// Multiply all elements by the 1 / sqrt(sumSquare).
 				for (MYITE c = 0; c < C; c++) {
-					B[n * H * W * C + h * W * C + w * C + c]  = (A[n * H * W * C + h * W * C + w * C + c]  / shrAdiv) * inverseNorm;
+					#ifdef SHIFT
+						B[n * H * W * C + h * W * C + w * C + c]  = (A[n * H * W * C + h * W * C + w * C + c]  >> shrA) * inverseNorm;
+					#else
+						B[n * H * W * C + h * W * C + w * C + c]  = (A[n * H * W * C + h * W * C + w * C + c]  / shrAdiv) * inverseNorm;
+					#endif
 				}
 			}
 		}
@@ -1533,10 +1937,18 @@ void TanHNew16(int16_t* A, MYINT I, MYINT J, int16_t* B) {
 
 template<class TypeA>
 void AdjustScaleShr(TypeA* A, MYINT I, MYINT J, MYINT scale) {
+	#ifdef SHIFT
+		MYINT lscale = log2(scale);
+	#endif
+
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeA a = A[i * J + j];
-			A[i * J + j] = a / scale;
+			#ifdef SHIFT
+				A[i * J + j] = a >> lscale;
+			#else
+				A[i * J + j] = a / scale;
+			#endif
 		}
 	}
 	return;
@@ -1544,12 +1956,20 @@ void AdjustScaleShr(TypeA* A, MYINT I, MYINT J, MYINT scale) {
 
 template<class TypeA>
 void AdjustScaleShr(TypeA* A, MYINT I, MYINT J, MYINT K, MYINT L, MYINT scale) {
+	#ifdef SHIFT
+		MYINT lscale = log2(scale);
+	#endif
+	
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			for (MYITE k = 0; k < K; k++) {
 				for (MYITE l = 0; l < L; l++) {
 					TypeA a = A[i * J * K * L + j * K * L + k * L + l];
-					A[i * J * K * L + j * K * L + k * L + l] = a / scale;
+					#ifdef SHIFT
+						A[i * J * K * L + j * K * L + k * L + l] = a >> lscale;
+					#else
+						A[i * J * K * L + j * K * L + k * L + l] = a / scale;
+					#endif
 				}
 			}
 		}

@@ -4,6 +4,10 @@
 CC=g++
 CFLAGS=-Wall -Wno-narrowing -p -g -fPIC -O3 -std=c++11 -pthread
 
+ifdef SHIFT
+CFLAGS+= -DSHIFT
+endif
+
 PREDICTOR_INCLUDES=datatypes.h \
                    library_fixed.h \
                    library_float.h \
@@ -22,7 +26,16 @@ PREDICTOR_OBJS=debug.o \
                seedot_fixed.o \
                seedot_float.o \
 
+TEST_OBJS=test.o \
+            library_fixed.o \
+
 all: Predictor
+
+tester: $(TEST_OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test.o: test.cpp $(PREDICTOR_INCLUDES)
+	$(CC) -c -o $@ $(CFLAGS) $<
 
 Predictor: $(PREDICTOR_OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
@@ -50,4 +63,4 @@ seedot_float.o: seedot_float.cpp $(PREDICTOR_INCLUDES)
 
 clean: 
 	rm -f *.o
-	rm -f Predictor
+	rm -f Predictor tester

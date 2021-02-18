@@ -29,7 +29,7 @@ PREDICTOR_OBJS=debug.o \
 TEST_OBJS=test.o \
             library_fixed.o \
 
-all: Predictor
+all: Predictor tester
 
 tester: $(TEST_OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)

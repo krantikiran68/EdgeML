@@ -5,6 +5,12 @@
 
 #include "datatypes.h"
 
+static const int MultiplyDeBruijnBitPosition2[32] = 
+{
+  0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 
+  31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
+};
+
 /**
  * Notation used:
  * 		By default, 'matrix' is to be interpreted as a matrix in fixed point representation.
@@ -334,10 +340,10 @@ inline int8_t Saturate(int32_t inp) {
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAddNN(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -366,10 +372,10 @@ void MatAddNN(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAddCN(const TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -397,10 +403,10 @@ void MatAddCN(const TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAddNC(TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -428,10 +434,10 @@ void MatAddNC(TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAddCC(const TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -458,10 +464,10 @@ void MatAddCC(const TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 	
 	for (MYITE i = 0; i < I; i++) {
@@ -489,10 +495,10 @@ void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -520,10 +526,10 @@ void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA
 template<class TypeA, class TypeB, class TypeTemp, class TypeX>
 void MatAdd4(TypeA* A, TypeB* B, TypeX* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE n = 0; n < N; n++) {
@@ -556,10 +562,10 @@ template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 // TODO: shrB is int32_t because in 8-bit/16-bit code, shrB is usually very high and int8_t/int16_t will overflow.
 void MatSub(TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, int32_t shrB, MYINT shrC, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 	
 	for (MYITE i = 0; i < I; i++) {
@@ -587,10 +593,10 @@ void MatSub(TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, in
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 	
 	for (MYITE i = 0; i < I; i++) {
@@ -618,10 +624,10 @@ void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatSubBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 	
 	for (MYITE i = 0; i < I; i++) {
@@ -649,9 +655,9 @@ void MatSubBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatMulNN(TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -719,9 +725,9 @@ void MatMulNN(TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYI
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatMulCN(const TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -788,9 +794,9 @@ void MatMulCN(const TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatMulNC(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -858,9 +864,9 @@ void MatMulNC(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatMulCC(const TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -928,10 +934,10 @@ void MatMulCC(const TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, 
 template<class TypeA, class TypeAidx, class TypeB, class TypeTemp, class TypeC>
 void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 
 	MYITE ite_idx = 0, ite_val = 0;
@@ -961,10 +967,10 @@ void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C,
 template<class TypeA, class TypeAidx, class TypeB, class TypeTemp, class TypeC>
 void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 
 	MYITE ite_idx = 0, ite_val = 0;
@@ -995,9 +1001,9 @@ void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, i
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MulCir(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 	
 	for (MYITE i = 0; i < I; i++) {
@@ -1093,9 +1099,9 @@ void Transpose(TypeA* A, TypeA* B, MYINT I, MYINT J) {
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void ScalarMul(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, int demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 	
 	TypeTemp a = (TypeTemp) *A;
@@ -1330,9 +1336,9 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void Conv(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 
 	MYITE padH = (HF - 1) / 2;
@@ -1415,13 +1421,32 @@ void Conv(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYINT H, M
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void Convolution(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
-	
-	MYITE HOffsetL = HDL*(HF/2) - HPADL;
-	MYITE WOffsetL = WDL*(WF/2) - WPADL;
+	std::cout<<"N "<<N<<std::endl;
+	std::cout<<"H "<<H<<std::endl;
+	std::cout<<"W "<<W<<std::endl;
+	std::cout<<"CIN "<<CIN<<std::endl;
+	std::cout<<"HF "<<HF<<std::endl;
+	std::cout<<"WF "<<WF<<std::endl;
+	std::cout<<"CINF "<<CINF<<std::endl;
+	std::cout<<"COUTF "<<COUTF<<std::endl;
+	std::cout<<"HOUT "<<HOUT<<std::endl;
+	std::cout<<"WOUT "<<WOUT<<std::endl;
+	std::cout<<"HPADL "<<HPADL<<std::endl;
+	std::cout<<"HPADR "<<HPADR<<std::endl;
+	std::cout<<"WPADL "<<WPADL<<std::endl;
+	std::cout<<"WPADR "<<WPADR<<std::endl;
+	std::cout<<"HSTR "<<HSTR<<std::endl;
+	std::cout<<"WSTR "<<WSTR<<std::endl;
+	std::cout<<"HDL "<<HDL<<std::endl;
+	std::cout<<"WDL "<<WDL<<std::endl;
+	std::cout<<"G "<<G<<std::endl;
+
+	MYITE HOffsetL = HDL*((HF-1)/2) - HPADL;
+	MYITE WOffsetL = WDL*((WF-1)/2) - WPADL;
 	MYITE HOffsetR = HDL*(HF/2) - HPADR;
 	MYITE WOffsetR = WDL*(WF/2) - WPADR;
 
@@ -1432,20 +1457,21 @@ void Convolution(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYI
 					for (MYITE co = 0; co < COUTF; co++) {
 
 						MYITE counter = 0;
-						for (MYITE hf = -(HF / 2); hf <= HF / 2; hf++) {
-							for (MYITE wf = -(WF / 2); wf <= WF / 2; wf++) {
+						for (MYITE hf = -((HF-1) / 2); hf <= HF / 2; hf++) {
+							for (MYITE wf = -((WF-1) / 2); wf <= WF / 2; wf++) {
 								for (MYITE ci = 0; ci < CINF; ci++) {
 
 									TypeTemp a = (TypeTemp) (((h + HDL * hf) < 0) || ((h + HDL * hf) >= H) || ((w + WDL * wf) < 0) || ((w + WDL * wf) >= W)) ? 0 : A[n * H * W * CIN + (h + HDL * hf) * W * CIN + (w + WDL * wf) * CIN + (ci + g * CINF)];
-
-									TypeTemp b = (TypeTemp) B[g * HF * WF * CINF * COUTF + (hf + HF / 2) * WF * CINF * COUTF + (wf + WF / 2) * CINF * COUTF + ci * COUTF + co];
+									// std::cout<<(n * H * W * CIN + (h + HDL * hf) * W * CIN + (w + WDL * wf) * CIN + (ci + g * CINF))<<" "<<16<<std::endl;
+									TypeTemp b = (TypeTemp) B[g * HF * WF * CINF * COUTF + (hf + (HF-1) / 2) * WF * CINF * COUTF + (wf + (WF-1) / 2) * CINF * COUTF + ci * COUTF + co];
 
 									tmp[counter] = a * b;
+									std::cout<<a<<" "<<b<<"\t"<<tmp[counter]<<std::endl;
 									counter++;
 								}
 							}
 						}
-
+						std::cout<<std::endl;
 						MYITE totalEle = HF * WF * CINF;
 						MYITE count = HF * WF * CINF, depth = 0;
 						bool shr = true;
@@ -1502,10 +1528,10 @@ void Convolution(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT N, MYI
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void AddOrSubCir4D(TypeA* A, const TypeB* B, TypeC* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
@@ -1552,10 +1578,10 @@ void AddOrSubCir4D(TypeA* A, const TypeB* B, TypeC* X, MYINT N, MYINT H, MYINT W
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void AddOrSubCir2D(TypeA* A, const TypeB* B, TypeC* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add, MYINT demote) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
-		MYINT ldemote = log2(demote);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA * 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB * 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC * 0x077CB531U) >> 27];;
+		MYINT ldemote = MultiplyDeBruijnBitPosition2[(uint32_t)(demote* 0x077CB531U) >> 27];;
 	#endif
 	
 	for (MYITE h = 0; h < H; h++) {

@@ -13,9 +13,9 @@
 // C = A + B
 void MatAddNN(MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -43,9 +43,9 @@ void MatAddNN(MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, MYINT 
 // C = A + B
 void MatAddCN(const MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -73,9 +73,9 @@ void MatAddCN(const MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, 
 void MatAddNC(MYINT* A, const MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC* 0x077CB531U) >> 27];;
 	#endif
 
 
@@ -105,9 +105,9 @@ void MatAddNC(MYINT* A, const MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, 
 void MatAddCC(const MYINT* A, const MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -135,9 +135,9 @@ void MatAddCC(const MYINT* A, const MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT 
 // C = a + B
 void MatAddBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -165,9 +165,9 @@ void MatAddBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA
 // C = A + b
 void MatAddBroadCastB(MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC* 0x077CB531U) >> 27];;
 	#endif
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -196,9 +196,9 @@ void MatAddBroadCastB(MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA
 void MatSub(MYINT* A, const MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, int32_t shrB, MYINT shrC) {
 	
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC* 0x077CB531U) >> 27];;
 	#endif
 	
 	for (MYITE i = 0; i < I; i++) {
@@ -228,9 +228,9 @@ void MatSub(MYINT* A, const MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, in
 void MatSubBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, int32_t shrB, MYINT shrC) {
 	
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -259,9 +259,9 @@ void MatSubBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA
 // TODO: shrB is int32_t because in 8-bit/16-bit code, shrB is usually very high and int8_t/int16_t will overflow.
 void MatSubBroadCastB(MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, int32_t shrB, MYINT shrC) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC* 0x077CB531U) >> 27];;
 	#endif
 	
 	for (MYITE i = 0; i < I; i++) {
@@ -289,8 +289,8 @@ void MatSubBroadCastB(MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA
 // C = A * B
 void MatMulNN(MYINT* A, MYINT* B, MYINT* C, MYINT* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
 	#endif
 	
 	for (MYITE i = 0; i < I; i++) {
@@ -369,8 +369,8 @@ void MatMulNN(MYINT* A, MYINT* B, MYINT* C, MYINT* tmp, MYINT I, MYINT K, MYINT 
 // C = A * B
 void MatMulCN(const MYINT* A, MYINT* B, MYINT* C, MYINT* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -449,8 +449,8 @@ void MatMulCN(const MYINT* A, MYINT* B, MYINT* C, MYINT* tmp, MYINT I, MYINT K, 
 // C = A * B
 void MatMulNC(MYINT* A, const MYINT* B, MYINT* C, MYINT* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -530,8 +530,8 @@ void MatMulNC(MYINT* A, const MYINT* B, MYINT* C, MYINT* tmp, MYINT I, MYINT K, 
 void MatMulCC(const MYINT* A, const MYINT* B, MYINT* C, MYINT* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -612,9 +612,9 @@ void MatMulCC(const MYINT* A, const MYINT* B, MYINT* C, MYINT* tmp, MYINT I, MYI
 void SparseMatMulX(const MYINT* Aidx, const MYINT* Aval, MYINT** B, MYINT* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC) {
 		
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC* 0x077CB531U) >> 27];;
 	#endif
 
 	MYITE ite_idx = 0, ite_val = 0;
@@ -666,9 +666,9 @@ void SparseMatMulX(const MYINT* Aidx, const MYINT* Aval, MYINT** B, MYINT* C, in
 void SparseMatMul(const MYINT* Aidx, const MYINT* Aval, MYINT* B, MYINT* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC) {
 
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC* 0x077CB531U) >> 27];;
 	#endif
 
 	MYITE ite_idx = 0, ite_val = 0;
@@ -721,8 +721,8 @@ void SparseMatMul(const MYINT* Aidx, const MYINT* Aval, MYINT* B, MYINT* C, int1
 void MulCir(MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB) {
 	
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE i = 0; i < I; i++) {
@@ -840,8 +840,8 @@ void Transpose(MYINT* A, MYINT* B, MYINT I, MYINT J) {
 // C = a * B
 void ScalarMul(MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
 	#endif
 
 	MYINT a = *A;
@@ -881,8 +881,8 @@ void ScalarMul(MYINT* A, MYINT* B, MYINT* C, MYINT I, MYINT J, MYINT shrA, MYINT
 // A[N][H][W][CI], B[HF][WF][CI][CO], C[N][H][W][CO]
 void Conv(MYINT* A, const MYINT* B, MYINT* C, MYINT* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
 	#endif
 	MYITE padH = (HF - 1) / 2;
 	MYITE padW = (WF - 1) / 2;
@@ -976,8 +976,8 @@ void Conv(MYINT* A, const MYINT* B, MYINT* C, MYINT* tmp, MYINT N, MYINT H, MYIN
 // A[N][H][W][CIN], B[G][HF][WF][CINF][COUTF], C[N][HOUT][WOUT][COUTF*G]
 void Convolution(MYINT* A, const MYINT* B, MYINT* C, MYINT* tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
 	#endif
 
 	MYITE HOffsetL = HDL * (HF / 2) - HPADL;
@@ -1075,9 +1075,9 @@ void Convolution(MYINT* A, const MYINT* B, MYINT* C, MYINT* tmp, MYINT N, MYINT 
 // A[N][H][W][C], B[C]
 void AddOrSubCir4D(MYINT* A, const MYINT* B, MYINT* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC* 0x077CB531U) >> 27];;
 	#endif
 
 	for (MYITE n = 0; n < N; n++) {
@@ -1121,9 +1121,9 @@ void AddOrSubCir4D(MYINT* A, const MYINT* B, MYINT* X, MYINT N, MYINT H, MYINT W
 // A[N][H][W][C], B[C]
 void AddOrSubCir2D(MYINT* A, const MYINT* B, MYINT* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
 	#ifdef SHIFT
-		MYINT lshrA = log2(shrA);
-		MYINT lshrB = log2(shrB);
-		MYINT lshrC = log2(shrC);
+		MYINT lshrA = MultiplyDeBruijnBitPosition2[(uint32_t)(shrA* 0x077CB531U) >> 27];;
+		MYINT lshrB = MultiplyDeBruijnBitPosition2[(uint32_t)(shrB* 0x077CB531U) >> 27];;
+		MYINT lshrC = MultiplyDeBruijnBitPosition2[(uint32_t)(shrC* 0x077CB531U) >> 27];;
 	#endif
 	
 	for (MYITE h = 0; h < H; h++) {

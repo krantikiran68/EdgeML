@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -770,15 +773,15 @@ void test_Convolution()
 
 int main(){
 
-    // test_AddOrSubCir2D();
-    // test_AddOrSubCir4D();
-    // test_MatAdd();
-    // test_MatSub();
-    // test_MatMul();
-    // test_SparseMatMul();
-    // test_MulCir();
-    // test_MBConv();
-    // test_Conv();
-    test_Convolution();
+    test_AddOrSubCir2D();
+    test_AddOrSubCir4D();
+    test_MatAdd();
+    test_MatSub();
+    test_MatMul();
+    test_SparseMatMul();
+    test_MulCir();
+    test_MBConv();
+    test_Conv();
+    // test_Convolution();
     return 0;
 }

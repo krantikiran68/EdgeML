@@ -14,6 +14,21 @@ void q7_mbconv_block(const Q7_T* const input, const Q7_T* const filter1,
   SCALE_T shrU1, SCALE_T shrX1, SCALE_T shrU2, SCALE_T shrX2, SCALE_T shrU3,
   SCALE_T shrW3, SCALE_T shlU1, SCALE_T shlX1, SCALE_T shlU2, SCALE_T shlX2,
   SCALE_T shlU3, SCALE_T shlW3) {
+  #ifdef SHIFT
+    shrU1 = log2lookup(shrU1);
+    shrX1 = log2lookup(shrX1);
+    shrU2 = log2lookup(shrU2);
+    shrX2 = log2lookup(shrX2);
+    shrU3 = log2lookup(shrU3);
+    shrW3 = log2lookup(shrW3);
+    shlU1 = log2lookup(shlU1);
+    shlX1 = log2lookup(shlX1);
+    shlU2 = log2lookup(shlU2);
+    shlX2 = log2lookup(shlX2);
+    shlU3 = log2lookup(shlU3);
+    shlW3 = log2lookup(shlW3);
+  #endif
+
   S_ITER_T HOffsetFL = (HF - 1) >> 1;
   S_ITER_T WOffsetFL = (WF - 1) >> 1;
   S_ITER_T HOffsetFR = HF >> 1;
@@ -272,6 +287,21 @@ void q7xq15_q15_mbconv_block(const Q7_T* const input,
   Q31_T limit2, SCALE_T shrU1, SCALE_T shrX1, SCALE_T shrU2, SCALE_T shrX2,
   SCALE_T shrU3, SCALE_T shrW3, SCALE_T shlU1, SCALE_T shlX1, SCALE_T shlU2,
   SCALE_T shlX2, SCALE_T shlU3, SCALE_T shlW3) {
+  #ifdef SHIFT
+    shrU1 = log2lookup(shrU1);
+    shrX1 = log2lookup(shrX1);
+    shrU2 = log2lookup(shrU2);
+    shrX2 = log2lookup(shrX2);
+    shrU3 = log2lookup(shrU3);
+    shrW3 = log2lookup(shrW3);
+    shlU1 = log2lookup(shlU1);
+    shlX1 = log2lookup(shlX1);
+    shlU2 = log2lookup(shlU2);
+    shlX2 = log2lookup(shlX2);
+    shlU3 = log2lookup(shlU3);
+    shlW3 = log2lookup(shlW3);
+  #endif
+
   S_ITER_T HOffsetFL = (HF - 1) >> 1;
   S_ITER_T WOffsetFL = (WF - 1) >> 1;
   S_ITER_T HOffsetFR = HF >> 1;
@@ -530,6 +560,21 @@ void q15xq7_q7_mbconv_block(const Q15_T* const input,
   Q31_T limit2, SCALE_T shrU1, SCALE_T shrX1, SCALE_T shrU2, SCALE_T shrX2,
   SCALE_T shrU3, SCALE_T shrW3, SCALE_T shlU1, SCALE_T shlX1, SCALE_T shlU2,
   SCALE_T shlX2, SCALE_T shlU3, SCALE_T shlW3) {
+  #ifdef SHIFT
+    shrU1 = log2lookup(shrU1);
+    shrX1 = log2lookup(shrX1);
+    shrU2 = log2lookup(shrU2);
+    shrX2 = log2lookup(shrX2);
+    shrU3 = log2lookup(shrU3);
+    shrW3 = log2lookup(shrW3);
+    shlU1 = log2lookup(shlU1);
+    shlX1 = log2lookup(shlX1);
+    shlU2 = log2lookup(shlU2);
+    shlX2 = log2lookup(shlX2);
+    shlU3 = log2lookup(shlU3);
+    shlW3 = log2lookup(shlW3);
+  #endif
+
   S_ITER_T HOffsetFL = (HF - 1) >> 1;
   S_ITER_T WOffsetFL = (WF - 1) >> 1;
   S_ITER_T HOffsetFR = HF >> 1;
@@ -788,6 +833,21 @@ void q15xq7_q15_mbconv_block(const Q15_T* const input,
   Q31_T limit2, SCALE_T shrU1, SCALE_T shrX1, SCALE_T shrU2, SCALE_T shrX2,
   SCALE_T shrU3, SCALE_T shrW3, SCALE_T shlU1, SCALE_T shlX1, SCALE_T shlU2,
   SCALE_T shlX2, SCALE_T shlU3, SCALE_T shlW3) {
+  #ifdef SHIFT
+    shrU1 = log2lookup(shrU1);
+    shrX1 = log2lookup(shrX1);
+    shrU2 = log2lookup(shrU2);
+    shrX2 = log2lookup(shrX2);
+    shrU3 = log2lookup(shrU3);
+    shrW3 = log2lookup(shrW3);
+    shlU1 = log2lookup(shlU1);
+    shlX1 = log2lookup(shlX1);
+    shlU2 = log2lookup(shlU2);
+    shlX2 = log2lookup(shlX2);
+    shlU3 = log2lookup(shlU3);
+    shlW3 = log2lookup(shlW3);
+  #endif
+
   S_ITER_T HOffsetFL = (HF - 1) >> 1;
   S_ITER_T WOffsetFL = (WF - 1) >> 1;
   S_ITER_T HOffsetFR = HF >> 1;
@@ -1046,6 +1106,21 @@ void q15_mbconv_block(const Q15_T* const input, const Q15_T* const filter1,
   SCALE_T shrU1, SCALE_T shrX1, SCALE_T shrU2, SCALE_T shrX2, SCALE_T shrU3,
   SCALE_T shrW3, SCALE_T shlU1, SCALE_T shlX1, SCALE_T shlU2, SCALE_T shlX2,
   SCALE_T shlU3, SCALE_T shlW3) {
+  #ifdef SHIFT
+    shrU1 = log2lookup(shrU1);
+    shrX1 = log2lookup(shrX1);
+    shrU2 = log2lookup(shrU2);
+    shrX2 = log2lookup(shrX2);
+    shrU3 = log2lookup(shrU3);
+    shrW3 = log2lookup(shrW3);
+    shlU1 = log2lookup(shlU1);
+    shlX1 = log2lookup(shlX1);
+    shlU2 = log2lookup(shlU2);
+    shlX2 = log2lookup(shlX2);
+    shlU3 = log2lookup(shlU3);
+    shlW3 = log2lookup(shlW3);
+  #endif
+
   S_ITER_T HOffsetFL = (HF - 1) >> 1;
   S_ITER_T WOffsetFL = (WF - 1) >> 1;
   S_ITER_T HOffsetFR = HF >> 1;

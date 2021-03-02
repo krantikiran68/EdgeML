@@ -11,45 +11,45 @@
 // This function isn't used actively because of SeeDot generated scales
 // ensuring the overflows aren't a possibility.
 static inline Q15_T q15_saturate(Q31_T inp) {
-    if (inp > Q15_TMAX){
-        return (Q15_T)Q15_TMAX;
-    } else if (inp < Q15_TMIN) {
-        return (Q15_T)Q15_TMIN;
-    } else {
-        return (Q15_T)inp;
-    }
+  if (inp > Q15_TMAX){
+    return (Q15_T)Q15_TMAX;
+  } else if (inp < Q15_TMIN) {
+    return (Q15_T)Q15_TMIN;
+  } else {
+    return (Q15_T)inp;
+  }
 }
 
 // These functions are used to provide a truncation of input to a specific
 // range within the ReLU operation.
 static inline Q7_T q7_relu(Q7_T inp, Q7_T limit) {
-    if (inp > limit){
-        return limit;
-    } else if (inp < 0) {
-        return 0;
-    } else {
-        return inp;
-    }
+  if (inp > limit){
+    return limit;
+  } else if (inp < 0) {
+    return 0;
+  } else {
+    return inp;
+  }
 }
 
 static inline Q15_T q15_relu(Q15_T inp, Q15_T limit) {
-    if (inp > limit){
-        return limit;
-    } else if (inp < 0) {
-        return 0;
-    } else {
-        return inp;
-    }
+  if (inp > limit){
+    return limit;
+  } else if (inp < 0) {
+    return 0;
+  } else {
+    return inp;
+  }
 }
 
 static inline Q31_T q31_relu(Q31_T inp, Q31_T limit) {
-    if (inp > limit){
-        return limit;
-    } else if (inp < 0) {
-        return 0;
-    } else {
-        return inp;
-    }
+  if (inp > limit){
+    return limit;
+  } else if (inp < 0) {
+    return 0;
+  } else {
+    return inp;
+  }
 }
 
 static const Q15_T exp_table_A[256] = {16384, 15391, 14459, 13583, 12760, 11987, 11261, 10578, 9937, 9335, 8770, 8238, 7739, 7270, 6830, 6416, 6027, 5662, 5319, 4997, 4694, 4410, 4143, 3892, 3656, 3434, 3226, 3031, 2847, 2675, 2513, 2360, 2217, 2083, 1957, 1838, 1727, 1622, 1524, 1432, 1345, 1263, 1187, 1115, 1047, 984, 924, 868, 816, 766, 720, 676, 635, 597, 561, 527, 495, 465, 437, 410, 385, 362, 340, 319, 300, 282, 265, 249, 234, 220, 206, 194, 182, 171, 161, 151, 142, 133, 125, 118, 110, 104, 97, 92, 86, 81, 76, 71, 67, 63, 59, 56, 52, 49, 46, 43, 41, 38, 36, 34, 32, 30, 28, 26, 25, 23, 22, 20, 19, 18, 17, 16, 15, 14, 13, 12, 12, 11, 10, 10, 9, 9, 8, 8, 7, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -61,6 +61,12 @@ static inline Q15_T exp_base_16(Q15_T inp, Q15_T scale) {
   val >>= 7;
   Q31_T ret = (Q31_T)exp_table_A[val] * (Q31_T)exp_table_B[val1];
   return (Q15_T)((ret / scale) >> 14);
+}
+
+static const SCALE_T MultiplyDeBruijnBitPosition2[32] = {0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9};
+
+static inline SCALE_T log2lookup(SCALE_T x) {
+  return MultiplyDeBruijnBitPosition2[(uint32_t)(x * 0x077CB531U) >> 27];
 }
 
 /**

@@ -39,12 +39,11 @@ int test_q15_v_add() {
 
   #ifdef SHIFT
     const Q15_T expected[8] = {-2773, -1359, -3028, -390, -1666, -2071, -608, -700};
-    q15_v_add(&qvec_A[0], &qvec_B[0], 8, &pred[0], 0, 3, 0, 0);
   #else
     const Q15_T expected[8] = {-2772, -1358, -3028, -389, -1666, -2070, -608, -699};
-    q15_v_add(&qvec_A[0], &qvec_B[0], 8, &pred[0], 1, 8, 1, 1);
   #endif
 
+  q15_v_add(&qvec_A[0], &qvec_B[0], 8, &pred[0], 1, 8, 1, 1);
   return check_output_q15(pred, expected, 8);
 }
 
@@ -56,12 +55,11 @@ int test_q7_v_sub() {
 
   #ifdef SHIFT
     const Q7_T expected[8] = {-39, -3, -40, 64, -39, 103, 62, 32};
-    q7_v_sub(&qvec_A[0], &qvec_B[0], 8, &pred[0], 0, 3, 0);
   #else
     const Q7_T expected[8] = {-40, -4, -40, 63, -39, 102, 62, 31};
-    q7_v_sub(&qvec_A[0], &qvec_B[0], 8, &pred[0], 1, 8, 1);
   #endif
 
+  q7_v_sub(&qvec_A[0], &qvec_B[0], 8, &pred[0], 1, 8, 1);
   return check_output_q7(pred, expected, 8);
 }
 
@@ -73,12 +71,11 @@ int test_q15_v_sub() {
 
   #ifdef SHIFT
     const Q15_T expected[8] = {1923, 1021, -4040, 1438, -3812, 2245, 712, 1284};
-    q15_v_sub(&qvec_A[0], &qvec_B[0], 8, &pred[0], 0, 3, 0);
   #else
     const Q15_T expected[8] = {1922, 1020, -4040, 1437, -3812, 2244, 712, 1283};
-    q15_v_sub(&qvec_A[0], &qvec_B[0], 8, &pred[0], 1, 8, 1);
   #endif
 
+  q15_v_sub(&qvec_A[0], &qvec_B[0], 8, &pred[0], 1, 8, 1);
   return check_output_q15(pred, expected, 8);
 }
 
@@ -90,12 +87,11 @@ int test_q7_v_hadamard() {
 
   #ifdef SHIFT
     const Q7_T expected[8] = {18, 12, -48, 68, -15, 85, 77, 81};
-    q7_v_hadamard(&qvec_A[0], &qvec_B[0], 8, &pred[0], 3, 3);
   #else
     const Q7_T expected[8] = {18, 12, -48, 68, -15, 85, 77, 81};
-    q7_v_hadamard(&qvec_A[0], &qvec_B[0], 8, &pred[0], 8, 8);
   #endif
 
+  q7_v_hadamard(&qvec_A[0], &qvec_B[0], 8, &pred[0], 8, 8);
   return check_output_q7(pred, expected, 8);
 }
 
@@ -107,12 +103,11 @@ int test_q15_v_hadamard() {
 
   #ifdef SHIFT
     const Q15_T expected[8] = {1423, 7085, -16378, 8209, -12068, 6805, 6475, 6897};
-    q15_v_hadamard(&qvec_A[0], &qvec_B[0], 8, &pred[0], 5, 6);
   #else
     const Q15_T expected[8] = {1423, 7085, -16378, 8209, -12067, 6805, 6475, 6897};
-    q15_v_hadamard(&qvec_A[0], &qvec_B[0], 8, &pred[0], 32, 64);
   #endif
 
+  q15_v_hadamard(&qvec_A[0], &qvec_B[0], 8, &pred[0], 32, 64);
   return check_output_q15(pred, expected, 8);
 }
 
@@ -147,12 +142,7 @@ int test_q15_v_scalar_add() {
   const Q15_T expected[8] = {16378, 13638, 16378, 9787, 14861, 16378, 10661, 11018};
   Q15_T pred[8];
 
-  #ifdef SHIFT
-    q15_v_scalar_add(qscalar_A, &qvec_B[0], 8, &pred[0], 8, 0, 0);
-  #else
-    q15_v_scalar_add(qscalar_A, &qvec_B[0], 8, &pred[0], 256, 1, 1);
-  #endif
-
+  q15_v_scalar_add(qscalar_A, &qvec_B[0], 8, &pred[0], 256, 1, 1);
   return check_output_q15(pred, expected, 8);
 }
 
@@ -163,12 +153,7 @@ int test_q15_v_scalar_sub() {
   const Q15_T expected[8] = {16384, 13624, 16384, 9744, 14856, 16384, 10624, 10984};
   Q15_T pred[8];
 
-  #ifdef SHIFT
-    q15_v_scalar_sub(qscalar_A, &qvec_B[0], 8, &pred[0], 0, 0, 0);
-  #else
-    q15_v_scalar_sub(qscalar_A, &qvec_B[0], 8, &pred[0], 1, 1, 1);
-  #endif
-
+  q15_v_scalar_sub(qscalar_A, &qvec_B[0], 8, &pred[0], 1, 1, 1);
   return check_output_q15(pred, expected, 8);
 }
 
@@ -179,12 +164,7 @@ int test_q15_v_scalar_mul() {
   const Q15_T expected[8] = {16261, 13521, 16261, 9670, 14744, 16261, 10544, 10901};
   Q15_T pred[8];
 
-  #ifdef SHIFT
-    q15_v_scalar_mul(qscalar_A, &qvec_B[0], 8, &pred[0], 7, 8);
-  #else
-    q15_v_scalar_mul(qscalar_A, &qvec_B[0], 8, &pred[0], 128, 256);
-  #endif
-
+  q15_v_scalar_mul(qscalar_A, &qvec_B[0], 8, &pred[0], 128, 256);
   return check_output_q15(pred, expected, 8);
 }
 
@@ -203,12 +183,7 @@ int test_q15_v_scale_up() {
   Q15_T qvec_A[16] = {423, -987, -2342, 1232, -324, 843, 982, 2342, 343, 654, 987, 654, 567, 2876, 987, 1265};
   Q15_T expected[16] = {846, -1974, -4684, 2464, -648, 1686, 1964, 4684, 686, 1308, 1974, 1308, 1134, 5752, 1974, 2530};
 
-  #ifdef SHIFT
-    q15_v_scale_up(&qvec_A[0], 16, &qvec_A[0], 1);
-  #else
-    q15_v_scale_up(&qvec_A[0], 16, &qvec_A[0], 2);
-  #endif
-
+  q15_v_scale_up(&qvec_A[0], 16, &qvec_A[0], 2);
   return check_output_q15(qvec_A, expected, 16);
 }
 
@@ -218,12 +193,11 @@ int test_q15_v_scale_down() {
 
   #ifdef SHIFT
     const Q15_T expected[16] = {2116, -4940, -1171, 616, -1621, 4216, 4911, 1171, 171, 3271, 4938, 3271, 2837, 14382, 4938, 6327};
-    q15_v_scale_down(&qvec_A[0], 16, &qvec_A[0], 1);
   #else
     const Q15_T expected[16] = {2116, -4939, -1171, 616, -1621, 4216, 4911, 1171, 171, 3271, 4938, 3271, 2837, 14382, 4938, 6327};
-    q15_v_scale_down(&qvec_A[0], 16, &qvec_A[0], 2);
   #endif
 
+  q15_v_scale_down(&qvec_A[0], 16, &qvec_A[0], 2);
   return check_output_q15(qvec_A, expected, 16);
 }
 
@@ -235,12 +209,11 @@ int test_q15xq7_q15_m_mulvec() {
 
   #ifdef SHIFT
     const Q15_T expected[8] = {-15, 8, -68, 18, -38, -30, 17, 12};
-    q15xq7_q15_m_mulvec(&qmat_A[0], &qvec_B[0], 8, 4, &pred[0], 7, 6, 2);
   #else
     const Q15_T expected[8] = {-14, 8, -67, 18, -37, -29, 17, 12};
-    q15xq7_q15_m_mulvec(&qmat_A[0], &qvec_B[0], 8, 4, &pred[0], 128, 64, 4);
   #endif
 
+  q15xq7_q15_m_mulvec(&qmat_A[0], &qvec_B[0], 8, 4, &pred[0], 128, 64, 4);
   return check_output_q15(pred, expected, 8);
 }
 
@@ -252,12 +225,11 @@ int test_q15_m_mulvec() {
 
   #ifdef SHIFT
     const Q15_T expected[8] = {-426, -170, -3535, 524, -2740, 87, 52, 292};
-    q15_m_mulvec(&qmat_A[0], &qvec_B[0], 8, 4, &pred[0], 7, 6, 2);
   #else
     const Q15_T expected[8] = {-425, -169, -3534, 524, -2739, 87, 52, 292};
-    q15_m_mulvec(&qmat_A[0], &qvec_B[0], 8, 4, &pred[0], 128, 64, 4);
   #endif
 
+  q15_m_mulvec(&qmat_A[0], &qvec_B[0], 8, 4, &pred[0], 128, 64, 4);
   return check_output_q15(pred, expected, 8);
 }
 
@@ -269,12 +241,7 @@ int test_q15xq7_q15_m_sparse_mulvec() {
   const Q15_T expected[3] = {87, 3, 48};
   Q15_T pred[3] = {};
 
-  #ifdef SHIFT
-    q15xq7_q15_m_sparse_mulvec(&qrow_indices[0], &qmat_values[0], &qvec_A[0], 3, &pred[0], 0, 0, 0);
-  #else
-    q15xq7_q15_m_sparse_mulvec(&qrow_indices[0], &qmat_values[0], &qvec_A[0], 3, &pred[0], 1, 1, 1);
-  #endif
-
+  q15xq7_q15_m_sparse_mulvec(&qrow_indices[0], &qmat_values[0], &qvec_A[0], 3, &pred[0], 1, 1, 1);
   return check_output_q15(pred, expected, 3);
 }
 
@@ -286,12 +253,7 @@ int test_q15_m_sparse_mulvec() {
   const Q15_T expected[3] = {87, 3, 48};
   Q15_T pred[3] = {};
 
-  #ifdef SHIFT
-    q15_m_sparse_mulvec(&qrow_indices[0], &qmat_values[0], &qvec_A[0], 3, &pred[0], 0, 0, 0);
-  #else
-    q15_m_sparse_mulvec(&qrow_indices[0], &qmat_values[0], &qvec_A[0], 3, &pred[0], 1, 1, 1);
-  #endif
-
+  q15_m_sparse_mulvec(&qrow_indices[0], &qmat_values[0], &qvec_A[0], 3, &pred[0], 1, 1, 1);
   return check_output_q15(pred, expected, 3);
 }
 
@@ -335,12 +297,7 @@ int test_q7_t_add() {
                                         67, 22};
   Q7_T pred[16];
 
-  #ifdef SHIFT
-    q7_t_add(&qten_A[0], &qten_B[0], 2, 2, 2, 2, &pred[0], 0, 1, 1);
-  #else
-    q7_t_add(&qten_A[0], &qten_B[0], 2, 2, 2, 2, &pred[0], 1, 2, 2);
-  #endif
-
+  q7_t_add(&qten_A[0], &qten_B[0], 2, 2, 2, 2, &pred[0], 1, 2, 2);
   return check_output_q7(pred, expected, 16);
 }
 
@@ -384,12 +341,7 @@ int test_q15_t_add() {
                                          6370, 5971};
   Q15_T pred[16];
 
-  #ifdef SHIFT
-    q15_t_add(&qten_A[0], &qten_B[0], 2, 2, 2, 2, &pred[0], 0, 1, 1);
-  #else
-    q15_t_add(&qten_A[0], &qten_B[0], 2, 2, 2, 2, &pred[0], 1, 2, 2);
-  #endif
-
+  q15_t_add(&qten_A[0], &qten_B[0], 2, 2, 2, 2, &pred[0], 1, 2, 2);
   return check_output_q15(pred, expected, 16);
 }
 
@@ -422,12 +374,7 @@ int test_q7xq15_q7_t_add_vec() {
                                         50, 19};
   Q7_T pred[16];
 
-  #ifdef SHIFT
-    q7xq15_q7_t_add_vec(&qten_A[0], &qvec_B[0], 2, 2, 2, 2, &pred[0], 0, 7, 1);
-  #else
-    q7xq15_q7_t_add_vec(&qten_A[0], &qvec_B[0], 2, 2, 2, 2, &pred[0], 1, 128, 2);
-  #endif
-
+  q7xq15_q7_t_add_vec(&qten_A[0], &qvec_B[0], 2, 2, 2, 2, &pred[0], 1, 128, 2);
   return check_output_q7(pred, expected, 16);
 }
 
@@ -460,12 +407,7 @@ int test_q15_t_add_vec() {
                                          6787, 5245};
   Q15_T pred[16];
 
-  #ifdef SHIFT
-    q15_t_add_vec(&qten_A[0], &qvec_B[0], 2, 2, 2, 2, &pred[0], 0, 1, 1);
-  #else
-    q15_t_add_vec(&qten_A[0], &qvec_B[0], 2, 2, 2, 2, &pred[0], 1, 2, 2);
-  #endif
-
+  q15_t_add_vec(&qten_A[0], &qvec_B[0], 2, 2, 2, 2, &pred[0], 1, 2, 2);
   return check_output_q15(pred, expected, 16);
 }
 
@@ -614,17 +556,10 @@ int test_q7xq15_q7_convolution() {
                                           0, 0};
   Q7_T pred_A[2 * 1 * 1 * 2], pred_B[2 * 1 * 1 * 1], pred_C[2 * 2 * 2 * 2], pred_D[2 * 3 * 3 * 2];
 
-  #ifdef SHIFT
-    q7xq15_q7_convolution(qmat_A, qmat_B, pred_A, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 2);
-    q7xq15_q7_convolution(qmat_A, qmat_C, pred_B, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 3);
-    q7xq15_q7_convolution(qmat_A, qmat_D, pred_C, 2, 2, 2, 2, 3, 3, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 3);
-    q7xq15_q7_convolution(qmat_A, qmat_B, pred_D, 2, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 2, 2, 2, 1, 1, 3, 3, 1, 1, 3);
-  #else
-    q7xq15_q7_convolution(qmat_A, qmat_B, pred_A, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 4);
-    q7xq15_q7_convolution(qmat_A, qmat_C, pred_B, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 8);
-    q7xq15_q7_convolution(qmat_A, qmat_D, pred_C, 2, 2, 2, 2, 3, 3, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8);
-    q7xq15_q7_convolution(qmat_A, qmat_B, pred_D, 2, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 8);
-  #endif
+  q7xq15_q7_convolution(qmat_A, qmat_B, pred_A, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 4);
+  q7xq15_q7_convolution(qmat_A, qmat_C, pred_B, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 8);
+  q7xq15_q7_convolution(qmat_A, qmat_D, pred_C, 2, 2, 2, 2, 3, 3, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8);
+  q7xq15_q7_convolution(qmat_A, qmat_B, pred_D, 2, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 8);
 
   return (check_output_q7(pred_A, expected_A, 4) || check_output_q7(pred_B, expected_B, 2) || check_output_q7(pred_C, expected_C, 16) || check_output_q7(pred_D, expected_D, 36));
 }
@@ -710,17 +645,10 @@ int test_q7xq15_q15_convolution() {
                                            0, 0};
   Q15_T pred_A[2 * 1 * 1 * 2], pred_B[2 * 1 * 1 * 1], pred_C[2 * 2 * 2 * 2], pred_D[2 * 3 * 3 * 2];
 
-  #ifdef SHIFT
-    q7xq15_q15_convolution(qmat_A, qmat_B, pred_A, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 2);
-    q7xq15_q15_convolution(qmat_A, qmat_C, pred_B, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 3);
-    q7xq15_q15_convolution(qmat_A, qmat_D, pred_C, 2, 2, 2, 2, 3, 3, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 3);
-    q7xq15_q15_convolution(qmat_A, qmat_B, pred_D, 2, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 2, 2, 2, 1, 1, 3, 3, 1, 1, 3);
-  #else
-    q7xq15_q15_convolution(qmat_A, qmat_B, pred_A, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 4);
-    q7xq15_q15_convolution(qmat_A, qmat_C, pred_B, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 8);
-    q7xq15_q15_convolution(qmat_A, qmat_D, pred_C, 2, 2, 2, 2, 3, 3, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8);
-    q7xq15_q15_convolution(qmat_A, qmat_B, pred_D, 2, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 8);
-  #endif
+  q7xq15_q15_convolution(qmat_A, qmat_B, pred_A, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 4);
+  q7xq15_q15_convolution(qmat_A, qmat_C, pred_B, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 8);
+  q7xq15_q15_convolution(qmat_A, qmat_D, pred_C, 2, 2, 2, 2, 3, 3, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8);
+  q7xq15_q15_convolution(qmat_A, qmat_B, pred_D, 2, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 8);
 
   return (check_output_q15(pred_A, expected_A, 4) || check_output_q15(pred_B, expected_B, 2) || check_output_q15(pred_C, expected_C, 16) || check_output_q15(pred_D, expected_D, 36));
 }
@@ -806,17 +734,10 @@ int test_q15_convolution() {
                                            0, 0};
   Q15_T pred_A[2 * 1 * 1 * 2], pred_B[2 * 1 * 1 * 1], pred_C[2 * 2 * 2 * 2], pred_D[2 * 3 * 3 * 2];
 
-  #ifdef SHIFT
-    q15_convolution(qmat_A, qmat_B, pred_A, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 2);
-    q15_convolution(qmat_A, qmat_C, pred_B, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 3);
-    q15_convolution(qmat_A, qmat_D, pred_C, 2, 2, 2, 2, 3, 3, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 3);
-    q15_convolution(qmat_A, qmat_B, pred_D, 2, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 2, 2, 2, 1, 1, 3, 3, 1, 1, 3);
-  #else
-    q15_convolution(qmat_A, qmat_B, pred_A, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 4);
-    q15_convolution(qmat_A, qmat_C, pred_B, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 8);
-    q15_convolution(qmat_A, qmat_D, pred_C, 2, 2, 2, 2, 3, 3, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8);
-    q15_convolution(qmat_A, qmat_B, pred_D, 2, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 8);
-  #endif
+  q15_convolution(qmat_A, qmat_B, pred_A, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 4);
+  q15_convolution(qmat_A, qmat_C, pred_B, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 8);
+  q15_convolution(qmat_A, qmat_D, pred_C, 2, 2, 2, 2, 3, 3, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8);
+  q15_convolution(qmat_A, qmat_B, pred_D, 2, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 8);
 
   return (check_output_q15(pred_A, expected_A, 4) || check_output_q15(pred_B, expected_B, 2) || check_output_q15(pred_C, expected_C, 16) || check_output_q15(pred_D, expected_D, 36));
 }

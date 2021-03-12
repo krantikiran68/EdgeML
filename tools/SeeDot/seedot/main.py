@@ -29,7 +29,7 @@ detailed explanation of how the various modules interact with each other.
 
 class Main:
 
-    def __init__(self, algo, encoding, target, trainingFile, testingFile, modelDir, sf, metric, dataset, numOutputs, source):
+    def __init__(self, algo, encoding, target, trainingFile, testingFile, modelDir, sf, metric, dataset, numOutputs, source, shift):
         self.algo, self.encoding, self.target = algo, encoding, target
         self.trainingFile, self.testingFile, self.modelDir = trainingFile, testingFile, modelDir
         self.sf = sf
@@ -47,6 +47,8 @@ class Main:
             # Number of outputs, it is 1 for a single-class prediction. For n simultaneous predictions, it is n.
         self.source = source
             # SeeDot or ONNX or TensorFlow.
+        self.shift = shift
+            # Use Shift operations or Multiplication/Division operations
         self.variableSubstitutions = {}
             # Evaluated during profiling code run (runForFloat). During compilation, variable names get substituted
             # into other names, which is stored in this variable. It is required in the case that an attribute
@@ -256,7 +258,7 @@ class Main:
         os.chdir(os.path.join(config.tempdir, "Predictor"))
 
         obj = Predictor(self.algo, encoding, datasetType,
-                        outputDir, self.scaleForX, self.scalesForX, self.scaleForY, self.scalesForY, self.problemType, self.numOutputs)
+                        outputDir, self.scaleForX, self.scalesForX, self.scaleForY, self.scalesForY, self.problemType, self.numOutputs, self.shift)
         execMap = obj.run()
 
         os.chdir(curDir)

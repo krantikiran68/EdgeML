@@ -20,7 +20,7 @@ The accuracy and other statistics are written to the output file specified.
 
 class Predictor:
 
-    def __init__(self, algo, encoding, datasetType, outputDir, scaleForX, scalesForX, scaleForY, scalesForY, problemType, numOutputs):
+    def __init__(self, algo, encoding, datasetType, outputDir, scaleForX, scalesForX, scaleForY, scalesForY, problemType, numOutputs, shift):
         self.algo, self.encoding, self.datasetType = algo, encoding, datasetType
 
         self.outputDir = outputDir
@@ -33,7 +33,7 @@ class Predictor:
 
         self.problemType = problemType
         self.numOutputs = numOutputs
-
+        self.shift = shift
         self.genHeaderFile()
 
     # Depending on the parameters set in config.py, util.py, this method generates a header file datatypes.h
@@ -116,7 +116,10 @@ class Predictor:
     def buildForLinux(self):
         Util.getLogger().debug("Build...")
 
-        args = ["make"]
+        if self.shift:
+            args = ["make", "SHIFT=True"]
+        else:
+            args = ["make"]
 
         logFile = os.path.join(self.outputDir, "build.txt")
         with open(logFile, 'w') as file:

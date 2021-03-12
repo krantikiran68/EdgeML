@@ -4,7 +4,7 @@
 CC=g++
 CFLAGS=-Wall -Wno-narrowing -p -g -fPIC -O3 -std=c++11 -pthread
 
-ifdef SHIFT
+ifeq ($(SHIFT), True)
 CFLAGS+= -DSHIFT
 endif
 

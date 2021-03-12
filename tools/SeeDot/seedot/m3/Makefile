@@ -5,6 +5,10 @@ LDFLAGS=-lm -ldl
 CC=gcc
 CFLAGS=-g -fPIC -O3 -w
 
+ifeq ($(SHIFT), True)
+CFLAGS+= -DSHIFT
+endif
+
 INCLUDE_DIR=./
 IFLAGS=-I $(INCLUDE_DIR)
 

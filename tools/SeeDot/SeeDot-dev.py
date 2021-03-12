@@ -90,8 +90,8 @@ class MainDriver:
         parser.add_argument("-l", "--log", choices=config.Log.all,
                             default=config.Log.default, metavar='', help="Logging level (in increasing order)\
                              ['error', 'critical', 'warning', 'info', 'debug'] (Default: 'error')")
-        parser.add_argument("-sh", "--shift", type=bool,
-                            metavar='', help="Use shift operations in place of multiplication and divisions")
+        parser.add_argument("-sh", "--use-shift", action="store_true",
+                            help="Use shift operations in place of multiplication and divisions")
         parser.add_argument("-lsf", "--load-sf", action="store_true",
                             help=argparse.SUPPRESS)
         parser.add_argument("-tdr", "--tempdir", metavar='',
@@ -223,7 +223,7 @@ class MainDriver:
             numOutputs = self.args.numOutputs
 
             obj = main.Main(algo, encoding, target, trainingInput,
-                            testingInput, modelDir, sf, metric, dataset, numOutputs, self.args.source, self.args.shift)
+                            testingInput, modelDir, sf, metric, dataset, numOutputs, self.args.source, self.args.use_shift)
             obj.run()
 
             acc = obj.testingAccuracy

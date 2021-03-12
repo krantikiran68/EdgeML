@@ -116,10 +116,7 @@ class Predictor:
     def buildForLinux(self):
         Util.getLogger().debug("Build...")
 
-        if self.shift:
-            args = ["make", "SHIFT=True"]
-        else:
-            args = ["make"]
+        args = ["make", "SHIFT=%s"%(self.shift)]
 
         logFile = os.path.join(self.outputDir, "build.txt")
         with open(logFile, 'w') as file:

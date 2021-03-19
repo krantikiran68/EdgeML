@@ -8,6 +8,7 @@ from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.ops import gen_math_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops.rnn_cell_impl import RNNCell
+from tensorflow.python.keras.layers.legacy_rnn.rnn_cell_impl import RNNCell
 
 
 def gen_non_linearity(A, non_linearity):
@@ -40,7 +41,7 @@ def gen_non_linearity(A, non_linearity):
         return non_linearity(A)
 
 
-class FastGRNNCell(RNNCell):
+class FastGRNNCell(tf.compat.v1.nn.rnn_cell.RNNCell):
     '''
     FastGRNN Cell with Both Full Rank and Low Rank Formulations
     Has multiple activation functions for the gates

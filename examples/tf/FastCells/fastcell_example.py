@@ -4,7 +4,7 @@
 import helpermethods
 import tensorflow as tf
 import numpy as np
-import sys
+import sys, os
 
 from edgeml_tf.trainer.fastTrainer import FastTrainer
 from edgeml_tf.graph.rnn import FastGRNNCell
@@ -16,8 +16,10 @@ from edgeml_tf.graph.rnn import LSTMLRCell
 
 def main():
     # Fixing seeds for reproducibility
-    tf.set_random_seed(42)
+    tf.random.set_seed(42)
     np.random.seed(42)
+    tf.compat.v1.disable_eager_execution()
+
 
     # Hyper Param pre-processing
     args = helpermethods.getArgs()
@@ -49,9 +51,9 @@ def main():
     assert dataDimension % inputDims == 0, "Infeasible per step input, " + \
         "Timesteps have to be integer"
 
-    X = tf.placeholder(
+    X = tf.compat.v1.placeholder(
         "float", [None, int(dataDimension / inputDims), inputDims])
-    Y = tf.placeholder("float", [None, numClasses])
+    Y = tf.compat.v1.placeholder("float", [None, numClasses])
 
     currDir = helpermethods.createTimeStampDir(dataDir, cell)
 
@@ -86,12 +88,45 @@ def main():
         FastCell, X, Y, sW=sW, sU=sU,
         learningRate=learningRate, outFile=outFile)
 
-    sess = tf.InteractiveSession()
-    sess.run(tf.global_variables_initializer())
+    sess = tf.compat.v1.InteractiveSession()
+    sess.run(tf.compat.v1.global_variables_initializer())
 
     FastCellTrainer.train(batchSize, totalEpochs, sess, Xtrain, Xtest,
                           Ytrain, Ytest, decayStep, decayRate,
                           dataDir, currDir)
+
+    
+    idx = 0
+    if FastCell._num_weight_matrices[0] == 1:
+        # Vars.append(self.W)
+        idx = idx + 1
+        FastCell.W = FastCellTrainer.FastParams[0]
+    else:
+        # Vars.extend([self.W1, self.W2])
+        idx = idx + 2
+        FastCell.W1 = FastCellTrainer.FastParams[0]
+        FastCell.W2 = FastCellTrainer.FastParams[1]
+
+
+    if FastCell._num_weight_matrices[1] == 1:
+        # Vars.append(self.U)
+        idx = idx + 1
+        FastCell.U = FastCellTrainer.FastParams[1]
+    else:
+        # Vars.extend([self.U1, self.U2])
+        idx = idx + 2
+        FastCell.U1 = FastCellTrainer.FastParams[2]
+        FastCell.U2 = FastCellTrainer.FastParams[3]
+
+    FastCell.bias_gate = FastCellTrainer.FastParams[idx]
+    FastCell.bias_update = FastCellTrainer.FastParams[idx + 1]
+
+    FastCell.zeta = FastCellTrainer.FastParams[idx + 2]
+    FastCell.nu = FastCellTrainer.FastParams[idx + 3]
+
+    model = tf.keras.Sequential(FastCell)
+
+    tf.saved_model.save(model, 'model')
 
 
 if __name__ == '__main__':

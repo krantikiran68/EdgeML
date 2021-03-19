@@ -227,6 +227,18 @@ def preProcessData(dataDir):
     Xtrain = (Xtrain - mean) / std
 
     Xtest = (Xtest - mean) / std
+    
+    normXtrain = np.zeros(train.shape)
+    normXtest = np.zeros(test.shape)
+    
+    normXtrain[:, 1:] = Xtrain
+    normXtrain[:, 0] = train[:, 0]
+    np.save("train_new.npy", normXtrain)
+
+    normXtest[:, 1:] = Xtest
+    normXtest[:, 0] = test[:, 0]
+    np.save("test_new.npy", normXtest)
+    
     # End Mean Var normalisation
 
     lab = Ytrain_.astype('uint8')

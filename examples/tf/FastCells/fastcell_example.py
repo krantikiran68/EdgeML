@@ -53,7 +53,7 @@ def main():
     # Fixing seeds for reproducibility
     tf.random.set_seed(42)
     np.random.seed(42)
-    # tf.compat.v1.disable_eager_execution()
+    tf.compat.v1.disable_eager_execution()
 
 
     # Hyper Param pre-processing
@@ -83,17 +83,17 @@ def main():
     (dataDimension, numClasses, Xtrain, Ytrain, Xtest, Ytest,
      mean, std) = helpermethods.preProcessData(dataDir)
 
-    # assert dataDimension % inputDims == 0, "Infeasible per step input, " + \
-    #     "Timesteps have to be integer"
+    assert dataDimension % inputDims == 0, "Infeasible per step input, " + \
+        "Timesteps have to be integer"
 
-    # X = tf.compat.v1.placeholder(
-    #     "float", [None, int(dataDimension / inputDims), inputDims])
-    # Y = tf.compat.v1.placeholder("float", [None, numClasses])
+    X = tf.compat.v1.placeholder(
+        "float", [None, int(dataDimension / inputDims), inputDims])
+    Y = tf.compat.v1.placeholder("float", [None, numClasses])
 
-    # currDir = helpermethods.createTimeStampDir(dataDir, cell)
+    currDir = helpermethods.createTimeStampDir(dataDir, cell)
 
-    # helpermethods.dumpCommand(sys.argv, currDir)
-    # helpermethods.saveMeanStd(mean, std, currDir)
+    helpermethods.dumpCommand(sys.argv, currDir)
+    helpermethods.saveMeanStd(mean, std, currDir)
 
     if cell == "FastGRNN":
         FastCell = FastGRNNCell(hiddenDims,
@@ -119,21 +119,19 @@ def main():
     else:
         sys.exit('Exiting: No Such Cell as ' + cell)
 
-    # FastCellTrainer = FastTrainer(
-    #     FastCell, X, Y, sW=sW, sU=sU,
-    #     learningRate=learningRate, outFile=outFile)
+    FastCellTrainer = FastTrainer(
+        FastCell, X, Y, sW=sW, sU=sU,
+        learningRate=learningRate, outFile=outFile)
 
-    # sess = tf.compat.v1.InteractiveSession()
-    # sess.run(tf.compat.v1.global_variables_initializer())
+    sess = tf.compat.v1.InteractiveSession()
+    sess.run(tf.compat.v1.global_variables_initializer())
 
-    # FastCellTrainer.train(batchSize, totalEpochs, sess, Xtrain, Xtest,
-    #                       Ytrain, Ytest, decayStep, decayRate,
-    #                       dataDir, currDir)
+    FastCellTrainer.train(batchSize, totalEpochs, sess, Xtrain, Xtest,
+                          Ytrain, Ytest, decayStep, decayRate,
+                          dataDir, currDir)
     
-    # logits, _, _ = FastCellTrainer.computeGraph()
-    # model = tf.keras.Model(logits)
-
-    my_dir = "/home/krantikiran/EdgeML/examples/tf/FastCells/Google-30/FastGRNNResults/2021-03-23T23-49-52"
+   
+    my_dir = currDir
     os.chdir(my_dir)
     idx = 0
     if FastCell._num_weight_matrices[0] == 1:
@@ -168,8 +166,15 @@ def main():
     # input_test = tf.convert_to_tensor(np.reshape(Xtest[0], (3168, 1)), dtype=tf.float32)
     model = FastGRNNPredictor(FastCell, tf.convert_to_tensor(np.load("FC.npy"), dtype=tf.float32), tf.convert_to_tensor(np.load("FCbias.npy"), dtype=tf.float32))
     model.compile(optimizer='adam')
-    model.fit(x=Xtrain, y=Ytrain)
+    model.build(input_shape=[3168, 1])
+
     model.save('model')
+
+    converter = tf.lite.TFLiteConverter.from_saved_model('model')
+    tflite_model = converter.convert()
+
+    with open('../../../fastgrnn.tflite', 'wb') as f:
+        f.write(tflite_model)   
 
 
 if __name__ == '__main__':

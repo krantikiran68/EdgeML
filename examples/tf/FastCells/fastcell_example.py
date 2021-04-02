@@ -30,20 +30,24 @@ class FastGRNNPredictor(tf.keras.Model):
         
         cond = lambda i, x, H: i<99
         def while_body(i, x, H):
-            XX = x[32*i:32*(i+1), :]
-            a = math_ops.matmul( math_ops.matmul(XX, self.model.W1, transpose_a=True), self.model.W2)
+
+            x = tf.reshape(x, [1, 3168])
+            XX = x[:, 32*i:32*(i+1)]
+            XX = tf.reshape(XX, [1,32])
+            a = math_ops.matmul( math_ops.matmul(XX, self.model.W1), self.model.W2)
             b = math_ops.matmul( math_ops.matmul(H, self.model.U1), self.model.U2)
             c = a + b
             g = math_ops.sigmoid( c + self.model.bias_gate)
             h = math_ops.tanh(c + self.model.bias_update)
-            H = (g * H) + (math_ops.sigmoid(self.model.zeta) * (1.0 - g) + math_ops.sigmoid(self.model.nu)) * h
+            H = (g * H) + ((math_ops.sigmoid(self.model.zeta) * (1.0 - g)) + (math_ops.sigmoid(self.model.nu) * h))
+            # H = tf.reshape(H, [1, 100])
             return i+1, x, H
         
         i = 0
-        _, H = tf.while_loop(cond, while_body, loop_vars=[i, x, H])
+        _, _, H = tf.while_loop(cond, while_body, loop_vars=[i, x, H])
         score = math_ops.matmul(H, self.FC) + self.FCbias
 
-        return tf.math.argmax(score)
+        return score # tf.math.argmax(score, output_type=tf.dtypes.int64)
             
         
 
@@ -162,11 +166,10 @@ def main():
     FastCell.nu = tf.convert_to_tensor(np.load("nu.npy"), dtype=tf.float32)# FastCellTrainer.FastParams[idx + 3]
 
 
-    # model = tf.keras.Sequential(FastCell, FastCellTrainer.FC, FastCellTrainer.FCbias)
-    # input_test = tf.convert_to_tensor(np.reshape(Xtest[0], (3168, 1)), dtype=tf.float32)
     model = FastGRNNPredictor(FastCell, tf.convert_to_tensor(np.load("FC.npy"), dtype=tf.float32), tf.convert_to_tensor(np.load("FCbias.npy"), dtype=tf.float32))
-    model.compile(optimizer='adam')
-    model.build(input_shape=[3168, 1])
+    model.compile(optimizer='adam', loss=tf.keras.losses.SparseCategoricalCrossentropy())
+
+    model.predict(x=np.float32(Xtest[0].reshape([1, 3168])), batch_size=1, verbose=1)
 
     model.save('model')
 
@@ -179,3 +182,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

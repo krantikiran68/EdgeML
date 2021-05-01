@@ -1,0 +1,3 @@
+[submodule "tools/SeeDot/seedot/Predictor/SoftPosit"]
+	path = tools/SeeDot/seedot/Predictor/SoftPosit
+	url = https://gitlab.com/cerlane/SoftPosit.git

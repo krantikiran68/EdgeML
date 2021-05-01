@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include "softposit.h"
+
 #pragma once
 
 // Used by old SeeDot, invoked before the inference code is executed, it is used to
@@ -10,6 +12,11 @@ void initializeProfiling();
 // Methods used by old SeeDot to capture the range of a variable in floating point mode.
 // Used only for exponentiation in old SeeDot.
 void updateRange(float x);
+
+void updateRange(posit8_t x);
+void updateRange(posit16_t x);
+void updateRange(posit32_t x);
+
 void updateRangeOfExp(float x);
 // Used by old SeeDot to store the range of exponentiation variable.
 void dumpRange(std::string outputFile);
@@ -30,6 +37,18 @@ void checkRange2(float* A, int I, int J);
 void Profile4(float* A, int I, int J, int K, int L, std::string name);
 void Profile3(float* A, int I, int J, int K, std::string name);
 void Profile2(float* A, int I, int J, std::string name);
+
+void Profile4(posit8_t* A, int I, int J, int K, int L, std::string name);
+void Profile3(posit8_t* A, int I, int J, int K, std::string name);
+void Profile2(posit8_t* A, int I, int J, std::string name);
+
+void Profile4(posit16_t* A, int I, int J, int K, int L, std::string name);
+void Profile3(posit16_t* A, int I, int J, int K, std::string name);
+void Profile2(posit16_t* A, int I, int J, std::string name);
+
+void Profile4(posit32_t* A, int I, int J, int K, int L, std::string name);
+void Profile3(posit32_t* A, int I, int J, int K, std::string name);
+void Profile2(posit32_t* A, int I, int J, std::string name);
 
 // Used to capture the difference of corresponding variables in floating-point and fixed-point mode.
 void diff(float* A, MYINT* B, MYINT scale, MYINT I, MYINT J);

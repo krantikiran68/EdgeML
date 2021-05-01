@@ -12,6 +12,7 @@
 
 #include "datatypes.h"
 #include "profile.h"
+#include "softposit.h"
 
 using namespace std;
 
@@ -29,6 +30,41 @@ void initializeProfiling() {
 }
 
 void updateRange(float x) {
+	if (x < m_all) {
+		m_all = x;
+	}
+	if (x > M_all) {
+		M_all = x;
+	}
+	return;
+}
+
+void updateRange(posit8_t x_tmp) {
+	float x = convertP8ToDouble(x_tmp);
+	if (x < m_all) {
+		m_all = x;
+	}
+	if (x > M_all) {
+		M_all = x;
+	}
+	return;
+}
+
+
+void updateRange(posit16_t x_tmp) {
+	float x = convertP16ToDouble(x_tmp);
+	if (x < m_all) {
+		m_all = x;
+	}
+	if (x > M_all) {
+		M_all = x;
+	}
+	return;
+}
+
+
+void updateRange(posit32_t x_tmp) {
+	float x = convertP32ToDouble(x_tmp);
 	if (x < m_all) {
 		m_all = x;
 	}
@@ -276,3 +312,195 @@ void diff(float* A, MYINT* B, MYINT scale, MYINT I, MYINT J, MYINT K) {
 
 	return;
 }
+
+void Profile4(posit8_t* A, int I, int J, int K, int L, string name) {
+	if (!profilingEnabled) {
+		return;
+	}
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+			for (int k = 0; k < K; k++) {
+				for (int l = 0; l < L; l++) {
+					min_temp[name] = min_temp[name] < convertP8ToDouble(A[i * J * K * L + j * K * L + k * L + l]) ? min_temp[name] : convertP8ToDouble(A[i * J * K * L + j * K * L + k * L + l]);
+					max_temp[name] = max_temp[name] > convertP8ToDouble(A[i * J * K * L + j * K * L + k * L + l]) ? max_temp[name] : convertP8ToDouble(A[i * J * K * L + j * K * L + k * L + l]);
+					all_values[name].push_back(convertP8ToDouble(A[i * J * K * L + j * K * L + k * L + l]));
+				}
+			}
+		}
+	}
+}
+
+void Profile3(posit8_t* A, int I, int J, int K, string name) {
+	if (!profilingEnabled) {
+		return;
+	}
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+			for (int k = 0; k < K; k++) {
+                float a = convertP8ToDouble(A[i * J * K + j * K + k]);
+				min_temp[name] = min_temp[name] < a ? min_temp[name] : a;
+				max_temp[name] = max_temp[name] > a ? max_temp[name] : a;
+				all_values[name].push_back(a);
+			}
+		}
+	}
+}
+
+void Profile2(posit8_t* A, int I, int J, string name) {
+	if (!profilingEnabled) {
+		return;
+	}
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+            float a = convertP8ToDouble(A[i * J + j]);
+			min_temp[name] = min_temp[name] < a ? min_temp[name] : a;
+			max_temp[name] = max_temp[name] > a ? max_temp[name] : a;
+			all_values[name].push_back(a);
+		}
+	}
+}
+
+
+void Profile4(posit16_t* A, int I, int J, int K, int L, string name) {
+	if (!profilingEnabled) {
+		return;
+	}
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+			for (int k = 0; k < K; k++) {
+				for (int l = 0; l < L; l++) {
+                    float a = convertP16ToDouble(A[i * J * K * L + j * K * L + k * L + l]);
+					min_temp[name] = min_temp[name] < a ? min_temp[name] : a;
+					max_temp[name] = max_temp[name] > a ? max_temp[name] : a;
+					all_values[name].push_back(a);
+				}
+			}
+		}
+	}
+}
+
+void Profile3(posit16_t* A, int I, int J, int K, string name) {
+	if (!profilingEnabled) {
+		return;
+	}
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+			for (int k = 0; k < K; k++) {
+                float a = convertP16ToDouble(A[i * J * K + j * K + k]);
+				min_temp[name] = min_temp[name] < a ? min_temp[name] : a;
+				max_temp[name] = max_temp[name] > a ? max_temp[name] : a;
+				all_values[name].push_back(a);
+			}
+		}
+	}
+}
+
+void Profile2(posit16_t* A, int I, int J, string name) {
+	if (!profilingEnabled) {
+		return;
+	}
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+            float a = convertP16ToDouble(A[i * J + j]);
+			min_temp[name] = min_temp[name] < a ? min_temp[name] : a;
+			max_temp[name] = max_temp[name] > a ? max_temp[name] : a;
+			all_values[name].push_back(a);
+		}
+	}
+}
+
+
+void Profile4(posit32_t* A, int I, int J, int K, int L, string name) {
+	if (!profilingEnabled) {
+		return;
+	}
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+			for (int k = 0; k < K; k++) {
+				for (int l = 0; l < L; l++) {
+                    float a = convertP32ToDouble(A[i * J * K * L + j * K * L + k * L + l]);
+					min_temp[name] = min_temp[name] < a ? min_temp[name] : a;
+					max_temp[name] = max_temp[name] > a ? max_temp[name] : a;
+					all_values[name].push_back(a);
+				}
+			}
+		}
+	}
+}
+
+void Profile3(posit32_t* A, int I, int J, int K, string name) {
+	if (!profilingEnabled) {
+		return;
+	}
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+			for (int k = 0; k < K; k++) {
+                float a = convertP32ToDouble(A[i * J * K + j * K + k]);
+				min_temp[name] = min_temp[name] < a ? min_temp[name] : a;
+				max_temp[name] = max_temp[name] > a ? max_temp[name] : a;
+				all_values[name].push_back(a);
+			}
+		}
+	}
+}
+
+void Profile2(posit32_t* A, int I, int J, string name) {
+	if (!profilingEnabled) {
+		return;
+	}
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+            float a = convertP32ToDouble(A[i * J + j]);
+			min_temp[name] = min_temp[name] < a ? min_temp[name] : a;
+			max_temp[name] = max_temp[name] > a ? max_temp[name] : a;
+			all_values[name].push_back(a);
+		}
+	}
+}
+
+

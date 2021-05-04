@@ -135,7 +135,7 @@ class Compiler:
     def genCodeWithFuncCalls(self, ast):
         outputLog = writer.Writer(self.outputLogFile)
 
-        if util.getEncoding() == config.Encoding.fixed and config.ddsEnabled:
+        if ((util.getEncoding() == config.Encoding.fixed) or (util.getEncoding() == config.Encoding.posit)) and config.ddsEnabled:
             self.intermediateScales = self.readDataDrivenScales()
 
         compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)

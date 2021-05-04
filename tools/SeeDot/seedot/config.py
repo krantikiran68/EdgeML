@@ -86,8 +86,9 @@ class Algo:
 class Encoding:
     fixed = "fixed"
     floatt = "float"
+    posit = "posit"
     default = [fixed]
-    all = [floatt, fixed]
+    all = [floatt, fixed, posit]
 
 
 class DatasetType:

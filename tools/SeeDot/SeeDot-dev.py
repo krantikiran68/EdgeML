@@ -64,7 +64,7 @@ class MainDriver:
                             default=config.Algo.default, metavar='', help="Algorithm to run ['bonsai' or 'protonn' or 'fastgrnn' or 'rnnpool'] \
                            (Default: 'fastgrnn')")
         parser.add_argument("-e", "--encoding", choices=config.Encoding.all,
-                            default=config.Encoding.default, metavar='', help="Floating-point ['float'] or Fixed-point ['fixed'] \
+                            default=config.Encoding.default, metavar='', help="Floating-point ['float'] or Fixed-point ['fixed'] or Posit ['posit']\
                            (Default: 'fixed')")
         parser.add_argument("-d", "--dataset", choices=Dataset.all,
                             default=Dataset.default, metavar='', help="Dataset to use\

@@ -372,7 +372,7 @@ class Main:
 
                 # Refactor and remove this try/catch block in the future.
                 try:
-                    firstCompileSuccess = self.partialCompile(config.Encoding.fixed, config.Target.x86, highestValidScale, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
+                    firstCompileSuccess = self.partialCompile(self.encoding, config.Target.x86, highestValidScale, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
                 except:
                     firstCompileSuccess = False
 
@@ -386,7 +386,7 @@ class Main:
             firstCompileSuccess = False
             while firstCompileSuccess == False:
                 try:
-                    firstCompileSuccess = self.partialCompile(config.Encoding.fixed, config.Target.x86, lowestValidScale, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
+                    firstCompileSuccess = self.partialCompile(self.encoding, config.Target.x86, lowestValidScale, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
                 except:
                     firstCompileSuccess = False
                 if firstCompileSuccess:
@@ -397,7 +397,7 @@ class Main:
             stage_1_bar.close()
 
             # Ignored.
-            self.partialCompile(config.Encoding.fixed, config.Target.x86, lowestValidScale, True, None, -1, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
+            self.partialCompile(self.encoding, config.Target.x86, lowestValidScale, True, None, -1, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
 
             print("Stage II Exploration: Determining scale for all non-\'X\' variables...")
             # The iterator logic is as follows:
@@ -417,7 +417,7 @@ class Main:
                 codeId += 1
                 try:
                     compiled = self.partialCompile(
-                        config.Encoding.fixed, config.Target.x86, i, False, codeId, -1 if codeId != numCodes else codeId, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
+                        self.encoding, config.Target.x86, i, False, codeId, -1 if codeId != numCodes else codeId, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
                 except: # If some code in the middle fails to compile.
                     codeId -=1
                     continue
@@ -426,7 +426,7 @@ class Main:
                 codeIdToScaleFactorMap[codeId] = i
 
             print("Stage II Code Run Started...")
-            res, exit = self.runAll(config.Encoding.fixed, config.DatasetType.training, codeIdToScaleFactorMap)
+            res, exit = self.runAll(self.encoding, config.DatasetType.training, codeIdToScaleFactorMap)
             print("Stage II Code Run Completed!\n")
             if exit == True or res == False:
                 return False
@@ -478,7 +478,7 @@ class Main:
                     numCodes = config.offsetsPerDemotedVariable * len(demoteBatch) + ((9 - config.offsetsPerDemotedVariable) if 'X' in demoteBatch else 0)
                     # 9 offsets tried for X while 'config.offsetsPerDemotedVariable' tried for other variables.
 
-                    self.partialCompile(config.Encoding.fixed, config.Target.x86, self.sf, True, None, -1 if len(demoteBatch) > 0 else 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
+                    self.partialCompile(self.encoding, config.Target.x86, self.sf, True, None, -1 if len(demoteBatch) > 0 else 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
                     codeId = 0
                     contentToCodeIdMap = {}
 
@@ -503,12 +503,12 @@ class Main:
                                 if k not in self.demotedVarsList:
                                     demotedVarsOffsets[k] = demOffset
                             contentToCodeIdMap[tuple(demotedVarsList)][demOffset] = codeId
-                            compiled = self.partialCompile(config.Encoding.fixed, config.Target.x86, self.sf, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demotedVarsList), dict(demotedVarsOffsets))
+                            compiled = self.partialCompile(self.encoding, config.Target.x86, self.sf, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demotedVarsList), dict(demotedVarsOffsets))
                             if compiled == False:
                                 Util.getLogger().error("Variable bitwidth exploration resulted in a compilation error\n")
                                 return False
 
-                    res, exit = self.runAll(config.Encoding.fixed, config.DatasetType.training, None, contentToCodeIdMap)
+                    res, exit = self.runAll(self.encoding, config.DatasetType.training, None, contentToCodeIdMap)
                 
                 print("Stage IV Exploration: Cumulatively demoting variables...")
                 # Stage IV exploration.
@@ -550,7 +550,7 @@ class Main:
                     lastVarIndex = (totalSize * (i+1)) // numBatches
                     demoteBatch = [sortedVars[i] for i in range(firstVarIndex, lastVarIndex)]
 
-                    self.partialCompile(config.Encoding.fixed, config.Target.x86, self.sf, True, None, -1 if len(attemptToDemote) > 0 else 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
+                    self.partialCompile(self.encoding, config.Target.x86, self.sf, True, None, -1 if len(attemptToDemote) > 0 else 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
                     contentToCodeIdMap = {}
                     codeId = 0
                     numCodes = len(demoteBatch)
@@ -566,12 +566,12 @@ class Main:
                         contentToCodeIdMap[tuple(demotedVarsList)] = {}
                         contentToCodeIdMap[tuple(demotedVarsList)][offset] = codeId
                         demotedVarsListToOffsets[tuple(demotedVarsList)] = dict(demotedVarsOffsets)
-                        compiled = self.partialCompile(config.Encoding.fixed, config.Target.x86, self.sf, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demotedVarsList), dict(demotedVarsOffsets))
+                        compiled = self.partialCompile(self.encoding, config.Target.x86, self.sf, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demotedVarsList), dict(demotedVarsOffsets))
                         if compiled == False:
                             Util.getLogger().error("Variable bitwidth exploration resulted in another compilation error\n")
                             return False
 
-                    res, exit = self.runAll(config.Encoding.fixed, config.DatasetType.training, None, contentToCodeIdMap, True)
+                    res, exit = self.runAll(self.encoding, config.DatasetType.training, None, contentToCodeIdMap, True)
 
                 if exit == True or res == False:
                     return False
@@ -632,6 +632,7 @@ class Main:
         print("-------------------------\n")
 
         # Generate input files for training dataset.
+        # Even Posit encoding will accept conversion to fixed encoding
         res = self.convert(config.Encoding.fixed,
                            config.DatasetType.training, config.Target.x86)
         if res == False:
@@ -747,7 +748,7 @@ class Main:
 
         return True
 
-    def runForFixed(self):
+    def runEncoded(self):
         # Collect runtime profile.
         res = self.collectProfileData()
         if res == False:
@@ -835,7 +836,7 @@ class Main:
         sys.setrecursionlimit(10000)
         self.setup()
 
-        if self.encoding == config.Encoding.fixed:
-            return self.runForFixed()
-        else:
+        if self.encoding == config.Encoding.floatt:
             return self.runForFloat()
+        else:
+            return self.runEncoded()

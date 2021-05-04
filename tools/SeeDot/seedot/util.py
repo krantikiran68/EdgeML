@@ -80,6 +80,9 @@ def forFixed():
 def forFloat():
     return Config.encoding == config.Encoding.floatt
 
+def forPosit():
+    return Config.encoding == config.Encoding.posit
+
 def getTarget():
     return Config.target
 

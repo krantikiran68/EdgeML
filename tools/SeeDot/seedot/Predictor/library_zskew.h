@@ -517,208 +517,84 @@ void MatSubBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, float shrA
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void MatMulNN(TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
+void MatMulNN(TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, float shrA, MYINT zeroA, float shrB, MYINT zeroB, float shrC, MYINT zeroC, MYINT n, float M0) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			TypeTemp sum = 0;
 			for (MYITE k = 0; k < K; k++) {
 				TypeTemp a = (TypeTemp) A[i * K + k];
+				a = a - zeroA;
 				TypeTemp b = (TypeTemp) B[k * J + j];
-
+				b = b - zeroB;
 				TypeTemp prod = a * b;
 
-				tmp[k] = prod;
+				sum += prod;
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
-
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
-
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					TypeTemp sum;
-					if (p < (count >> 1)) {
-						if (shr) {
-							sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
-						} else {
-							sum = tmp[2 * p] + tmp[(2 * p) + 1];
-						}
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						if (shr) {
-							sum = tmp[2 * p] / 2;
-						} else {
-							sum = tmp[2 * p];
-						}
-					} else {
-						sum = 0;
-					}
-
-					tmp[p] = sum;
-				}
-
-				count = (count + 1) >> 1;
-				depth++;
-			}
-
-			C[i * J + j] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+			C[i * J + j] = Saturate<TypeC>(((sum*M0) / (1 << n)));
 		}
 	}
 	return;
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void MatMulCN(const TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
+void MatMulCN(const TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, float shrA, MYINT zeroA, float shrB, MYINT zeroB, float shrC, MYINT zeroC, MYINT n, float M0) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			TypeTemp sum = 0;
 			for (MYITE k = 0; k < K; k++) {
 				TypeTemp a = (TypeTemp) A[i * K + k];
+				a = a - zeroA;
 				TypeTemp b = (TypeTemp) B[k * J + j];
-
+				b = b - zeroB;
 				TypeTemp prod = a * b;
 
-				tmp[k] = prod;
+				sum += prod;
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
-
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
-
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					TypeTemp sum;
-					if (p < (count >> 1)) {
-						if (shr) {
-							sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
-						} else {
-							sum = tmp[2 * p] + tmp[(2 * p) + 1];
-						}
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						if (shr) {
-							sum = tmp[2 * p] / 2;
-						} else {
-							sum = tmp[2 * p];
-						}
-					} else {
-						sum = 0;
-					}
-
-					tmp[p] = sum;
-				}
-
-				count = (count + 1) >> 1;
-				depth++;
-			}
-
-			C[i * J + j] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+			C[i * J + j] = Saturate<TypeC>(((sum*M0) / (1 << n)));
 		}
 	}
 	return;
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void MatMulNC(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
+void MatMulNC(TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, float shrA, MYINT zeroA, float shrB, MYINT zeroB, float shrC, MYINT zeroC, MYINT n, float M0) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			TypeTemp sum = 0;
 			for (MYITE k = 0; k < K; k++) {
 				TypeTemp a = (TypeTemp) A[i * K + k];
+				a = a - zeroA;
 				TypeTemp b = (TypeTemp) B[k * J + j];
-
+				b = b - zeroB;
 				TypeTemp prod = a * b;
 
-				tmp[k] = prod;
+				sum += prod;
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
-
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
-
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					TypeTemp sum;
-					if (p < (count >> 1)) {
-						if (shr) {
-							sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
-						} else {
-							sum = tmp[2 * p] + tmp[(2 * p) + 1];
-						}
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						if (shr) {
-							sum = tmp[2 * p] / 2;
-						} else {
-							sum = tmp[2 * p];
-						}
-					} else {
-						sum = 0;
-					}
-
-					tmp[p] = sum;
-				}
-
-				count = (count + 1) >> 1;
-				depth++;
-			}
-
-			C[i * J + j] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+			C[i * J + j] = Saturate<TypeC>(((sum*M0) / (1 << n)));
 		}
 	}
 	return;
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void MatMulCC(const TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
-	for (MYITE i = 0; i < I; i++) {
+void MatMulCC(const TypeA* A, const TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, float shrA, MYINT zeroA, float shrB, MYINT zeroB, float shrC, MYINT zeroC, MYINT n, float M0) {
+for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			TypeTemp sum = 0;
 			for (MYITE k = 0; k < K; k++) {
 				TypeTemp a = (TypeTemp) A[i * K + k];
+				a = a - zeroA;
 				TypeTemp b = (TypeTemp) B[k * J + j];
-
+				b = b - zeroB;
 				TypeTemp prod = a * b;
 
-				tmp[k] = prod;
+				sum += prod;
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
-
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
-
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					TypeTemp sum;
-					if (p < (count >> 1)) {
-						if (shr) {
-							sum = tmp[2 * p] / 2 + tmp[(2 * p) + 1] / 2;
-						} else {
-							sum = tmp[2 * p] + tmp[(2 * p) + 1];
-						}
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						if (shr) {
-							sum = tmp[2 * p] / 2;
-						} else {
-							sum = tmp[2 * p];
-						}
-					} else {
-						sum = 0;
-					}
-
-					tmp[p] = sum;
-				}
-
-				count = (count + 1) >> 1;
-				depth++;
-			}
-
-			C[i * J + j] = Saturate<TypeC>(((tmp[0] / shrA) / shrB) / demote);
+			C[i * J + j] = Saturate<TypeC>(((sum*M0) / (1 << n)));
 		}
 	}
 	return;

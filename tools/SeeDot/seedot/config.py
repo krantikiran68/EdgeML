@@ -56,6 +56,9 @@ permittedClassificationAccuracyLoss = 2.0
 # For a regression algorithm, fixed point code can have this much more numerical loss compared to floating point code. Not used in classification algorithms.
 permittedRegressionNumericalLossMargin = 90.0
 
+# Used in the zero skew representation, this value is used in the quantization of variables
+quantizationLevels = 265 if wordLength == 8 else 65536
+
 # Following classes are used sanity checks for arguments passed to the compiler, to prevent unexpected arguments being passed.
 # These lists should be updated as the compiler is expanded to multiple algorithms and datasets.
 
@@ -83,8 +86,9 @@ class Algo:
 class Encoding:
     fixed = "fixed"
     floatt = "float"
+    zskew = "zskew"
     default = [fixed]
-    all = [floatt, fixed]
+    all = [floatt, fixed, zskew]
 
 
 class DatasetType:

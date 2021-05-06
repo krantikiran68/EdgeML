@@ -59,6 +59,9 @@ permittedRegressionNumericalLossMargin = 90.0
 # Used in the zero skew representation, this value is used in the quantization of variables
 quantizationLevels = 265 if wordLength == 8 else 65536
 
+# Minimum version of gcc required for compilation
+min_gcc_version = 8
+
 # Following classes are used sanity checks for arguments passed to the compiler, to prevent unexpected arguments being passed.
 # These lists should be updated as the compiler is expanded to multiple algorithms and datasets.
 

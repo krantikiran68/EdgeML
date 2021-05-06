@@ -47,6 +47,8 @@ class Converter:
             obj = QuantizerFixed(self.varsForBitwidth, self.allScales, self.numOutputs, self.biasShifts, self.scaleForY)
         elif getEncoding() == config.Encoding.floatt:
             obj = QuantizerFloat(self.numOutputs)
+        elif getEncoding() == config.Encoding.zskew:
+            obj = QuantizerZeroSkew(self.varsForBitwidth, self.allScales, self.numOutputs, self.biasShifts, self.scaleForY)
 
         obj.run(self.source)
         self.sparseMatrixSizes = obj.sparseMatSizes

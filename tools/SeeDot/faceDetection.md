@@ -6,7 +6,7 @@ Face detection is a regression problem that involves an image input with (or wit
 Face detection is supported for x86 and ARM Cortex-M3 target devices.  
 
 Note: 
-1. This README has been tested with **Python 3.7.9**. **GCC** version 8 or higher is required to run quantization.
+1. This README has been tested with **Python 3.7.9**. Quantization with SeeDot requires **GCC** *version 8 or higher*.
 2. The dataset `face-2` corresponds to the model **RPool_Face_QVGA_monochrome** and; `face-4` corresponds to the model **RPool_Face_M4**.
 
 ## Training Face Detection 
@@ -68,7 +68,6 @@ Then, continue running the following commands:
     cd ../examples/pytorch/vision/Face_Detection/
     pip install -r requirements.txt
 ```
-
 
 Steps to download the dataset: 
 
@@ -189,10 +188,10 @@ To finish setting up SeeDot, run the following commands:
     cd ../../../../tools/SeeDot
 
     # For face-2
-    cp seedot/compiler/input/rnnpool-face-2.sd model/rnnpool/face-2/input.sd
+    python fixSeeDotInput.py --seedot_file seedot/compiler/input/rnnpool-face-2.sd --model_dir model/rnnpool/face-2/ --dataset_dir datasets/rnnpool/face-2/ -n 18000
     
     # For face-4
-    cp seedot/compiler/input/rnnpool-face-4.sd model/rnnpool/face-4/input.sd
+    python fixSeeDotInput.py --seedot_file seedot/compiler/input/rnnpool-face-4.sd --model_dir model/rnnpool/face-4/ --dataset_dir datasets/rnnpool/face-4/ -n 18000
 ```
  
 

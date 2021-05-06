@@ -523,3 +523,25 @@ def trimMatrix(X, Y=None):
                 Y_trim.append(Y[i])
 
     return X_trim, Y_trim
+
+def getScaleAndZero(m, M):
+    maxVar = (126) if config.wordLength == 8 else (65534) # 63334 = 2^16 - 1 - 1, 126 = 2^8 -1 -1 
+
+    zero = -1*((M + m)/2)
+
+    m = m + zero
+    M = M + zero
+
+    scale = M / maxVar
+
+    return scale, int(zero / scale)
+
+def scaleMatZeroSkew(mat, scale = None, zero = None):
+    if (scale == None) and (zero == None):
+        scale, zero  = getScaleAndZero(*matRange(mat))
+    
+    assert (scale != None) and (zero != None), "scaleMatZeroSkew, both scale and zero should be non-None"
+    
+    scaledMat = [[(int(cell/scale) + zero) for cell in row] for row in mat]
+
+    return (scaledMat, scale, zero)

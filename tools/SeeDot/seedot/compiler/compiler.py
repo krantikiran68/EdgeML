@@ -20,6 +20,7 @@ import seedot.compiler.codegen.x86 as x86
 import seedot.compiler.codegen.m3 as m3
 
 import seedot.compiler.ir.irBuilder as irBuilder
+import seedot.compiler.ir.irBuilderZeroSkew as IRBuilderZeroSkew
 import seedot.compiler.ir.irUtil as irUtil
 
 import seedot.compiler.TF.ProcessTFGraph as TFMain
@@ -131,14 +132,26 @@ class Compiler:
     def compile(self, ast):
         return self.genCodeWithFuncCalls(ast)
 
+    def initializeIntermediateScales(self):      
+        if util.getEncoding() == config.Encoding.fixed and config.ddsEnabled:
+            self.intermediateScales = self.readDataDrivenScales()
+
+        elif util.getEncoding() == config.Encoding.zskew:
+            assert config.ddsEnabled, "ZSkew Supported only with data driven scaling"
+            self.intermediateScales = self.readDataDrivenScalesAndZeros()
+
     # Takes in the AST and calls the IRBuilder to generate an IR which is a sequence of function calls.
     def genCodeWithFuncCalls(self, ast):
         outputLog = writer.Writer(self.outputLogFile)
 
-        if util.getEncoding() == config.Encoding.fixed and config.ddsEnabled:
-            self.intermediateScales = self.readDataDrivenScales()
+        self.initializeIntermediateScales()
 
-        compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
+        compiler = None
+        if (util.getEncoding() == config.Encoding.floatt) or (util.getEncoding() == config.Encoding.fixed):
+            compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
+        elif util.getEncoding() == config.Encoding.zskew:
+            compiler = irBuilder.IRBuilderZeroSkew(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
+
         res = compiler.visit(ast)
 
         util.getLogger().debug(compiler.varScales)
@@ -190,6 +203,26 @@ class Compiler:
                 var, m, M = entries
                 m, M = float(m), float(M)
                 tempScales[var] = util.computeScalingFactor(max(abs(m) + error, abs(M) + error))
+        return tempScales
+    
+    # The code to read scales and zeros for ZSkew representation
+    def readDataDrivenScalesAndZeros(self):
+        tempScales = {}
+        error = 0.01
+        with open('temp/Predictor/dump.profile', 'r') as f:
+            for line in f:
+
+                entries = line.strip().split(",")
+                var, m, M = entries
+                m, M = float(m), float(M)
+                zero = -1*((m + M)/2)
+                m = m + zero
+                M = M + zero
+                maxVar = 126 if config.wordLength == 8 else 65534
+                scale = M/maxVar
+                zero = int(zero/scale)
+
+                tempScales[var] = scale, zero
         return tempScales
 
     # Post-processing of live ranges to adjust for different scoping level at the first invocation and at the last invocation.

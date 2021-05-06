@@ -347,3 +347,29 @@ class QuantizerFloat(Quantizer):
 
     def transformModel(self):
         pass
+
+class QuantizerZeroSkew(Quantizer):
+    def __init__(self, varsForBitwidth, allScales, numOutputs, biasShifts, scaleForY):
+        super().__init__()
+        self.varsForBitwidth = varsForBitwidth
+        self.allScales = allScales
+        self.numOutputs = numOutputs
+        self.biasShifts = biasShifts
+        self.scaleForY = scaleForY
+        self.promoteParam = []
+
+    # Quantize the matrices.
+    def transformModel(self):
+        for param in self.params:
+            if forArduino() or forM3():
+                scale = self.allScales[param.name]
+                if forM3() and param.name in self.biasShifts.keys():
+                    if self.biasShifts[param.name] < 0:
+                        self.promoteParam.append(param.name)
+                    scale += self.biasShifts[param.name]
+                param.data, _ = scaleMat(param.data, scale)
+            else:
+                if param.name in self.varsForBitwidth:
+                    param.data, _, _ = scaleMatZeroSkew(param.data, self.allScales[param.name][0], self.allScales[param.name[1]])
+                else:
+                    param.data, _, _ = scaleMatZeroSkew(param.data)

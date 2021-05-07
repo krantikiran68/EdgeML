@@ -20,7 +20,7 @@ import seedot.compiler.codegen.x86 as x86
 import seedot.compiler.codegen.m3 as m3
 
 import seedot.compiler.ir.irBuilder as irBuilder
-import seedot.compiler.ir.irBuilderZeroSkew as IRBuilderZeroSkew
+import seedot.compiler.ir.irBuilderZeroSkew as irBuilderZeroSkew
 import seedot.compiler.ir.irUtil as irUtil
 
 import seedot.compiler.TF.ProcessTFGraph as TFMain
@@ -150,7 +150,7 @@ class Compiler:
         if (util.getEncoding() == config.Encoding.floatt) or (util.getEncoding() == config.Encoding.fixed):
             compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
         elif util.getEncoding() == config.Encoding.zskew:
-            compiler = irBuilder.IRBuilderZeroSkew(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
+            compiler = irBuilderZeroSkew.IRBuilderZeroSkew(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
 
         res = compiler.visit(ast)
 
@@ -218,7 +218,7 @@ class Compiler:
                 zero = -1*((m + M)/2)
                 m = m + zero
                 M = M + zero
-                maxVar = 126 if config.wordLength == 8 else 65534
+                maxVar = config.maxVar8Bit if config.wordLength == 8 else config.maxVar16Bit
                 scale = M/maxVar
                 zero = int(zero/scale)
 

@@ -29,6 +29,7 @@ class IRBuilderZeroSkew(IRBuilder):
         self.intermediateVarScales = {}
         self.intermediateVarZeros = {}
 
+        self.varScales = {}
         self.varZeros = {}
 
         for varName in ddsScaleInfo.keys():
@@ -54,6 +55,7 @@ class IRBuilderZeroSkew(IRBuilder):
 
         # Scale of the output is the scale of the first argument.
         scale_out = self.varScales[exprs[0].idf]
+        zero_out = self.varZeros[exprs[0].idf]
         intv_out = self.varIntervals[exprs[0].idf]
 
         args = dict()
@@ -84,6 +86,7 @@ class IRBuilderZeroSkew(IRBuilder):
         # Update metadata.
         self.varDeclarations[expr_out.idf] = node.type
         self.varScales[expr_out.idf] = scale_out
+        self.varZero[expr_out.idf] = zero_out
         self.varIntervals[expr_out.idf] = intv_out
 
         return (prog_out, expr_out)
@@ -420,3 +423,369 @@ class IRBuilderZeroSkew(IRBuilder):
         scale = maxVal/maxVar
         return scale, int(zero/scale)
 
+        
+    def getInterval(self, scale: int, val_min: float, val_max: float):
+        return (int(np.ldexp(val_min, -scale)), int(np.ldexp(val_max, -scale)))
+
+
+    # Floating-point numbers in the input code.
+    def visitFloat(self, node: AST.Float):
+        val = node.value
+        scale, zero = self.getScaleAndZero(val, val)
+        intv = (int(val/scale) + zero, int(val/scale) + zero)
+        val_int = IR.DataType.getInt(int(val/scale) + zero)
+
+        prog = IR.Prog([])
+        expr = self.getTempVar()
+
+        # Updating metadata.
+        self.varDeclarations[expr.idf] = node.type
+        self.varScales[expr.idf] = scale
+        self.varZeros[expr.idf] = zero
+        self.varIntervals[expr.idf] = intv
+        self.intConstants[expr.idf] = val_int
+        self.floatConstants[expr.idf] = val
+
+        return (prog, expr)
+
+    # Declaration for model parameters in the input code.
+    def visitDecl(self, node: AST.Decl):
+        minVal, maxVal = node.range
+
+        assert minVal <= maxVal, "Range of a variable with values (%.6f, %.6f) is not valid" % (
+            minVal, maxVal)
+
+        # The range for model parameters is specified in the input code, which enables us to directly compute their scale.
+        scale, zero = self.getScaleAndZero(minVal, maxVal)
+        intv = (int(minVal/scale) + zero, int(maxVal/scale) + zero)
+
+        prog = IR.Prog([])
+        expr = self.getTempVar()
+        expr.inputVar = True
+
+        # Updating metadata.
+        self.varScales[expr.idf] = scale
+        self.varZeros[expr.idf] = zero
+        self.varIntervals[expr.idf] = intv
+
+        return (prog, expr)
+    
+    def getInterval(self, minVal, maxVal, scale, zero):
+        return (int(minVal/scale) + zero, int(maxVal/scale) + zero)
+    
+    def getNumInFixedPoint(self, num_float, scale):
+        assert False, "Illegal Function getNumInFixedPoint for Zero skew representation"
+    
+    def getNumInZeroSkew(self, num_float, scale, zero):
+        return IR.Int(int(num_float/scale) + zero)
+
+    # Init is used for initializing mutable loop variables whose values are updated repeatedly.
+    def visitInit(self, node: AST.Init):
+        if node.value == 0:
+            # getScale() fails for 0. Hence, replacing it with a very low value.
+            minVal, maxVal = -0.000001, 0.000001
+        else:
+            minVal, maxVal = node.value, node.value
+
+        expr = self.getTempVar()
+
+        # Computing the scale of the variable, either using runtime profile data (new SeeDot OOPSLA '20) or using initial value (old SeeDot PLDI '19).
+        _, scale, zero = self.getBitwidthScaleZeros(expr.idf)
+        
+        intv = self.getInterval(scale, zero, minVal, maxVal)
+
+        comment = IR.Comment('init([%s], %.6f)' % (
+            ', '.join(map(str, node.shape)), node.value), self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
+        # If the initial value is zero, memset is more efficient to set all values to zero.
+        if node.value == 0:
+            memset = IR.Memset(expr, node.type.size())
+            prog_init = IR.Prog([comment, memset])
+        # Using loops to initialize non-zero values instead of memset.
+        else:
+            iters_in = self.getTempIterators(len(node.shape))
+
+            loopShape = []  # Contains the shape of the tensor being initialized.
+            loopIters = []  # Iterators which will be used to iterate to each tensor element.
+
+            for order in range(len(node.shape)):
+                loopShape.append(node.shape[order])
+                loopIters.append(iters_in[order])
+                loop = IRUtil.loop(loopShape, loopIters, [
+                IR.Assn(IRUtil.addIndex(expr, iters_in), 
+                self.getNumInZeroSkew(node.value, scale, zero))
+            ])
+
+            prog_init = IR.Prog([comment] + loop)
+
+        self.counter_inst += 1
+        self.updateLiveRange(expr)
+
+        prog_out = prog_init
+        expr_out = expr
+
+        # Updating metadata.
+        self.varDeclarations[expr_out.idf] = node.type
+        self.varScales[expr_out.idf] = scale
+        self.varZeros[expr_out.idf] = zero
+        self.varIntervals[expr_out.idf] = intv
+
+        # Logging debug messages.
+        self.log.print(comment.msg)
+        self.log.print("\tOutput: scale = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_out.idf],) + self.varIntervals[expr_out.idf]))
+
+        return (prog_out, expr)
+
+    # out = in ^ T
+    def visitTransp(self, node: AST.Transp):
+        (prog_in, expr_in) = self.visit(node.expr)
+
+        expr_out = self.getTempVar()
+
+        type_out = node.type
+        [I, J] = type_out.shape
+
+        # The input and output scale are same as the values of the input and output tensor are the same.
+        bw_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_in.idf)
+        intv_out = self.varIntervals[expr_in.idf]
+
+        expr_in.inputVar = False
+        expr_out.inputVar = False
+
+        comment = IR.Comment(expr_in.idf + "^T", self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
+        # If the input variable is demoted to lower bit-width, demote the output as well as no extra information can be stored in the extra bits.
+        if forFixed():
+            self.varsForBitwidth[expr_out.idf] = bw_out
+            if bw_out != config.wordLength:
+                self.demotedVarsList.append(expr_out.idf)
+
+        funcCall = IR.FuncCall("Transpose", {
+            expr_in: "A",
+            expr_out: "B",
+            IR.Int(I): "I",
+            IR.Int(J): "J"
+        }) if not self.vbwEnabled else IR.FuncCall("Transpose<int%d_t>" % (bw_out), {
+            expr_in: "A",
+            expr_out: "B",
+            IR.Int(I): "I",
+            IR.Int(J): "J"
+        })
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in, expr_out])
+
+        prog_transp = IR.Prog([comment, funcCall])
+
+        prog_out = IRUtil.concatPrograms(prog_in, prog_transp)
+
+        # Update metadata.
+        self.varDeclarations[expr_out.idf] = type_out
+        self.varScales[expr_out.idf] = scale_out
+        self.varZeros[expr_out.idf] = zero_out
+        self.varIntervals[expr_out.idf] = intv_out
+
+        return (prog_out, expr_out)
+
+    def visitSplice(self, node: AST.Splice):
+        (prog_in, expr_in) = self.visit(node.expr)
+
+        vars_in = []
+        progs_in = []
+
+        # Each indexing variable can be a complex expression so iterate through them all.
+        for var in node.vars:
+            part_prog_in, part_expr_in = self.visit(var)
+            progs_in.append(part_prog_in)
+            vars_in.append(part_expr_in)
+
+        type_in = node.expr.type
+        type_out = node.type
+
+        # Keeping input and output scales same because the output tensor is a subtensor of the input, and generally the range of values remain the same in both.
+        bw_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_in.idf)
+
+        expr_out = self.getTempVar()
+
+        # If the input variable is demoted to lower bit-width, demote the output as well as no extra information can be stored in the extra bits.
+        self.varsForBitwidth[expr_out.idf] = bw_out
+        if self.varsForBitwidth[expr_out.idf] != config.wordLength:
+            self.demotedVarsList.append(expr_out.idf)
+
+        # Computing loop iterators for LHS and RHS.
+        iters_in = self.getTempIterators(type_in.dim)
+        iters_out = self.getTempVars(type_out.dim)
+
+        loopShape = [] # Shape of the output tensor which will dictate the range of the iterators.
+        loopIters = [] # Iterator which will iterate across different dimensions of the tensor.
+        loopAssns = [] # Assignment carried out within one loop body.
+        for order in range(type_in.dim):
+            loopShape.append(node.sizes[order])
+            loopIters.append(iters_in[order])
+            loopAssns.append(IR.Assn(iters_out[order], IRUtil.add(iters_in[order], vars_in[order])))
+
+        expr_out_idx = IRUtil.addIndex(expr_out, iters_in)
+        expr_in_idx = IRUtil.addIndex(expr_in, iters_out)
+        loop = IRUtil.loop(loopShape, loopIters, loopAssns + [
+                IR.Assn(expr_out_idx, expr_in_idx)
+            ])
+
+        # Comment in the output code to show the input command for the corresponding output code.
+        out_indices = ']['.join([i.idf for i in iters_in])
+        in_indices = ']['.join([i.idf for i in iters_out])
+        comment = IR.Comment("%s[%s] = %s[%s]"%(expr_out_idx.idf, out_indices, expr_in_idx.idf, in_indices), self.counter_inst+1)
+
+        self.allDepths[self.counter_inst+1] = self.curDepth
+        prog_splice = IR.Prog([comment] + loop)
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in, expr_out])
+
+        # In case the target variable is contiguous, we can optimize (use memcpy instead of a loop).
+        canOptimize = True
+        loopShapeMustBeOne = False
+        for i in range(len(loopShape) - 1, -1, -1):
+            if loopShapeMustBeOne:
+                if loopShape[i] != 1:
+                    canOptimize = False
+            else:
+                if loopShape[i] == type_in.shape[i]:
+                    continue
+                elif loopShape[i] < type_in.shape[i]:
+                    loopShapeMustBeOne = True
+                    continue
+                else:
+                    assert False, "Illegal State, subtensor dimensions must be less than original tensor dimensions"
+        canOptimize = canOptimize and (expr_in.idf not in self.globalVars)
+
+        if canOptimize:
+            prog_splice = IR.Prog([comment, IR.Memcpy(expr_out, expr_in, np.prod(loopShape), [IR.Int(0) for i in range(len(vars_in))], vars_in)])
+        else:
+            assert True
+
+        # Concatenating the code for main expression and the indexing expressions.
+        prog_out = IR.Prog([])
+        prog_out = IRUtil.concatPrograms(prog_out, prog_in)
+        for prog in progs_in:
+            prog_out = IRUtil.concatPrograms(prog_out, prog)
+        prog_out = IRUtil.concatPrograms(prog_out, prog_splice)
+
+        # Update metadata.
+        self.varDeclarations[expr_out.idf] = type_out
+        self.varScales[expr_out.idf] = scale_out
+        self.varZeros[expr_out.idf] = zero_out
+        self.varIntervals[expr_out.idf] = (0,0)
+
+        # Update declarations.
+        for var in iters_out:
+            self.varDeclarations[var.idf] = Type.Int()
+            self.internalVars.append(var.idf)
+
+        return (prog_out, expr_out)
+
+    def visitReshape(self, node: AST.Reshape):
+        (prog_in, expr_in) = self.visit(node.expr)
+
+        '''
+        reshape(A, (T1, T2), (N, H, W))
+
+        cmd1:  t1 = t2 = 0;
+        loop: for n in 0:N:
+                 for h in 0:H:
+                   for w in 0:W:
+        cmd3:        B[t1][t2] = A[n][h][w]
+        cmd5:        t2++;
+                     if (t2 == T2)
+                       t2 = 0;
+        cmd5_:         t1++;
+        '''
+
+        type_in = node.expr.type
+        type_out = node.type
+
+        # Compute scaling factors.
+        bw_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_in.idf)
+        intv_out = self.varIntervals[expr_in.idf]
+
+        # Declare variables.
+        expr_out = self.getTempVar()
+
+        # If the input variable is demoted to lower bit-width, demote the output as well as no extra information can be stored in the extra bits.
+        self.varsForBitwidth[expr_out.idf] = bw_out
+        if self.varsForBitwidth[expr_out.idf] != config.wordLength:
+            self.demotedVarsList.append(expr_out.idf)
+
+        iters_in = self.getTempIterators(type_in.dim)
+        iters_out = self.getTempVars(type_out.dim)
+
+        # Initialize to 0.
+        cmd1 = [IR.Assn(var, IRUtil.zero) for var in iters_out]
+
+        # Incrementing the first index.
+        first_iter = iters_out[0]
+        cmd5_ = IRUtil.incCmd(first_iter)
+
+        # Incrementing other indices using a loop.
+        cmd5 = [cmd5_]
+        for i in range(1, type_out.dim):
+            curr_iter = iters_out[i]
+            curr_size = IR.Int(type_out.shape[i])
+            cmd5 = [IRUtil.incCmd(curr_iter), IR.If(IRUtil.eq(curr_iter, curr_size), [
+                IRUtil.initVarToZero(curr_iter)] + cmd5)]
+
+        # Outer loop.
+        # The iterators are selected based on the selection order specified by the user.
+        loopShape = []
+        loopIters = []
+        
+        if node.order == None:
+            node.order = [i+1 for i in range(type_in.dim)]
+
+        for order in node.order:
+            order = order - 1
+            loopShape.append(type_in.shape[order])
+            loopIters.append(iters_in[order])
+
+        loop = IRUtil.loop(loopShape, loopIters, [IR.Assn(IRUtil.addIndex(
+            expr_out, iters_out), IRUtil.addIndex(expr_in, iters_in))] + cmd5)
+
+        # Finalize.
+        comment = IR.Comment("reshape(" + expr_in.idf + ", (" + ', '.join(str(e)
+            for e in type_out.shape) + "), (" + ', '.join(str(e) for e in node.order) + ")", self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
+        # In case the reshaped array's memory layout is identical to original array, we can optimize (use memcpy instead of loop).
+        canOptimize = True
+        for i in range(len(node.order)):
+            if node.order[i] != i+1:
+                canOptimize = False
+        # The input variable 'X' is handled differently in M3 codegen.
+        if not (forM3() and expr_in.idf == 'X'):
+            canOptimize = canOptimize and expr_in.idf not in self.globalVars
+
+        if canOptimize:
+            prog_memcpy = IR.Memcpy(expr_out, expr_in, type_out.size(), [IR.Int(0) for i in range(type_out.dim)], [IR.Int(0) for i in range(type_in.dim)])
+            prog_reshape = IR.Prog([comment] + [prog_memcpy])
+        else:
+            prog_reshape = IR.Prog([comment] + cmd1 + loop)
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in, expr_out])
+
+        prog_out = IRUtil.concatPrograms(prog_in, prog_reshape)
+
+        # Update context.
+        self.varDeclarations[expr_out.idf] = type_out
+        self.varScales[expr_out.idf] = scale_out
+        self.varZeros[expr_out.idf] = zero_out
+        self.varIntervals[expr_out.idf] = intv_out
+
+        # Update declarations.
+        for var in iters_out:
+            self.varDeclarations[var.idf] = Type.Int()
+            self.internalVars.append(var.idf)
+
+        return (prog_out, expr_out)

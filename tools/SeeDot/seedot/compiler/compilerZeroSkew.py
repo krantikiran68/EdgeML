@@ -15,6 +15,7 @@ import seedot.compiler.ast.ast as AST
 import seedot.compiler.ast.astBuilder as astBuilder
 import seedot.compiler.ast.printAST as printAST
 
+import seedot.compiler.compiler.Compiler as Compiler
 import seedot.compiler.codegen.arduino as arduino
 import seedot.compiler.codegen.x86 as x86
 import seedot.compiler.codegen.m3 as m3
@@ -41,41 +42,11 @@ desired target codegen, which outputs the C/C++ code which can be run on the tar
 '''
 
 
-class Compiler:
+class CompilerZeroSkew(Compiler):
 
     def __init__(self, algo, encoding, target, inputFile, outputDir, profileLogFile, maxScale, source, outputLogFile, generateAllFiles=True, id=None, printSwitch=-1, substitutions={}, scaleForX=None, variableToBitwidthMap={}, sparseMatrixSizes={}, demotedVarsList=[], demotedVarsOffsets={}, paramInNativeBitwidth=True):
-        if os.path.isfile(inputFile) == False:
-            print(inputFile)
-            raise Exception("Input file doesn't exist")
-
-        util.setAlgo(algo)
-        util.setEncoding(encoding)
-        util.setTarget(target)
-        self.input = inputFile
-        self.outputDir = outputDir
-        util.setProfileLogFile(profileLogFile)
-        self.outputLogFile = outputLogFile
-        util.setMaxScale(maxScale)
-        self.source = source
-        self.generateAllFiles = generateAllFiles
-        self.id = str(id) if id is not None else ""
-        self.printSwitch = printSwitch
-        self.varSizes = {}
-
-        self.intermediateScales = {}
-        self.substitutions = substitutions
-        self.scaleForX = scaleForX
-        self.scaleForY = 0
-        self.problemType = config.ProblemType.default
-
-        self.variableToBitwidthMap = variableToBitwidthMap
-        self.sparseMatrixSizes = sparseMatrixSizes
-
-        self.demotedVarsList = demotedVarsList
-        self.demotedVarsOffsets = demotedVarsOffsets
-
-        self.paramInNativeBitwidth = paramInNativeBitwidth
-
+        super().__init__(algo, encoding, target, inputFile, outputDir, profileLogFile, maxScale, source, outputLogFile, generateAllFiles, id, printSwitch, substitutions, scaleForX, variableToBitwidthMap, sparseMatrixSizes, demotedVarsList, demotedVarsOffsets, paramInNativeBitwidth):
+        
         self.biasShifts = {}
 
     # Method takes in input file location, calls the tokenizer, parser upon the file to generate a parse tree
@@ -146,20 +117,19 @@ class Compiler:
 
         self.initializeIntermediateScales()
 
-        compiler = None
-       
-        compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
-       
+        compiler = irBuilderZeroSkew.IRBuilderZeroSkew(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
+
         res = compiler.visit(ast)
 
         util.getLogger().debug(compiler.varScales)
         self.biasShifts = compiler.biasShifts
         self.varScales = dict(compiler.varScales)
+        self.varZeros = dict(compiler.varZeros)
 
         outputLog.close()
 
         # All state variables are used for codegen.
-        state = [compiler.varDeclarations, compiler.varDeclarationsLocal, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants, compiler.substitutions, compiler.demotedVarsOffsets, compiler.varsForBitwidth, compiler.varLiveIntervals, compiler.notScratch, compiler.coLocatedVariables]
+        state = [compiler.varDeclarations, compiler.varDeclarationsLocal, compiler.varScales, compiler.varZeros, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants, compiler.substitutions, compiler.demotedVarsOffsets, compiler.varsForBitwidth, compiler.varLiveIntervals, compiler.notScratch, compiler.coLocatedVariables]
 
         for key in compiler.varDeclarations.keys():
             val = compiler.varDeclarations[key]
@@ -170,7 +140,7 @@ class Compiler:
                 self.varSizes[key] = 1
 
         # Raw live ranges do not capture the scope of the first/last usage of a variable, so they require post-processing.
-        state[12] = self.adjustLiveRanges(state[12], compiler.allDepths)
+        state[13] = self.adjustLiveRanges(state[13], compiler.allDepths)
 
         for i in compiler.globalVars:
             if util.forM3() and i == 'X':

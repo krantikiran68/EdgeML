@@ -16,6 +16,7 @@ void updateRange(float x);
 void updateRange(posit8_t x);
 void updateRange(posit16_t x);
 void updateRange(posit32_t x);
+void updateRange(posit_2_t x, int bitwidth);
 
 void updateRangeOfExp(float x);
 // Used by old SeeDot to store the range of exponentiation variable.
@@ -49,6 +50,10 @@ void Profile2(posit16_t* A, int I, int J, std::string name);
 void Profile4(posit32_t* A, int I, int J, int K, int L, std::string name);
 void Profile3(posit32_t* A, int I, int J, int K, std::string name);
 void Profile2(posit32_t* A, int I, int J, std::string name);
+
+void Profile4(posit_2_t* A, int I, int J, int K, int L, std::string name, int bitwdith);
+void Profile3(posit_2_t* A, int I, int J, int K, std::string name, int bitwdith);
+void Profile2(posit_2_t* A, int I, int J, std::string name, int bitwdith);
 
 // Used to capture the difference of corresponding variables in floating-point and fixed-point mode.
 void diff(float* A, MYINT* B, MYINT scale, MYINT I, MYINT J);

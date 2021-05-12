@@ -74,6 +74,17 @@ void updateRange(posit32_t x_tmp) {
 	return;
 }
 
+void updateRange(posit_2_t x_tmp, int bitwidth) {
+	float x = convertPX2ToDouble(x_tmp);
+	if (x < m_all) {
+		m_all = x;
+	}
+	if (x > M_all) {
+		M_all = x;
+	}
+	return;
+}
+
 void updateRangeOfExp(float x) {
 	if (x < m_exp) {
 		m_exp = x;
@@ -496,6 +507,69 @@ void Profile2(posit32_t* A, int I, int J, string name) {
 	for (int i = 0; i < I; i++) {
 		for (int j = 0; j < J; j++) {
             float a = convertP32ToDouble(A[i * J + j]);
+			min_temp[name] = min_temp[name] < a ? min_temp[name] : a;
+			max_temp[name] = max_temp[name] > a ? max_temp[name] : a;
+			all_values[name].push_back(a);
+		}
+	}
+}
+
+void Profile4(posit_2_t* A, int I, int J, int K, int L, string name, int bitwdith) {
+	if (!profilingEnabled) {
+		return;
+	}
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+			for (int k = 0; k < K; k++) {
+				for (int l = 0; l < L; l++) {
+                    float a = convertPX2ToDouble(A[i * J * K * L + j * K * L + k * L + l]);
+					min_temp[name] = min_temp[name] < a ? min_temp[name] : a;
+					max_temp[name] = max_temp[name] > a ? max_temp[name] : a;
+					all_values[name].push_back(a);
+				}
+			}
+		}
+	}
+}
+
+void Profile3(posit_2_t* A, int I, int J, int K, string name, int bitwdith) {
+	if (!profilingEnabled) {
+		return;
+	}
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+			for (int k = 0; k < K; k++) {
+                float a = convertPX2ToDouble(A[i * J * K + j * K + k]);
+				min_temp[name] = min_temp[name] < a ? min_temp[name] : a;
+				max_temp[name] = max_temp[name] > a ? max_temp[name] : a;
+				all_values[name].push_back(a);
+			}
+		}
+	}
+}
+
+void Profile2(posit_2_t* A, int I, int J, string name, int bitwdith) {
+	if (!profilingEnabled) {
+		return;
+	}
+	if (min_temp.find(name) == min_temp.end()) {
+		min_temp[name] = FLT_MAX;
+		max_temp[name] = -FLT_MAX;
+		all_values[name] = vector<float>();
+	}
+	for (int i = 0; i < I; i++) {
+		for (int j = 0; j < J; j++) {
+            float a = convertPX2ToDouble(A[i * J + j]);
 			min_temp[name] = min_temp[name] < a ? min_temp[name] : a;
 			max_temp[name] = max_temp[name] > a ? max_temp[name] : a;
 			all_values[name].push_back(a);

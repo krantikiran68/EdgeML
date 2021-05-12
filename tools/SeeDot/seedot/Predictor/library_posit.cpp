@@ -167,45 +167,47 @@ void MatSubBroadCastB(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, M
 
 // C = A * B
 void MatMulNN(posit8_t* A, posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	quire8_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			qz = q8_clr(qz);
 			for (MYITE k = 0; k < K; k++) {
 				posit8_t a = A[i * K + k];
 				posit8_t b = B[k * J + j];
-
-				tmp[k] = p8_mul(a, b);
+				qz = q8_fdp_add(qz, a, b);
+				// tmp[k] = p8_mul(a, b);
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
 
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
 
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					posit8_t sum;
-					if (p < (count >> 1)) {
-						sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						sum = tmp[2 * p];
-					} else {
-						sum = convertDoubleToP8(0.0);
-					}
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit8_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToP8(0.0);
+			// 		}
 
-					if (shr) {
-						tmp[p] = sum;
-					} else {
-						tmp[p] = sum;
-					}
-				}
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
 
-				count = (count + 1) >> 1;
-				depth++;
-			}
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
 
-			C[i * J + j] = tmp[0];
+			C[i * J + j] = q8_to_p8(qz);
 		}
 	}
 	return;
@@ -213,45 +215,47 @@ void MatMulNN(posit8_t* A, posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT I, MYI
 
 // C = A * B
 void MatMulCN(const posit8_t* A, posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	quire8_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			qz = q8_clr(qz);
 			for (MYITE k = 0; k < K; k++) {
 				posit8_t a = A[i * K + k];
 				posit8_t b = B[k * J + j];
-
-				tmp[k] = p8_mul(a, b);
+				qz = q8_fdp_add(qz, a, b);
+				// tmp[k] = p8_mul(a, b);
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
 
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
 
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					posit8_t sum;
-					if (p < (count >> 1)) {
-						sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						sum = tmp[2 * p];
-					} else {
-						sum = convertDoubleToP8(0.0);
-					}
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit8_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToP8(0.0);
+			// 		}
 
-					if (shr) {
-						tmp[p] = sum;
-					} else {
-						tmp[p] = sum;
-					}
-				}
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
 
-				count = (count + 1) >> 1;
-				depth++;
-			}
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
 
-			C[i * J + j] = tmp[0];
+			C[i * J + j] = q8_to_p8(qz);
 		}
 	}
 	return;
@@ -259,45 +263,47 @@ void MatMulCN(const posit8_t* A, posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT 
 
 // C = A * B
 void MatMulNC(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	quire8_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			qz = q8_clr(qz);
 			for (MYITE k = 0; k < K; k++) {
 				posit8_t a = A[i * K + k];
 				posit8_t b = B[k * J + j];
-
-				tmp[k] = p8_mul(a, b);
+				qz = q8_fdp_add(qz, a, b);
+				// tmp[k] = p8_mul(a, b);
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
 
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
 
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					posit8_t sum;
-					if (p < (count >> 1)) {
-						sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						sum = tmp[2 * p];
-					} else {
-						sum = convertDoubleToP8(0.0);
-					}
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit8_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToP8(0.0);
+			// 		}
 
-					if (shr) {
-						tmp[p] = sum;
-					} else {
-						tmp[p] = sum;
-					}
-				}
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
 
-				count = (count + 1) >> 1;
-				depth++;
-			}
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
 
-			C[i * J + j] = tmp[0];
+			C[i * J + j] = q8_to_p8(qz);
 		}
 	}
 	return;
@@ -305,45 +311,47 @@ void MatMulNC(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT 
 
 // C = A * B
 void MatMulCC(const posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	quire8_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			qz = q8_clr(qz);
 			for (MYITE k = 0; k < K; k++) {
 				posit8_t a = A[i * K + k];
 				posit8_t b = B[k * J + j];
-
-				tmp[k] = p8_mul(a, b);
+				qz = q8_fdp_add(qz, a, b);
+				// tmp[k] = p8_mul(a, b);
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
 
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
 
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					posit8_t sum;
-					if (p < (count >> 1)) {
-						sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						sum = tmp[2 * p];
-					} else {
-						sum = convertDoubleToP8(0.0);
-					}
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit8_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToP8(0.0);
+			// 		}
 
-					if (shr) {
-						tmp[p] = sum;
-					} else {
-						tmp[p] = sum;
-					}
-				}
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
 
-				count = (count + 1) >> 1;
-				depth++;
-			}
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
 
-			C[i * J + j] = tmp[0];
+			C[i * J + j] = q8_to_p8(qz);
 		}
 	}
 	return;
@@ -1134,45 +1142,47 @@ void MatSubBroadCastB(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J
 
 // C = A * B
 void MatMulNN(posit16_t* A, posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	quire16_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			qz = q16_clr(qz);
 			for (MYITE k = 0; k < K; k++) {
 				posit16_t a = A[i * K + k];
 				posit16_t b = B[k * J + j];
-
-				tmp[k] = p16_mul(a, b);
+				qz = q16_fdp_add(qz, a, b);
+				// tmp[k] = p8_mul(a, b);
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
 
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
 
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					posit16_t sum;
-					if (p < (count >> 1)) {
-						sum = p16_add(tmp[2 * p], tmp[(2 * p) + 1]);
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						sum = tmp[2 * p];
-					} else {
-						sum = convertDoubleToP16(0.0);
-					}
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit8_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToP8(0.0);
+			// 		}
 
-					if (shr) {
-						tmp[p] = sum;
-					} else {
-						tmp[p] = sum;
-					}
-				}
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
 
-				count = (count + 1) >> 1;
-				depth++;
-			}
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
 
-			C[i * J + j] = tmp[0];
+			C[i * J + j] = q16_to_p16(qz);
 		}
 	}
 	return;
@@ -1180,45 +1190,47 @@ void MatMulNN(posit16_t* A, posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT I,
 
 // C = A * B
 void MatMulCN(const posit16_t* A, posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	quire16_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			qz = q16_clr(qz);
 			for (MYITE k = 0; k < K; k++) {
 				posit16_t a = A[i * K + k];
 				posit16_t b = B[k * J + j];
-
-				tmp[k] = p16_mul(a, b);
+				qz = q16_fdp_add(qz, a, b);
+				// tmp[k] = p8_mul(a, b);
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
 
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
 
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					posit16_t sum;
-					if (p < (count >> 1)) {
-						sum = p16_add(tmp[2 * p], tmp[(2 * p) + 1]);
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						sum = tmp[2 * p];
-					} else {
-						sum = convertDoubleToP16(0.0);
-					}
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit8_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToP8(0.0);
+			// 		}
 
-					if (shr) {
-						tmp[p] = sum;
-					} else {
-						tmp[p] = sum;
-					}
-				}
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
 
-				count = (count + 1) >> 1;
-				depth++;
-			}
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
 
-			C[i * J + j] = tmp[0];
+			C[i * J + j] = q16_to_p16(qz);
 		}
 	}
 	return;
@@ -1226,45 +1238,47 @@ void MatMulCN(const posit16_t* A, posit16_t* B, posit16_t* C, posit16_t* tmp, MY
 
 // C = A * B
 void MatMulNC(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	quire16_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			qz = q16_clr(qz);
 			for (MYITE k = 0; k < K; k++) {
 				posit16_t a = A[i * K + k];
 				posit16_t b = B[k * J + j];
-
-				tmp[k] = p16_mul(a, b);
+				qz = q16_fdp_add(qz, a, b);
+				// tmp[k] = p8_mul(a, b);
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
 
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
 
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					posit16_t sum;
-					if (p < (count >> 1)) {
-						sum = p16_add(tmp[2 * p], tmp[(2 * p) + 1]);
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						sum = tmp[2 * p];
-					} else {
-						sum = convertDoubleToP16(0.0);
-					}
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit8_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToP8(0.0);
+			// 		}
 
-					if (shr) {
-						tmp[p] = sum;
-					} else {
-						tmp[p] = sum;
-					}
-				}
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
 
-				count = (count + 1) >> 1;
-				depth++;
-			}
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
 
-			C[i * J + j] = tmp[0];
+			C[i * J + j] = q16_to_p16(qz);
 		}
 	}
 	return;
@@ -1272,45 +1286,47 @@ void MatMulNC(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MY
 
 // C = A * B
 void MatMulCC(const posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	quire16_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			qz = q16_clr(qz);
 			for (MYITE k = 0; k < K; k++) {
 				posit16_t a = A[i * K + k];
 				posit16_t b = B[k * J + j];
-
-				tmp[k] = p16_mul(a, b);
+				qz = q16_fdp_add(qz, a, b);
+				// tmp[k] = p8_mul(a, b);
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
 
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
 
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					posit16_t sum;
-					if (p < (count >> 1)) {
-						sum = p16_add(tmp[2 * p], tmp[(2 * p) + 1]);
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						sum = tmp[2 * p];
-					} else {
-						sum = convertDoubleToP16(0.0);
-					}
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit8_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToP8(0.0);
+			// 		}
 
-					if (shr) {
-						tmp[p] = sum;
-					} else {
-						tmp[p] = sum;
-					}
-				}
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
 
-				count = (count + 1) >> 1;
-				depth++;
-			}
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
 
-			C[i * J + j] = tmp[0];
+			C[i * J + j] = q16_to_p16(qz);
 		}
 	}
 	return;
@@ -2103,45 +2119,47 @@ void MatSubBroadCastB(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J
 
 // C = A * B
 void MatMulNN(posit32_t* A, posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	quire32_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			qz = q32_clr(qz);
 			for (MYITE k = 0; k < K; k++) {
 				posit32_t a = A[i * K + k];
 				posit32_t b = B[k * J + j];
-
-				tmp[k] = p32_mul(a, b);
+				qz = q32_fdp_add(qz, a, b);
+				// tmp[k] = p8_mul(a, b);
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
 
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
 
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					posit32_t sum;
-					if (p < (count >> 1)) {
-						sum = p32_add(tmp[2 * p], tmp[(2 * p) + 1]);
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						sum = tmp[2 * p];
-					} else {
-						sum = convertDoubleToP32(0.0);
-					}
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit8_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToP8(0.0);
+			// 		}
 
-					if (shr) {
-						tmp[p] = sum;
-					} else {
-						tmp[p] = sum;
-					}
-				}
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
 
-				count = (count + 1) >> 1;
-				depth++;
-			}
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
 
-			C[i * J + j] = tmp[0];
+			C[i * J + j] = q32_to_p32(qz);
 		}
 	}
 	return;
@@ -2149,45 +2167,47 @@ void MatMulNN(posit32_t* A, posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT I,
 
 // C = A * B
 void MatMulCN(const posit32_t* A, posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	quire32_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			qz = q32_clr(qz);
 			for (MYITE k = 0; k < K; k++) {
 				posit32_t a = A[i * K + k];
 				posit32_t b = B[k * J + j];
-
-				tmp[k] = p32_mul(a, b);
+				qz = q32_fdp_add(qz, a, b);
+				// tmp[k] = p8_mul(a, b);
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
 
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
 
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					posit32_t sum;
-					if (p < (count >> 1)) {
-						sum = p32_add(tmp[2 * p], tmp[(2 * p) + 1]);
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						sum = tmp[2 * p];
-					} else {
-						sum = convertDoubleToP32(0.0);
-					}
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit8_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToP8(0.0);
+			// 		}
 
-					if (shr) {
-						tmp[p] = sum;
-					} else {
-						tmp[p] = sum;
-					}
-				}
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
 
-				count = (count + 1) >> 1;
-				depth++;
-			}
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
 
-			C[i * J + j] = tmp[0];
+			C[i * J + j] = q32_to_p32(qz);
 		}
 	}
 	return;
@@ -2195,45 +2215,47 @@ void MatMulCN(const posit32_t* A, posit32_t* B, posit32_t* C, posit32_t* tmp, MY
 
 // C = A * B
 void MatMulNC(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	quire32_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			qz = q32_clr(qz);
 			for (MYITE k = 0; k < K; k++) {
 				posit32_t a = A[i * K + k];
 				posit32_t b = B[k * J + j];
-
-				tmp[k] = p32_mul(a, b);
+				qz = q32_fdp_add(qz, a, b);
+				// tmp[k] = p8_mul(a, b);
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
 
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
 
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					posit32_t sum;
-					if (p < (count >> 1)) {
-						sum = p32_add(tmp[2 * p], tmp[(2 * p) + 1]);
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						sum = tmp[2 * p];
-					} else {
-						sum = convertDoubleToP32(0.0);
-					}
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit8_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToP8(0.0);
+			// 		}
 
-					if (shr) {
-						tmp[p] = sum;
-					} else {
-						tmp[p] = sum;
-					}
-				}
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
 
-				count = (count + 1) >> 1;
-				depth++;
-			}
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
 
-			C[i * J + j] = tmp[0];
+			C[i * J + j] = q32_to_p32(qz);
 		}
 	}
 	return;
@@ -2241,45 +2263,47 @@ void MatMulNC(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MY
 
 // C = A * B
 void MatMulCC(const posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+	quire32_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			qz = q32_clr(qz);
 			for (MYITE k = 0; k < K; k++) {
 				posit32_t a = A[i * K + k];
 				posit32_t b = B[k * J + j];
-
-				tmp[k] = p32_mul(a, b);
+				qz = q32_fdp_add(qz, a, b);
+				// tmp[k] = p8_mul(a, b);
 			}
 
-			MYITE count = K, depth = 0;
-			bool shr = true;
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
 
-			while (depth < (H1 + H2)) {
-				if (depth >= H1) {
-					shr = false;
-				}
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
 
-				for (MYITE p = 0; p < (K / 2 + 1); p++) {
-					posit32_t sum;
-					if (p < (count >> 1)) {
-						sum = p32_add(tmp[2 * p], tmp[(2 * p) + 1]);
-					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
-						sum = tmp[2 * p];
-					} else {
-						sum = convertDoubleToP32(0.0);
-					}
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit8_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = p8_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToP8(0.0);
+			// 		}
 
-					if (shr) {
-						tmp[p] = sum;
-					} else {
-						tmp[p] = sum;
-					}
-				}
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
 
-				count = (count + 1) >> 1;
-				depth++;
-			}
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
 
-			C[i * J + j] = tmp[0];
+			C[i * J + j] = q32_to_p32(qz);
 		}
 	}
 	return;
@@ -2915,3 +2939,979 @@ void AdjustScaleShl(posit32_t* A, MYINT I, MYINT J, MYINT scale) {
 	return;
 }
 
+
+// C = A + B
+void MatAddNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t a = A[i * J + j];
+			posit_2_t b = B[i * J + j];
+
+			posit_2_t c = pX2_add(a, b, bitwidth);
+
+			C[i * J + j] = c;
+		}
+	}
+	return;
+}
+
+// C = A + B
+void MatAddCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t a = A[i * J + j];
+			posit_2_t b = B[i * J + j];
+
+			posit_2_t c = pX2_add(a, b, bitwidth);
+
+			C[i * J + j] = c;
+		}
+	}
+	return;
+}
+
+// C = A + B
+void MatAddNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t a = A[i * J + j];
+			posit_2_t b = B[i * J + j];
+
+			posit_2_t c = pX2_add(a, b, bitwidth);
+
+			C[i * J + j] = c;
+		}
+	}
+	return;
+}
+
+// C = A + B
+void MatAddCC(const posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t a = A[i * J + j];
+			posit_2_t b = B[i * J + j];
+
+			posit_2_t c = pX2_add(a, b, bitwidth);
+
+			C[i * J + j] = c;
+		}
+	}
+	return;
+}
+
+// C = a + B
+void MatAddBroadCastA(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t a = *A;
+			posit_2_t b = B[i * J + j];
+
+			posit_2_t c = pX2_add(a, b, bitwidth);
+
+			C[i * J + j] = c;
+		}
+	}
+	return;
+}
+
+// C = A + b
+void MatAddBroadCastB(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t a = A[i * J + j];
+			posit_2_t b = *B;
+
+			posit_2_t c = pX2_add(a, b, bitwidth);
+
+			C[i * J + j] = c;
+		}
+	}
+	return;
+}
+
+// C = A + B
+void MatAdd4(posit_2_t* A, posit_2_t* B, posit_2_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					posit_2_t a = A[n * H * W * C + h * W * C + w * C + c];
+					posit_2_t b = B[n * H * W * C + h * W * C + w * C + c];
+
+					posit_2_t x = pX2_add(a, b, bitwidth);
+
+					X[n * H * W * C + h * W * C + w * C + c] = x;
+				}
+			}
+		}
+	}
+	return;
+}
+
+// C = A - B
+void MatSub(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t a = A[i * J + j];
+			posit_2_t b = B[i * J + j];
+
+			posit_2_t c = pX2_sub(a, b, bitwidth);
+
+			C[i * J + j] = c;
+		}
+	}
+	return;
+}
+
+// C = a - B
+void MatSubBroadCastA(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t a = *A;
+			posit_2_t b = B[i * J + j];
+
+			posit_2_t c = pX2_sub(a, b, bitwidth);
+
+			C[i * J + j] = c;
+		}
+	}
+	return;
+}
+
+// C = A - b
+void MatSubBroadCastB(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t a = A[i * J + j];
+			posit_2_t b = *B;
+
+			posit_2_t c = pX2_sub(a, b, bitwidth);
+
+			C[i * J + j] = c;
+		}
+	}
+	return;
+}
+
+// C = A * B
+void MatMulNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+	quire_2_t qz;
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			qz = qX2_clr(qz);
+			for (MYITE k = 0; k < K; k++) {
+				posit_2_t a = A[i * K + k];
+				posit_2_t b = B[k * J + j];
+				qz = qX2_fdp_add(qz, a, b);
+				// tmp[k] = pX2_mul(a, b);
+			}
+
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
+
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
+
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit_2_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = pX2_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToPX2(0.0);
+			// 		}
+
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
+
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
+
+			C[i * J + j] = qX2_to_pX2(qz, bitwidth);
+		}
+	}
+	return;
+}
+
+// C = A * B
+void MatMulCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+	quire_2_t qz;
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			qz = qX2_clr(qz);
+			for (MYITE k = 0; k < K; k++) {
+				posit_2_t a = A[i * K + k];
+				posit_2_t b = B[k * J + j];
+				qz = qX2_fdp_add(qz, a, b);
+				// tmp[k] = pX2_mul(a, b);
+			}
+
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
+
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
+
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit_2_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = pX2_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToPX2(0.0);
+			// 		}
+
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
+
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
+
+			C[i * J + j] = qX2_to_pX2(qz, bitwidth);
+		}
+	}
+	return;
+}
+
+// C = A * B
+void MatMulNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+	quire_2_t qz;
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			qz = qX2_clr(qz);
+			for (MYITE k = 0; k < K; k++) {
+				posit_2_t a = A[i * K + k];
+				posit_2_t b = B[k * J + j];
+				qz = qX2_fdp_add(qz, a, b);
+				// tmp[k] = pX2_mul(a, b);
+			}
+
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
+
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
+
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit_2_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = pX2_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToPX2(0.0);
+			// 		}
+
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
+
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
+
+			C[i * J + j] = qX2_to_pX2(qz, bitwidth);
+		}
+	}
+	return;
+}
+
+// C = A * B
+void MatMulCC(const posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+	quire_2_t qz;
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			qz = qX2_clr(qz);
+			for (MYITE k = 0; k < K; k++) {
+				posit_2_t a = A[i * K + k];
+				posit_2_t b = B[k * J + j];
+				qz = qX2_fdp_add(qz, a, b);
+				// tmp[k] = pX2_mul(a, b);
+			}
+
+			// MYITE count = K, depth = 0;
+			// bool shr = true;
+
+			// while (depth < (H1 + H2)) {
+			// 	if (depth >= H1) {
+			// 		shr = false;
+			// 	}
+
+			// 	for (MYITE p = 0; p < (K / 2 + 1); p++) {
+			// 		posit_2_t sum;
+			// 		if (p < (count >> 1)) {
+			// 			sum = pX2_add(tmp[2 * p], tmp[(2 * p) + 1]);
+			// 		} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+			// 			sum = tmp[2 * p];
+			// 		} else {
+			// 			sum = convertDoubleToPX2(0.0);
+			// 		}
+
+			// 		if (shr) {
+			// 			tmp[p] = sum;
+			// 		} else {
+			// 			tmp[p] = sum;
+			// 		}
+			// 	}
+
+			// 	count = (count + 1) >> 1;
+			// 	depth++;
+			// }
+
+			C[i * J + j] = qX2_to_pX2(qz, bitwidth);
+		}
+	}
+	return;
+}
+
+// C = A |*| B
+void SparseMatMulX(const MYINT* Aidx, const posit_2_t* Aval, posit_2_t** B, posit_2_t* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+	MYITE ite_idx = 0, ite_val = 0;
+	for (MYITE k = 0; k < K; k++) {
+		posit_2_t b = B[k * 1][0];
+
+		MYINT idx = Aidx[ite_idx];
+		while (idx != 0) {
+			posit_2_t a = Aval[ite_val];
+
+			posit_2_t c = pX2_mul(a, b, bitwidth);
+
+			C[idx - 1] = pX2_add(C[idx - 1], c, bitwidth);
+
+			ite_idx++;
+			ite_val++;
+
+			idx = Aidx[ite_idx];
+		}
+		ite_idx++;
+	}
+	return;
+}
+
+// C = A |*| B
+void SparseMatMul(const MYINT* Aidx, const posit_2_t* Aval, posit_2_t* B, posit_2_t* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+	MYITE ite_idx = 0, ite_val = 0;
+	for (MYITE k = 0; k < K; k++) {
+		posit_2_t b = B[k];
+
+		MYINT idx = Aidx[ite_idx];
+		while (idx != 0) {
+			posit_2_t a = Aval[ite_val];
+
+			posit_2_t c = pX2_mul(a, b, bitwidth);
+
+			C[idx - 1] = pX2_add(C[idx - 1], c, bitwidth);
+
+			ite_idx++;
+			ite_val++;
+
+			idx = Aidx[ite_idx];
+		}
+		ite_idx++;
+	}
+
+	return;
+}
+
+// C = A <*> B
+void MulCir(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t a = A[i * J + j];
+			posit_2_t b = B[i * J + j];
+
+			C[i * J + j] = pX2_mul(a, b, bitwidth);
+		}
+	}
+	return;
+}
+
+// A = tanh(A)
+void TanH(posit_2_t* A, MYINT I, MYINT J, float scale_in, float scale_out, posit_2_t* B, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			double x = convertPX2ToDouble(A[i * J + j]), y;
+
+			#ifdef FLOATEXP
+				y = tanh(x);
+			#else
+				y = x > -1 ? x : -1;
+				y = y < 1 ? y : 1;
+			#endif
+
+			B[i * J + j] = convertDoubleToPX2(y, bitwidth);
+		}
+	}
+	return;
+}
+
+// B = reverse(A, axis)
+void Reverse2(posit_2_t* A, MYINT axis, MYINT I, MYINT J, posit_2_t* B, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			MYINT i_prime = (axis == 0 ? (I - 1 - i) : i);
+			MYINT j_prime = (axis == 1 ? (J - 1 - j) : j);
+
+			B[i * J + j] = A[i_prime*J + j_prime];
+		}
+	}
+	return;
+}
+
+// index = argmax(A)
+void ArgMax(posit_2_t* A, MYINT I, MYINT J, int* index, int bitwidth) {
+	posit_2_t max = A[0];
+	MYITE maxIndex = 0, counter = 0;
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t x = A[i * J + j];
+
+			if (pX2_lt(max, x)) {
+				maxIndex = counter;
+				max = x;
+			}
+			counter++;
+		}
+	}
+	*index = maxIndex;
+	return;
+}
+
+// A = A^T
+void Transpose(posit_2_t* A, posit_2_t* B, MYINT I, MYINT J) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			B[i * J + j] = A[j * I + i];
+		}
+	}
+	return;
+}
+
+// C = a * B
+void ScalarMul(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, int bitwidth) {
+	posit_2_t a = *A;
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t b = B[i * J + j];
+			C[i * J + j] = pX2_mul(a, b, bitwidth);
+		}
+	}
+	return;
+}
+
+// C = MBConv(A, params)
+// A[N][H][W][Cin], C[N][Hout][Wout][Cout]
+// X[HF][W][Ct], T[Ct], U[max(Ct, Cin, HF*WF)]
+// F1[1][1][1][Cin][Ct], BN1W[Ct], BN1B[Ct]
+// F2[Ct][HF][WF][1][1], BN2W[Ct], BN2B[Ct]
+// F3[1][1][1][Ct][Cout], BN3W[Cout], BN3B[Cout]
+void MBConv(posit_2_t* A, const posit_2_t* F1, const posit_2_t* BN1W, const posit_2_t* BN1B, const posit_2_t* F2, const posit_2_t* BN2W, const posit_2_t* BN2B, const posit_2_t* F3, const posit_2_t* BN3W, const posit_2_t* BN3B, posit_2_t* C, posit_2_t* X, posit_2_t* T, posit_2_t* U, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE D1, MYITE D2, MYITE D3, MYINT SIX_1, MYINT SIX_2, MYINT shr1, MYINT shr2, MYINT shr3, MYINT shr4, MYINT shr5, MYINT shr6, MYINT shr7, MYINT shr8, MYINT shr9, MYINT shl1, MYINT shl2, MYINT shl3, MYINT shl4, MYINT shl5, MYINT shl6, MYINT shl7, MYINT shl8, MYINT shl9, std::string name, int bitwidth) {
+	MYITE HOffsetL = (HF / 2) - HPADL;
+	MYITE WOffsetL = (WF / 2) - WPADL;
+	MYITE HOffsetR = (HF / 2) - HPADR;
+	MYITE WOffsetR = (WF / 2) - WPADR;
+
+	for (MYITE n = 0; n < N; n++) {
+		MYITE margin = HOffsetL + (HF / 2 + 1) - HSTR > 0 ? HOffsetL + (HF/2 + 1) - HSTR : 0;
+		MYITE nstart = HOffsetL - (HF / 2) < 0 ? 0 : HOffsetL - (HF / 2);
+		for (MYITE i = nstart; i < margin; i++) {
+			for (MYITE j = 0; j < W; j++) {
+				for (MYITE k = 0; k < Ct; k++) {
+					for (MYITE l = 0; l < Cin; l++) {
+						U[l] = pX2_mul(A[n * H * W * Cin + i * W * Cin + j * Cin + l], F1[l * Ct + k], bitwidth);
+					}
+					MYITE totalEle = Cin;
+					MYITE count = Cin;
+					MYITE depth = 0;
+
+					while (depth < D1) {
+						for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
+							if (p < count / 2) {
+								U[p] = pX2_add(U[2 * p], U[(2 * p) + 1], bitwidth);
+							} else if ((p == (count / 2)) && ((count % 2) == 1)) {
+								U[p] = U[2 * p];
+							} else {
+								U[p] =  convertDoubleToPX2(0, bitwidth);
+							}
+						}
+
+						count = (count + 1) / 2;
+						depth++;
+					}
+	
+					posit_2_t ar = pX2_add(U[0], BN1B[k], bitwidth);
+					X[i * W * Ct + j * Ct + k] = pX2_mul((ar),  BN1W[k], bitwidth);
+					Profile2(&ar, 1, 1, name + "t1", bitwidth);
+					X[i * W * Ct + j * Ct + k] = pX2_lt(X[i * W * Ct + j * Ct + k], convertDoubleToPX2(0.0, bitwidth)) ? convertDoubleToPX2(0.0, bitwidth) : X[i * W * Ct + j * Ct + k];
+					X[i * W * Ct + j * Ct + k] = pX2_lt(convertDoubleToPX2(6.0, bitwidth), X[i * W * Ct + j * Ct + k]) ? convertDoubleToPX2(6.0, bitwidth) : X[i * W * Ct + j * Ct + k];
+				}
+			}
+		}
+
+		for (MYITE h = HOffsetL, hout = 0; h < H - HOffsetR; hout++, h += HSTR) {
+
+			for (MYITE i = 0; i < HSTR; i++) {
+				for (MYITE j = 0; j < W; j++) {
+					for (MYITE k = 0; k < Ct; k++) {
+						MYITE iRed = (i + margin + hout * HSTR) % HF, iFull = i + margin + hout * HSTR;
+						X[iRed * W * Ct + j * Ct + k] = convertDoubleToPX2(0.0, bitwidth);
+						for (MYITE l = 0; l < Cin; l++) {
+							posit_2_t a = iFull < H ? A[n * H * W * Cin + iFull * W * Cin + j * Cin + l] : convertDoubleToPX2(0.0, bitwidth);
+							U[l] = pX2_mul(a, F1[l * Ct + k], bitwidth);
+						}
+						MYITE totalEle = Cin;
+						MYITE count = Cin;
+						MYITE depth = 0;
+
+						while (depth < D1) {
+							for (MYITE p = 0; p <(totalEle / 2 + 1); p++) {
+								if (p < count / 2) {
+									U[p] = pX2_add(U[2 * p], U[(2 * p) + 1], bitwidth);
+								} else if ((p == (count / 2)) && ((count % 2) == 1)) {
+									U[p] = U[2 * p];
+								} else {
+									U[p] = convertDoubleToPX2(0, bitwidth);
+								}
+							}
+
+							count = (count + 1) / 2;
+							depth++;
+						}
+
+						posit_2_t ar = pX2_add(U[0], BN1B[k], bitwidth);
+						X[iRed * W * Ct + j * Ct + k] = pX2_mul((ar), BN1W[k], bitwidth);
+						Profile2(&ar, 1, 1, name + "t1", bitwidth);
+						X[iRed * W * Ct + j * Ct + k] = pX2_lt(X[iRed * W * Ct + j * Ct + k], convertDoubleToPX2(0.0, bitwidth)) ? convertDoubleToPX2(0.0, bitwidth) : X[iRed * W * Ct + j * Ct + k];
+						X[iRed * W * Ct + j * Ct + k] = pX2_lt(convertDoubleToPX2(6.0, bitwidth), X[iRed * W * Ct + j * Ct + k]) ? convertDoubleToPX2(6.0, bitwidth) : X[iRed * W * Ct + j * Ct + k];
+					}
+				}
+			}
+
+			for (MYITE w = WOffsetL, wout = 0; w < W - WOffsetR; w += WSTR, wout++) {
+				for (MYITE g = 0; g < Ct; g++) {
+					MYITE counter = 0;
+					for (MYITE hf = -(HF / 2); hf <= (HF / 2); hf++) {
+						for (MYITE wf = -(WF / 2); wf <= (WF / 2); wf++) {
+							posit_2_t x = (((h + hf) < 0) || ((h + hf) >= H) || ((w + wf) < 0) || ((w + wf) >= W)) ? convertDoubleToPX2(0.0, bitwidth) : X[((h + hf) % HF) * W * Ct + (w + wf) * Ct + g];
+							posit_2_t b = F2[g * HF * WF + (hf + HF / 2) * WF + (wf + WF / 2)];
+							U[counter] = pX2_mul(x, b, bitwidth);
+							counter++;
+						}
+					}
+					MYITE totalEle = HF * WF;
+					MYITE count = HF * WF;
+					MYITE depth = 0;
+
+					while (depth < D2) {
+						for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
+							if (p < count / 2) {
+								U[p] = pX2_add(U[2 * p], U[(2 * p) + 1], bitwidth);
+							} else if ((p == (count / 2)) && ((count % 2) == 1)) {
+								U[p] = U[2 * p];
+							} else {
+								U[p] = convertDoubleToPX2(0.0, bitwidth);
+							}
+						}
+
+						count = (count + 1) / 2;
+						depth++;
+					}
+
+					posit_2_t ar = pX2_add(U[0], BN2B[g], bitwidth);
+					T[g] = pX2_mul((ar), BN2W[g], bitwidth);
+					Profile2(&ar, 1, 1, name + "t3", bitwidth);
+					T[g] = pX2_lt(T[g], convertDoubleToPX2(0.0, bitwidth)) ? convertDoubleToPX2(0.0, bitwidth) : T[g];
+					T[g] = pX2_lt(convertDoubleToPX2(6.0, bitwidth), T[g]) ? convertDoubleToPX2(6.0, bitwidth) : T[g];
+				}
+
+				for (MYITE i = 0; i < Cout; i++) {
+					for (MYITE g = 0; g < Ct; g++) {
+						U[g] = pX2_mul(T[g], F3[g * Cout + i], bitwidth);
+					}
+					MYITE totalEle = Ct;
+					MYITE count = Ct;
+					MYITE depth = 0;
+
+					while (depth < D3) {
+						for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
+							if (p < count / 2) {
+								U[p] = pX2_add(U[2 * p], U[(2 * p) + 1], bitwidth);
+							} else if ((p == (count / 2)) && ((count % 2) == 1)) {
+								U[p] = U[2 * p];
+							} else {
+								U[p] = convertDoubleToPX2(0, bitwidth);
+							}
+						}
+
+						count = (count + 1) / 2;
+						depth++;
+					}
+
+					posit_2_t ar = pX2_add(U[0], BN3B[i], bitwidth);
+					C[n * Hout * Wout * Cout + hout * Wout * Cout + wout * Cout + i] = pX2_mul((ar), BN3W[i], bitwidth);
+					Profile2(&ar, 1, 1, name + "t5", bitwidth);
+				}
+			}
+		}
+	}
+}
+
+// C = conv(A, B, <params>)
+// A[N][H][W][CIN], B[G][HF][WF][CINF][COUTF], C[N][HOUT][WOUT][COUTF*G]
+void Convolution(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+	MYITE HOffsetL = HDL * (HF / 2) - HPADL;
+	MYITE WOffsetL = WDL * (WF / 2) - WPADL;
+	MYITE HOffsetR = HDL * (HF / 2) - HPADR;
+	MYITE WOffsetR = WDL * (WF / 2) - WPADR;
+
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = HOffsetL, hout = 0; h < H - HOffsetR; h += HSTR, hout++) {
+			for (MYITE w = WOffsetL, wout = 0; w < W - WOffsetR; w += WSTR, wout++) {
+				for (MYITE g = 0; g < G; g++) {
+					for (MYITE co = 0; co < COUTF; co++) {
+
+						MYITE counter = 0;
+						for (MYITE hf = -(HF / 2); hf <= HF / 2; hf++) {
+							for (MYITE wf = -(WF / 2); wf <= WF / 2; wf++) {
+								for (MYITE ci = 0; ci < CINF; ci++) {
+									posit_2_t a = (((h + HDL * hf) < 0) || ((h + HDL * hf) >= H) || ((w + WDL * wf) < 0) || ((w + WDL * wf) >= W)) ? convertDoubleToPX2(0, bitwidth) : A[n * H * W * CIN + (h + HDL * hf) * W * CIN + (w + WDL * wf) * CIN + (ci + g * CINF)];
+									posit_2_t b = B[g * HF * WF * CINF * COUTF + (hf + HF / 2) * WF * CINF * COUTF + (wf + WF / 2) * CINF * COUTF + ci * COUTF + co];
+
+									tmp[counter] = pX2_mul(a, b, bitwidth);
+									counter++;
+								}
+							}
+						}
+
+						MYITE totalEle = HF * WF * CINF;
+						MYITE count = HF * WF * CINF, depth = 0;
+						bool shr = true;
+
+						while (depth < (H1 + H2)) {
+							if (depth >= H1) {
+								shr = false;
+							}
+
+							for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
+								posit_2_t sum;
+								if (p < (count >> 1)) {
+									sum = pX2_add(tmp[2 * p], tmp[(2 * p) + 1], bitwidth);
+								} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+									sum = tmp[2 * p];
+								} else {
+									sum = convertDoubleToPX2(0, bitwidth);
+								}
+
+								if (shr) {
+									tmp[p] = sum;
+								} else {
+									tmp[p] = sum;
+								}
+							}
+
+							count = (count + 1) >> 1;
+							depth++;
+						}
+
+						C[n * HOUT * WOUT * (COUTF * G) + hout * WOUT * (COUTF * G) + wout * (COUTF * G) + (co + g * COUTF)] = tmp[0];
+					}
+				}
+			}
+		}
+	}
+}
+
+// C = A # B
+// A[N][H][W][CI], B[HF][WF][CI][CO], C[N][H][W][CO]
+void Conv(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+	MYITE padH = (HF - 1) / 2;
+	MYITE padW = (WF - 1) / 2;
+
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE co = 0; co < CO; co++) {
+
+					MYITE counter = 0;
+					for (MYITE hf = 0; hf < HF; hf++) {
+						for (MYITE wf = 0; wf < WF; wf++) {
+							for (MYITE ci = 0; ci < CI; ci++) {
+								posit_2_t a = (((((h + hf) < padH) || ((h + hf) >= (H + padH))) || (((w + wf) < padW) || ((w + wf) >= (W + padW)))) ? convertDoubleToPX2(0, bitwidth) : A[n * H * W * CI + ((h + hf) - padH) * W * CI + ((w + wf) - padW) * CI + ci]);
+								posit_2_t b = B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co];
+
+								tmp[counter] = pX2_mul(a, b, bitwidth);
+								counter++;
+							}
+						}
+					}
+
+					MYITE totalEle = HF * WF * CI;
+					MYITE count = HF * WF * CI, depth = 0;
+					bool shr = true;
+
+					while (depth < (H1 + H2)) {
+						if (depth >= H1) {
+							shr = false;
+						}
+
+						for (MYITE p = 0; p < (totalEle / 2 + 1); p++) {
+							posit_2_t sum;
+							if (p < (count >> 1)) {
+								sum = pX2_add(tmp[2 * p], tmp[(2 * p) + 1], bitwidth);
+							} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
+								sum = tmp[2 * p];
+							} else {
+								sum = convertDoubleToPX2(0, bitwidth);
+							}
+
+							if (shr) {
+								tmp[p] = sum;
+							} else {
+								tmp[p] = sum;
+							}
+						}
+
+						count = (count + 1) >> 1;
+						depth++;
+					}
+
+					C[n * H * W * CO + h * W * CO + w * CO + co] = tmp[0];
+				}
+			}
+		}
+	}
+
+	return;
+}
+
+// A = A <+> B
+// A[N][H][W][C], B[C]
+void AddOrSubCir4D(posit_2_t* A, const posit_2_t* B, posit_2_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add, int bitwidth) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					posit_2_t a = A[n * H * W * C + h * W * C + w * C + c];
+					posit_2_t b = B[c];
+
+					posit_2_t res;
+					if (add) {
+						res = pX2_add(a, b, bitwidth);
+					} else {
+						res = pX2_sub(a, b, bitwidth);
+					}
+
+					X[n * H * W * C + h * W * C + w * C + c] = res;
+				}
+			}
+		}
+	}
+	return;
+}
+
+// A = A <+> B
+// A[N][H][W][C], B[C]
+void AddOrSubCir2D(posit_2_t* A, const posit_2_t* B, posit_2_t* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add, int bitwidth) {
+	for (MYITE h = 0; h < H; h++) {
+		for (MYITE w = 0; w < W; w++) {
+			posit_2_t a = A[h * W + w];
+			posit_2_t b = B[w];
+
+			posit_2_t res;
+			if (add) {
+				res = pX2_add(a, b, bitwidth);
+			} else {
+				res = pX2_sub(a, b, bitwidth);
+			}
+
+			X[h * W + w] = res;
+		}
+	}
+	return;
+}
+
+// A = relu(A)
+// A[N][H][W][C]
+void Relu4D(posit_2_t* A, MYINT N, MYINT H, MYINT W, MYINT C, int bitwidth) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					posit_2_t a = A[n * H * W * C + h * W * C + w * C + c];
+					posit_2_t zero = convertDoubleToPX2(0, bitwidth);
+					if (pX2_lt(a, zero)) {
+						a = zero;
+					}
+
+					A[n * H * W * C + h * W * C + w * C + c] = a;
+				}
+			}
+		}
+	}
+	return;
+}
+
+// B = relu6(A)
+// A[N][H][W][C]
+void Relu6(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div, int bitwidth) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					posit_2_t a = A[n * H * W * C + h * W * C + w * C + c];
+					posit_2_t zero = convertDoubleToPX2(0, bitwidth);
+					posit_2_t six = convertDoubleToPX2(6.0, bitwidth);
+					if (pX2_lt(a, zero)) {
+						a = zero;
+					}
+					if (pX2_lt(six, a)) {
+						a = six;
+					}
+
+					B[n * H * W * C + h * W * C + w * C + c] = a;
+				}
+			}
+		}
+	}
+	return;
+}
+
+// A = relu(A)
+// A[N][H][W][C]
+void Relu2D(posit_2_t* A, MYINT H, MYINT W, int bitwidth) {
+	for (MYITE h = 0; h < H; h++) {
+		for (MYITE w = 0; w < W; w++) {
+			posit_2_t a = A[h * W + w];
+			posit_2_t zero = convertDoubleToPX2(0, bitwidth);
+			if (pX2_lt(a, zero)) {
+				a = zero;
+			}
+
+			A[h * W + w] = a;
+		}
+	}
+	return;
+}
+
+// B = maxpool(A)
+// A[N][H][W][C], B[N][H][W][C]
+void Maxpool(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR) {
+	MYITE HO = H / strideH;
+	MYITE WO = W / strideW;
+
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE ho = 0; ho < HO; ho++) {
+			for (MYITE wo = 0; wo < WO; wo++) {
+				for (MYITE c = 0; c < C; c++) {
+
+					posit_2_t max = A[n * H * W * C + (strideH * ho) * W * C + (strideW * wo) * C + c];
+					for (MYITE hs = 0; hs < FH; hs++) {
+						for (MYITE ws = 0; ws < FW; ws++) {
+							posit_2_t a = A[n * H * W * C + ((strideH * ho) + hs) * W * C + ((strideW * wo) + ws) * C + c];
+							if (pX2_lt(max, a)) {
+								max = a;
+							}
+						}
+					}
+
+					B[n * HO * WO * C + ho * WO * C + wo * C + c] = max;
+				}
+			}
+		}
+	}
+	return;
+}
+
+void NormaliseL2(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA, int bitwidth) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+
+				// Calculate the sum square.
+				posit_2_t sumSquare = convertDoubleToPX2(0, bitwidth);
+				for (MYITE c = 0; c < C; c++) {
+					posit_2_t tmp = A[n * H * W * C + h * W * C + w * C + c];
+					sumSquare = pX2_add(sumSquare, pX2_mul(tmp, tmp, bitwidth), bitwidth);
+				}
+
+				// Calculate the inverse square root of sumSquare.
+				if (pX2_eq(sumSquare,  convertDoubleToPX2(0, bitwidth))) {
+					sumSquare = convertDoubleToPX2(1e-5, bitwidth);
+				}
+
+				posit_2_t inverseNorm = pX2_div(convertDoubleToPX2(1, bitwidth), pX2_sqrt(sumSquare, bitwidth), bitwidth);
+
+				// Multiply all elements by the 1 / sqrt(sumSquare).
+				for (MYITE c = 0; c < C; c++) {
+					B[n * H * W * C + h * W * C + w * C + c]  = pX2_mul(A[n * H * W * C + h * W * C + w * C + c], inverseNorm, bitwidth);
+				}
+			}
+		}
+	}
+	return;
+}
+
+// B = exp(A)
+void Exp(posit_2_t* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, posit_2_t* B, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t x = A[i * J + j];
+
+			updateRangeOfExp(-1*convertPX2ToDouble(x));
+
+			B[i * J + j] = convertDoubleToPX2(exp(convertPX2ToDouble(x)), bitwidth);
+		}
+	}
+	return;
+}
+
+// A = sigmoid(A)
+void Sigmoid(posit_2_t* A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit_2_t* B, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			float x = convertPX2ToDouble(A[i * J + j]), y;
+
+#ifdef FLOATEXP
+			y = 1 / (1 + exp(-x));
+#else
+			y = (x + 1) / 2;
+			y = y > 0 ? y : 0;
+			y = y < 1 ? y : 1;
+#endif
+			B[i * J + j] = convertDoubleToPX2(y, bitwidth);
+		}
+	}
+	return;
+}
+
+// A = AdjustScaleShr(A)
+void AdjustScaleShr(posit_2_t* A, MYINT I, MYINT J, MYINT scale) {
+	return;
+}
+
+// A = AdjustScaleShl(A)
+void AdjustScaleShl(posit_2_t* A, MYINT I, MYINT J, MYINT scale) {
+	return;
+}

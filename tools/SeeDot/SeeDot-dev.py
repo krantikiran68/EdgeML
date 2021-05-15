@@ -13,6 +13,7 @@ import tempfile
 
 import seedot.config as config
 import seedot.main as main
+import seedot.mainZeroSkew as mainZeroSkew
 import seedot.predictor as predictor
 import seedot.util as util
 import logging
@@ -219,8 +220,11 @@ class MainDriver:
                 sf = self.args.max_scale_factor
 
             numOutputs = self.args.numOutputs
-
-            obj = main.Main(algo, encoding, target, trainingInput,
+            if encoding != config.Encoding.zskew:
+                obj = main.Main(algo, encoding, target, trainingInput,
+                            testingInput, modelDir, sf, metric, dataset, numOutputs, self.args.source)
+            else:
+                obj = mainZeroSkew.MainZeroSkew(algo, encoding, target, trainingInput,
                             testingInput, modelDir, sf, metric, dataset, numOutputs, self.args.source)
             obj.run()
 

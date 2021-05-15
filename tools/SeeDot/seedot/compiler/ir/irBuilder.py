@@ -2850,7 +2850,17 @@ class IRBuilder(ASTVisitor):
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        prog_tanh = IR.Prog([comment, funcCall])
+        # if forFloat():
+        #     profile = [IR.FuncCall("Profile2", {
+        #         expr_out: "Var",
+        #         IR.Int(I): "I",
+        #         IR.Int(J): "J",
+        #         IR.String(expr_out): "VarName"
+        #     })]
+        # if forFloat():
+        #     self.independentVars.append(expr_out.idf)
+        profile = None
+        prog_tanh = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_tanh)
 
@@ -3020,10 +3030,21 @@ class IRBuilder(ASTVisitor):
             expr_out: "B"
         })
 
+        # if forFloat():
+        #     profile = [IR.FuncCall("Profile2", {
+        #         expr_out: "Var",
+        #         IR.Int(I): "I",
+        #         IR.Int(J): "J",
+        #         IR.String(expr_out): "VarName"
+        #     })]
+        # if forFloat():
+        #     self.independentVars.append(expr_out.idf)
+        profile = None
+
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        prog_sigmoid = IR.Prog([comment, funcCall])
+        prog_sigmoid = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_sigmoid)
 

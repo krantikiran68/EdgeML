@@ -15,9 +15,10 @@ import seedot.compiler.ast.ast as AST
 import seedot.compiler.ast.astBuilder as astBuilder
 import seedot.compiler.ast.printAST as printAST
 
-import seedot.compiler.compiler.Compiler as Compiler
+from seedot.compiler.compiler import Compiler
 import seedot.compiler.codegen.arduino as arduino
 import seedot.compiler.codegen.x86 as x86
+import seedot.compiler.codegen.x86ZeroSkew as x86ZeroSkew
 import seedot.compiler.codegen.m3 as m3
 
 import seedot.compiler.ir.irBuilder as irBuilder
@@ -45,7 +46,7 @@ desired target codegen, which outputs the C/C++ code which can be run on the tar
 class CompilerZeroSkew(Compiler):
 
     def __init__(self, algo, encoding, target, inputFile, outputDir, profileLogFile, maxScale, source, outputLogFile, generateAllFiles=True, id=None, printSwitch=-1, substitutions={}, scaleForX=None, variableToBitwidthMap={}, sparseMatrixSizes={}, demotedVarsList=[], demotedVarsOffsets={}, paramInNativeBitwidth=True):
-        super().__init__(algo, encoding, target, inputFile, outputDir, profileLogFile, maxScale, source, outputLogFile, generateAllFiles, id, printSwitch, substitutions, scaleForX, variableToBitwidthMap, sparseMatrixSizes, demotedVarsList, demotedVarsOffsets, paramInNativeBitwidth):
+        super().__init__(algo, encoding, target, inputFile, outputDir, profileLogFile, maxScale, source, outputLogFile, generateAllFiles, id, printSwitch, substitutions, scaleForX, variableToBitwidthMap, sparseMatrixSizes, demotedVarsList, demotedVarsOffsets, paramInNativeBitwidth)
         
         self.biasShifts = {}
 
@@ -88,13 +89,15 @@ class CompilerZeroSkew(Compiler):
         res, state = self.compile(ast)
 
         if util.forArduino():
+            assert False, "Not supported for Zero Skew representation"
             assert self.problemType == config.ProblemType.classification, "Arduino codegen only for Classification problems"
             codegen = arduino.Arduino(self.outputDir, *state)
         elif util.forM3():
+            assert False, "Not supported for Zero Skew representation"
             assert self.problemType == config.ProblemType.regression, "M3 codegen only for Regression problems"
             codegen = m3.M3(self.outputDir, *state)
         elif util.forX86():
-            codegen = x86.X86(self.outputDir, self.generateAllFiles, self.printSwitch, self.id, self.paramInNativeBitwidth, *state)
+            codegen = x86ZeroSkew.X86ZeroSkew(self.outputDir, self.generateAllFiles, self.printSwitch, self.id, self.paramInNativeBitwidth, *state)
         else:
             assert False
 

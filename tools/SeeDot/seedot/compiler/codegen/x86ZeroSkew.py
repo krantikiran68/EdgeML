@@ -114,7 +114,7 @@ class X86ZeroSkew(X86):
         self.out.increaseIndent()
 
     def printModelParamsWithBitwidth(self):
-        if config.vbwEnabled and forFixed():
+        if config.vbwEnabled and forZeroSkew():
             for var in self.globalVars:
                 if var + "idx" in self.globalVars and var + "val" in self.globalVars:
                     continue
@@ -165,7 +165,7 @@ class X86ZeroSkew(X86):
 
             if forFloat() and decl not in self.internalVars:
                 typ_str = IR.DataType.getFloatStr()
-            elif forFixed() and decl not in self.internalVars:
+            elif forZeroSkew() and decl not in self.internalVars:
                 if config.vbwEnabled and decl not in self.internalVars:
                     bw = self.varsForBitwidth.get(decl, config.wordLength)
                     typ_str = "int%d_t" % bw
@@ -187,7 +187,7 @@ class X86ZeroSkew(X86):
                     varsFile.printf('extern %s %s%s;\n', typ_str,
                                 idf_str, shape_str, indent=True)
             else:
-                if forFixed() and idf_str in self.varsForBitwidth and idf_str[:3] == "tmp":
+                if forZeroSkew() and idf_str in self.varsForBitwidth and idf_str[:3] == "tmp":
                     if globalVarDecl:
                         for bw in config.availableBitwidths:
                             self.out.printf("int%d_t vars_%s::%s_%d%s;\n", bw, getEncoding(), idf_str, bw, shape_str, indent=True)
@@ -200,7 +200,7 @@ class X86ZeroSkew(X86):
                         self.out.printf("%s %s%s;\n", typ_str, idf_str, shape_str, indent=True)
 
                 if self.generateAllFiles:
-                    if forFixed() and idf_str in self.varsForBitwidth and idf_str[:3] == "tmp":
+                    if forZeroSkew() and idf_str in self.varsForBitwidth and idf_str[:3] == "tmp":
                         for bw in config.availableBitwidths:
                             varsFile.printf("extern int%d_t %s_%d%s;\n", bw, idf_str, bw, shape_str, indent=True)
                     else:
@@ -228,7 +228,7 @@ class X86ZeroSkew(X86):
         debugFile.printf("using namespace std;\n\n")
         debugFile.printf("void debug() {\n\n")
 
-        if debugMode() and forFixed():
+        if debugMode() and forZeroSkew():
             debugFile.increaseIndent()
 
             for decl in self.decls:
@@ -256,7 +256,7 @@ class X86ZeroSkew(X86):
     def printSuffix(self, expr: IR.Expr):
         self.out.printf('\n')
 
-        if config.vbwEnabled and forFixed():
+        if config.vbwEnabled and forZeroSkew():
             bw = self.varsForBitwidth['X']
             typ_str = "int%d_t" % bw
             size = self.decls['X'].shape
@@ -313,7 +313,7 @@ class X86ZeroSkew(X86):
             except:
                 return False
 
-        if forFixed():
+        if forZeroSkew():
             if (int(self.printSwitch) if isInt(self.printSwitch) else -2) > -1:
                 self.out.printf("const int switches = %d;\n" % (int(self.printSwitch)), indent = True)
                 self.out.printf('void seedotFixedSwitch(int i, MYINT **X_temp, int32_t* res) {\n', indent=True)
@@ -357,7 +357,7 @@ class X86ZeroSkew(X86):
                 else:
                     x = 0
 
-                if forFixed():
+                if forZeroSkew():
                     typeCast = "(int%d_t*)" % self.varsForBitwidth[arg.idf] if x > 0 else ""
                     self.out.printf(typeCast)
 

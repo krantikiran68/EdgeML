@@ -13,6 +13,9 @@ PREDICTOR_INCLUDES=datatypes.h \
                    profile.h \
                    vars_fixed.h \
                    vars_float.h \
+                   library_zskew.h \
+                   model_zskew.h \
+                   vars_zskew.h \
 
 PREDICTOR_OBJS=debug.o \
                library_fixed.o \
@@ -21,6 +24,8 @@ PREDICTOR_OBJS=debug.o \
                profile.o \
                seedot_fixed.o \
                seedot_float.o \
+               library_zskew.o \
+               seedot_zskew.o \
 
 all: Predictor
 
@@ -36,6 +41,9 @@ library_fixed.o: library_fixed.cpp $(PREDICTOR_INCLUDES)
 library_float.o: library_float.cpp $(PREDICTOR_INCLUDES)
 	$(CC) -c -o $@ $(CFLAGS) $<
 
+library_zskew.o: library_zskew.cpp $(PREDICTOR_INCLUDES)
+	$(CC) -c -o $@ $(CFLAGS) $<
+
 main.o: main.cpp $(PREDICTOR_INCLUDES)
 	$(CC) -c -o $@ $(CFLAGS) $<
 
@@ -46,6 +54,9 @@ seedot_fixed.o: seedot_fixed.cpp $(PREDICTOR_INCLUDES)
 	$(CC) -c -o $@ $(CFLAGS) $<
 
 seedot_float.o: seedot_float.cpp $(PREDICTOR_INCLUDES)
+	$(CC) -c -o $@ $(CFLAGS) $<
+
+seedot_zskew.o: seedot_zskew.cpp $(PREDICTOR_INCLUDES)
 	$(CC) -c -o $@ $(CFLAGS) $<
 
 clean: 

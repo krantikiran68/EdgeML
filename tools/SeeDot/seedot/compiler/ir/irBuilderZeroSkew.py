@@ -1584,7 +1584,7 @@ class IRBuilderZeroSkew(IRBuilder):
         # scale_out = scale_in # self.getScale(1.5)
         # tanh_limit_out = 2 ** -scale_out
 
-        funcCall = IR.FuncCall("TanH", {
+        funcCall = IR.FuncCall("TanHZSkew", {
             expr_in: "A",
             IR.Int(I): "I",
             IR.Int(J): "J",
@@ -1681,7 +1681,7 @@ class IRBuilderZeroSkew(IRBuilder):
         comment = IR.Comment("Sigmoid(" + expr_in.idf + ")", self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
 
-        funcCall = IR.FuncCall("Sigmoid", {
+        funcCall = IR.FuncCall("SigmoidZSkew", {
             expr_in: "A",
             IR.Int(I): "I",
             IR.Int(J): "J",

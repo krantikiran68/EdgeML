@@ -4,6 +4,8 @@
 #pragma once
 
 #include "datatypes.h"
+#include <cassert>
+#include <limits>
 
 /**
  * Notation used:
@@ -106,7 +108,7 @@ void Hadamard(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zeroA, ACINT
  * Computes tanH(A) element-wise and stores the result in B.
  * scale_in is the scale of the input matrix A, and scale_out is the scale of the output matrix B.
  */
-void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, );
+void TanHZSkew(MYINT* A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out, MYINT* B);
 
 /**
  * Dimensions: 	I, J, shrA, shrB are integers
@@ -136,7 +138,7 @@ void MatMulBroadcastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zero
  * 		sigmoid_limit represents the fixed point version of 1.0 in the expression.
  * If flag FLOATEXP is disabled, and if new table exponentiation (Util.py::class Config) is not used, this piecewise approximation is used. Else, the above 3 parameters are not used.
  */
-void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, );
+void SigmoidZSkew(MYINT* A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_limit, MYINT scale_in, MYINT scale_out, MYINT* B);
 
 //Templated Operations: For cases when Variable BitWidth is enabled.
 
@@ -181,38 +183,11 @@ IntegerType SaturatingRoundingDoublingHighMul(IntegerType a, IntegerType b) {
   return a;
 }
 
-template <>
-int64_t SaturatingRoundingDoublingHighMul(int64_t a, int64_t b) {
-  bool overflow = a == b && a == std::numeric_limits<int64_t>::min();
-  int128_t a_128(a);
-  int128_t b_128(b);
-  int128_t ab_128 = a_128 * b_128;
-  int64_t nudge = ab_128 >= 0 ? (1 << 62) : (1 - (1 << 62));
-  int64_t ab_x2_high64 = static_cast<int64_t>((ab_128 + nudge) / (1ll << 63));
-  return overflow ? std::numeric_limits<int64_t>::max() : ab_x2_high64;
-}
+int64_t SaturatingRoundingDoublingHighMul(int64_t a, int64_t b);
 
-template <>
-int32_t SaturatingRoundingDoublingHighMul(int32_t a, int32_t b) {
-  bool overflow = a == b && a == std::numeric_limits<int32_t>::min();
-  int64_t a_64(a);
-  int64_t b_64(b);
-  int64_t ab_64 = a_64 * b_64;
-  int32_t nudge = ab_64 >= 0 ? (1 << 30) : (1 - (1 << 30));
-  int32_t ab_x2_high32 = static_cast<int32_t>((ab_64 + nudge) / (1ll << 31));
-  return overflow ? std::numeric_limits<int32_t>::max() : ab_x2_high32;
-}
+int32_t SaturatingRoundingDoublingHighMul(int32_t a, int32_t b);
 
-template <>
-int16_t SaturatingRoundingDoublingHighMul(int16_t a, int16_t b) {
-  bool overflow = a == b && a == std::numeric_limits<int16_t>::min();
-  int32_t a_32(a);
-  int32_t b_32(b);
-  int32_t ab_32 = a_32 * b_32;
-  int16_t nudge = ab_32 >= 0 ? (1 << 14) : (1 - (1 << 14));
-  int16_t ab_x2_high16 = static_cast<int16_t>((ab_32 + nudge) / (1 << 15));
-  return overflow ? std::numeric_limits<int16_t>::max() : ab_x2_high16;
-}
+int16_t SaturatingRoundingDoublingHighMul(int16_t a, int16_t b);
 
 // Correctly-rounded-to-nearest division by a power-of-two.
 // Also known as a rounding arithmetic right shift.
@@ -332,8 +307,8 @@ template<class TypeA, class TypeB, class TypeAc, class TypeC>
 void Hadamard(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			TypeAc a = A[i * K + k];
-			TypeAc b = B[k * J + j];
+			TypeAc a = A[i * J + j];
+			TypeAc b = B[i * J + j];
 
 			TypeAc prod = (a + zeroA) * (b + zeroB);
 
@@ -351,7 +326,7 @@ void MatMulBroadcastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, TypeAc zer
 
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			TypeAc b = B[k * J + j];
+			TypeAc b = B[i * J + j];
 			TypeAc prod = a * (b + zeroB);
 
 			prod = MulQuantMultiplierLTO<TypeAc>(prod, M0, N);
@@ -362,7 +337,7 @@ void MatMulBroadcastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, TypeAc zer
 }
 
 template<class TypeA>
-void Sigmoid(TypeA* A, TypeA* B, MYITE I, MYITE J, ) {
+void Sigmoid(TypeA* A, TypeA* B, MYITE I, MYITE J, MYINT div, MYINT add, MYINT sigmoid_limit, MYINT scale_diff) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeA x = A[i * J + j];
@@ -385,7 +360,7 @@ void Sigmoid(TypeA* A, TypeA* B, MYITE I, MYITE J, ) {
 }
 
 template<class TypeA>
-void TanH(TypeA* A, TypeA* B, MYITE I, MYITE J, ) {
+void TanH(TypeA* A, TypeA* B, MYITE I, MYITE J, MYINT scale_in, MYINT scale_out) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeA x = A[i * J + j], y;

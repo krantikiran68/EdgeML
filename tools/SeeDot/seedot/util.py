@@ -38,7 +38,7 @@ class Config:
         # Enable fast approximations in the generated fixed-point code, like:
         #   -> In multiplication, truncate first and multiply instead of multiply first in higher bitwidth and then truncate.
         #   -> Similarly in multiplication-like functions convolution, hadamard product etc.
-    x86MemoryOptimize = True
+    x86MemoryOptimize = False
         # Enable memory optimization in the generated fixed-point code in x86, arduino or m3 codegen.
     memoryLimit = 200000
         # The maximum memory present on the target device. Used if memory optimizations are enabled in the target codegen.

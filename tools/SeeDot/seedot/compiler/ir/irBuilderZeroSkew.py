@@ -122,6 +122,7 @@ class IRBuilderZeroSkew(IRBuilder):
         ## Removed tree sum for the purpose of zero Skew representation
 
         intv_out = (0,0)
+        demote = 1
 
         # shr_A = self.formatShr(shr_A)
         # shr_B = self.formatShr(shr_B)
@@ -144,6 +145,7 @@ class IRBuilderZeroSkew(IRBuilder):
         expr_out.inputVar = False
         expr_temp.inputVar = False
 
+        
         comment = IR.Comment(expr_in_A.idf + ' * ' + expr_in_B.idf, self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
 
@@ -163,13 +165,13 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(K): "K",
-            scale_in_A: "scale_A",
-            zero_in_A: "zero-A",
-            scale_in_B: "scale_B",
-            zero_in_B: "zero_B",
-            scale_out: "scale_C",
-            zero_out: "zero_C",
-            M: "M"
+            IR.Float(scale_in_A): "scale_A",
+            IR.Int(zero_in_A): "zero_A",
+            IR.Float(scale_in_B): "scale_B",
+            IR.Int(zero_in_B): "zero_B",
+            IR.Float(scale_out): "scale_C",
+            IR.Int(zero_out): "zero_C",
+            IR.Float(M): "M"
         }) if not self.vbwEnabled else IR.FuncCall("MatMul" + c + ("<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out)), {
             expr_in_A: "A",
             expr_in_B: "B",
@@ -178,13 +180,13 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(K): "K",
-            scale_in_A: "scale_A",
-            zero_in_A: "zero-A",
-            scale_in_B: "scale_B",
-            zero_in_B: "zero_B",
-            scale_out: "scale_C",
-            zero_out: "zero_C",
-            M: "M",
+            IR.Float(scale_in_A): "scale_A",
+            IR.Int(zero_in_A): "zero_A",
+            IR.Float(scale_in_B): "scale_B",
+            IR.Int(zero_in_B): "zero_B",
+            IR.Float(scale_out): "scale_C",
+            IR.Int(zero_out): "zero_C",
+            IR.Float(M): "M",
             IR.Int(demote): "demote"
         })
 
@@ -210,11 +212,11 @@ class IRBuilderZeroSkew(IRBuilder):
         # Print logs.
         self.log.print(comment.msg)
         self.log.print("\tInput1: scale = %f, zero = %d, interval = [%d, %d]" % (
-            (self.varScales[expr_in_A.idf],) + (self.varZeros[expr_in_A.idf]) + self.varIntervals[expr_in_A.idf]))
+            (self.varScales[expr_in_A.idf],) + (self.varZeros[expr_in_A.idf],) + self.varIntervals[expr_in_A.idf]))
         self.log.print("\tInput2: scale = %f, zero = %d, interval = [%d, %d]" % (
-            (self.varScales[expr_in_B.idf],) + (self.varZeros[expr_in_B.idf]) + self.varIntervals[expr_in_B.idf]))
+            (self.varScales[expr_in_B.idf],) + (self.varZeros[expr_in_B.idf],) + self.varIntervals[expr_in_B.idf]))
         self.log.print("\tOutput: scale = %f, zero = %d, interval = [%d, %d]" % (
-            (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf]) + self.varIntervals[expr_out.idf]))
+            (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf],) + self.varIntervals[expr_out.idf]))
 
         return (prog_out, expr_out)
 
@@ -284,8 +286,10 @@ class IRBuilderZeroSkew(IRBuilder):
         # e1 : Tensor{(),(..)}
         else:
             # Compute the scale of the LHS variable. RHS/decl may have a different bit-width, hence the scale of LHS has to be adjusted accordingly.
-            if idf in self.demotedVarsLists:
+            if idf in self.demotedVarsList:
                 self.varScales[idf], self.varZeros[idf] = self.adjustScaleAndZero(self.varScales[expr_decl.idf], self.varZeros[expr_decl.idf], demote=True)
+            else:
+                self.varScales[idf], self.varZeros[idf] = self.varScales[expr_decl.idf], self.varZeros[expr_decl.idf]
             self.varIntervals[idf] = self.varIntervals[expr_decl.idf]
 
             # If LHS is demoted to lower bit-width, the RHS should also be in a lower bit-width, so scale of RHS is also adjusted.
@@ -420,8 +424,12 @@ class IRBuilderZeroSkew(IRBuilder):
 
         minVal += zero
         maxVal += zero
+        
+        if math.fabs(maxVal) < 0.00000001:
+            scale = 1.0
+        else:
+            scale = maxVal/maxVar
 
-        scale = maxVal/maxVar
         return scale, int(zero/scale)
 
         
@@ -941,7 +949,7 @@ class IRBuilderZeroSkew(IRBuilder):
         # Compute scaling hyperparameters given input and output scales. If static scaling of old SeeDot is used, also compute the output scale and bit-width.
         # shr_A, shr_B, H1, H2, demote, scale_out = self.getShrTreeSumAndDemoteParamsForMul(bitwidth_in_A, scale_in_A, bitwidth_in_B, scale_in_B, bitwidth_temp, scale_temp, bitwidth_out, scale_out, 1)
 
-        intv_out = self.getIntvervalForMul(intv_in_A, shr_A, intv_in_B, shr_B)
+        intv_out = (0, 0) # self.getIntvervalForMul(intv_in_A, shr_A, intv_in_B, shr_B)
 
         # Ensuring that in the generated code, the scalar is the first argument.
         if type_in_A.dim == 0:
@@ -1010,11 +1018,11 @@ class IRBuilderZeroSkew(IRBuilder):
         # Printing logs.
         self.log.print(comment.msg)
         self.log.print("\tInput1: scale = %f, zero = %d, interval = [%d, %d]" % (
-            (self.varScales[expr_in_A.idf],) + (self.varZeros[expr_in_A.idf]) + self.varIntervals[expr_in_A.idf]))
+            (self.varScales[expr_in_A.idf],) + (self.varZeros[expr_in_A.idf],) + self.varIntervals[expr_in_A.idf]))
         self.log.print("\tInput2: scale = %f, zero = %d, interval = [%d, %d]" % (
-            (self.varScales[expr_in_B.idf],) + (self.varZeros[expr_in_B.idf]) + self.varIntervals[expr_in_B.idf]))
+            (self.varScales[expr_in_B.idf],) + (self.varZeros[expr_in_B.idf],) + self.varIntervals[expr_in_B.idf]))
         self.log.print("\tOutput: scale = %f, zero = %d, interval = [%d, %d]" % (
-            (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf]) + self.varIntervals[expr_out.idf]))
+            (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf],) + self.varIntervals[expr_out.idf]))
 
         return (prog_out, expr_out)
     
@@ -1130,11 +1138,11 @@ class IRBuilderZeroSkew(IRBuilder):
         # Print logs.
         self.log.print(comment.msg)
         self.log.print("\tInput1: scale = %f, zero = %d, interval = [%d, %d]" % (
-            (self.varScales[expr_in_A.idf],) + (self.varZeros[expr_in_A.idf]) + self.varIntervals[expr_in_A.idf]))
+            (self.varScales[expr_in_A.idf],) + (self.varZeros[expr_in_A.idf],) + self.varIntervals[expr_in_A.idf]))
         self.log.print("\tInput2: scale = %f, zero = %d, interval = [%d, %d]" % (
-            (self.varScales[expr_in_B.idf],) + (self.varZeros[expr_in_B.idf]) + self.varIntervals[expr_in_B.idf]))
+            (self.varScales[expr_in_B.idf],) + (self.varZeros[expr_in_B.idf],) + self.varIntervals[expr_in_B.idf]))
         self.log.print("\tOutput: scale = %f, zero = %d, interval = [%d, %d]" % (
-            (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf]) + self.varIntervals[expr_out.idf]))
+            (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf],) + self.varIntervals[expr_out.idf]))
 
 
         return (prog_out, expr_out)
@@ -1380,11 +1388,11 @@ class IRBuilderZeroSkew(IRBuilder):
             # Print log.
             self.log.print(comment.msg)
             self.log.print("\tInput1: scale = %f, zero = %d, interval = [%d, %d]" % (
-                (self.varScales[expr_in_A.idf],) + (self.varZeros[expr_in_A.idf]) + self.varIntervals[expr_in_A.idf]))
+                (self.varScales[expr_in_A.idf],) + (self.varZeros[expr_in_A.idf],) + self.varIntervals[expr_in_A.idf]))
             self.log.print("\tInput2: scale = %f, zero = %d, interval = [%d, %d]" % (
-                (self.varScales[expr_in_B.idf],) + (self.varZeros[expr_in_B.idf]) + self.varIntervals[expr_in_B.idf]))
+                (self.varScales[expr_in_B.idf],) + (self.varZeros[expr_in_B.idf],) + self.varIntervals[expr_in_B.idf]))
             self.log.print("\tOutput: scale = %f, zero = %d, interval = [%d, %d]" % (
-                (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf]) + self.varIntervals[expr_out.idf]))
+                (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf],) + self.varIntervals[expr_out.idf]))
 
 
         return (prog_out, expr_out)
@@ -1557,17 +1565,13 @@ class IRBuilderZeroSkew(IRBuilder):
             self.demotedVarsList.append(expr_out.idf)
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
-        if forFloat():
-            tanh_limit = IR.Float(config.tanhLimit)
-        else:
-            # Scale TanH limit.
-            tanh_limit = self.getNumInZeroSkew(config.tanhLimit, scale_in, zero_in)
+        tanh_limit = self.getNumInZeroSkew(config.tanhLimit, scale_in, zero_in)
 
         tanh_intv = self.getInterval(
             config.tanhLimit, config.tanhLimit, scale_in, zero_in)
         intv_out = self.updateTanhIntv(intv_in, tanh_intv)
 
-        scale_new = self.getScaleAndZero(config.tanhLimit, config.tanhLimit)
+        scale_new, zero_new = self.getScaleAndZero(config.tanhLimit, config.tanhLimit)
         getLogger().debug("Scale changes in TanH operation: old = %f, new = %f, diff = %f" % (
             scale_in, scale_new, abs(scale_in - scale_new)))
 
@@ -1576,7 +1580,7 @@ class IRBuilderZeroSkew(IRBuilder):
         comment = IR.Comment("tanh(" + expr_in.idf + ")", self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
 
-        bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf)
+        scale_out, zero_out = self.getScaleAndZero(-config.tanhLimit, config.tanhLimit, bw = config.wordLength//2 if expr_out.idf in self.demotedVarsList else config.wordLength)
         # scale_out = scale_in # self.getScale(1.5)
         # tanh_limit_out = 2 ** -scale_out
 
@@ -1638,21 +1642,23 @@ class IRBuilderZeroSkew(IRBuilder):
         if expr_in.idf in self.demotedVarsList:
             self.demotedVarsList.append(expr_out.idf)
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
+        else:
+            self.varsForBitwidth[expr_out.idf] = config.wordLength
 
         # Scale sigmoid limit and other constants.
-        # addition_int = self.getNumInZeroSkew(addition, scale_in, zero_in)
-        # sigmoid_limit_int = self.getNumInZeroSkew(sigmoid_limit, scale_in, zero_in)
+        addition_int = self.getNumInZeroSkew(addition, scale_in, zero_in)
+        sigmoid_limit_int = self.getNumInZeroSkew(sigmoid_limit, scale_in, zero_in)
 
-        # # Compute new interval.
-        # [m, M] = intv_in
-        # m_new = max(min((m / denominator) + addition_int.n,
-        #                 sigmoid_limit_int.n), 0)
-        # M_new = max(min((M / denominator) + addition_int.n,
-        #                 sigmoid_limit_int.n), 0)
-        # assert m_new <= M_new, "The range of sigmoid has changed. Re-check the assertion."
+        # Compute new interval.
+        [m, M] = intv_in
+        m, M = float(scale_in*(m - zero_in)), float(scale_in * (M - zero_in))
+        m_new = max(min((m / denominator) + addition,
+                        sigmoid_limit), 0)
+        M_new = max(min((M / denominator) + addition,
+                        sigmoid_limit), 0)
+        assert m_new <= M_new, "The range of sigmoid has changed. Re-check the assertion."
 
-        # intv_out = (m_new, M_new)
-
+        scale_out, zero_out = self.getScaleAndZero(m_new, M_new, bw=self.varsForBitwidth[expr_out.idf])
         # scale_out = self.getScale(1.5) + ((config.wordLength // 2 + self.demotedVarsOffsets[expr_in.idf]) if expr_in.idf in self.demotedVarsList else 0)
 
         # # Computing hyperparameters for linear approximation of Sigmoid.
@@ -1669,7 +1675,7 @@ class IRBuilderZeroSkew(IRBuilder):
         # scale_in_num = 2 ** -scale_in
         # scale_out_num = 2 ** -scale_out
 
-        bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf) 
+        # bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf) 
         expr_in.inputVar = False
 
         comment = IR.Comment("Sigmoid(" + expr_in.idf + ")", self.counter_inst+1)
@@ -1705,15 +1711,15 @@ class IRBuilderZeroSkew(IRBuilder):
         # Updating metadata.
         self.varDeclarations[expr_out.idf] = type_in
         self.varScales[expr_out.idf] = scale_out
-        self.varScales[expr_out.idf] = zero_out
+        self.varZeros[expr_out.idf] = zero_out
         self.varIntervals[expr_out.idf] = (0,0)
 
         # Print log.
         self.log.print(comment.msg)
         self.log.print("\tInput1: scale = %f, zero = %d, interval = [%d, %d]" % (
-            (self.varScales[expr_in.idf],) + (self.varZeros[expr_in.idf]) + self.varIntervals[expr_in.idf]))
+            (self.varScales[expr_in.idf],) + (self.varZeros[expr_in.idf],) + self.varIntervals[expr_in.idf]))
         self.log.print("\tOutput: scale = %f, zero = %d, interval = [%d, %d]" % (
-            (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf]) + self.varIntervals[expr_out.idf]))
+            (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf],) + self.varIntervals[expr_out.idf]))
 
 
         return (prog_out, expr_out)

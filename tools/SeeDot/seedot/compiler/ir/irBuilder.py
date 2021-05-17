@@ -2859,9 +2859,9 @@ class IRBuilder(ASTVisitor):
         #     })]
         # if forFloat():
         #     self.independentVars.append(expr_out.idf)
-        profile = None
-        prog_tanh = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
-
+        # profile = None
+        # prog_tanh = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        prog_tanh = IR.Prog([comment, funcCall])
         prog_out = IRUtil.concatPrograms(prog_in, prog_tanh)
 
         # Updating metadata.
@@ -3039,12 +3039,13 @@ class IRBuilder(ASTVisitor):
         #     })]
         # if forFloat():
         #     self.independentVars.append(expr_out.idf)
-        profile = None
+        # profile = None
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        prog_sigmoid = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        # prog_sigmoid = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        prog_sigmoid = IR.Prog([comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_sigmoid)
 

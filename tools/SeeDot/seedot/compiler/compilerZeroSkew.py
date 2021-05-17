@@ -148,7 +148,7 @@ class CompilerZeroSkew(Compiler):
         for i in compiler.globalVars:
             if util.forM3() and i == 'X':
                 continue
-            state[13].append(i)
+            state[14].append(i)
 
         # In floating-point code used for profiling, the set of variables which are profiled using training data are collected.
         if util.getEncoding() == config.Encoding.floatt:

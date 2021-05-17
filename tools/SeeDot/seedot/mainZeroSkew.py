@@ -229,7 +229,7 @@ class MainZeroSkew(Main):
     # The function is named partial compile as in one C++ output file multiple inference codes are generated.
     # One invocation of partialCompile generates only one of the multiple inference codes.
     def partialCompile(self, encoding, target, generateAllFiles, id, printSwitch, variableToBitwidthMap=None, demotedVarsList=[], paramInNativeBitwidth=True):
-        res = self.compile(encoding, target, None, generateAllFiles, id, printSwitch, None, variableToBitwidthMap, demotedVarsList, demotedVarsOffsets, paramInNativeBitwidth)
+        res = self.compile(encoding, target, None, generateAllFiles, id, printSwitch, None, variableToBitwidthMap, demotedVarsList, {}, paramInNativeBitwidth)
         if res == False:
             return False
         else:
@@ -347,7 +347,7 @@ class MainZeroSkew(Main):
         print("Prediction on testing dataset")
         print("-------------------------------\n")
 
-        Util.getLogger().debug("Setting max scaling factor to %d\n" % (self.sf))
+        # Util.getLogger().debug("Setting max scaling factor to %f\n" % (self.sf))
 
         if config.vbwEnabled:
             Util.getLogger().debug("Demoted Vars with Offsets: %s\n" % (str(self.demotedVarsOffsets)))
@@ -360,9 +360,9 @@ class MainZeroSkew(Main):
 
         # Compile and run code using the best scaling factor.
         if config.vbwEnabled:
-            compiled = self.partialCompile(self.encoding, config.Target.x86, None, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
+            compiled = self.partialCompile(self.encoding, config.Target.x86, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
         else:
-            compiled = self.partialCompile(self.encoding, config.Target.x86, None, True, None, 0)
+            compiled = self.partialCompile(self.encoding, config.Target.x86, True, None, 0)
         if compiled == False:
             return False
 
@@ -436,7 +436,7 @@ class MainZeroSkew(Main):
         if hasattr(self, 'demotedVarsList'):
             for i in self.demotedVarsList:
                 modifiedBitwidths[i] = config.wordLength // 2
-        res = self.partialCompile(self.encoding, self.target, self.sf, True, None, 0, dict(modifiedBitwidths), list(self.demotedVarsList) if hasattr(self, 'demotedVarsList') else [], dict(demotedVarsOffsets))
+        res = self.partialCompile(self.encoding, self.target, True, None, 0, dict(modifiedBitwidths), list(self.demotedVarsList) if hasattr(self, 'demotedVarsList') else [], dict(demotedVarsOffsets))
         if res == False:
             return False
 

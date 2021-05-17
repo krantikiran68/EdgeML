@@ -45,7 +45,7 @@ class Converter:
 
         if getEncoding() == config.Encoding.fixed:
             obj = QuantizerFixed(self.varsForBitwidth, self.allScales, self.numOutputs, self.biasShifts, self.scaleForY)
-        elif getEncoding() == config.Encoding.floatt:
+        elif (getEncoding() == config.Encoding.floatt) or (getEncoding() == config.Encoding.posit):
             obj = QuantizerFloat(self.numOutputs)
 
         obj.run(self.source)

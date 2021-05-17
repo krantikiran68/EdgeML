@@ -17,6 +17,7 @@ import seedot.compiler.ast.printAST as printAST
 
 import seedot.compiler.codegen.arduino as arduino
 import seedot.compiler.codegen.x86 as x86
+import seedot.compiler.codegen.x86Posit as x86Posit
 import seedot.compiler.codegen.m3 as m3
 
 import seedot.compiler.ir.irBuilder as irBuilder
@@ -121,8 +122,10 @@ class Compiler:
         elif util.forM3():
             assert self.problemType == config.ProblemType.regression, "M3 codegen only for Regression problems"
             codegen = m3.M3(self.outputDir, *state)
-        elif util.forX86():
+        elif util.forX86() and not util.forPosit():
             codegen = x86.X86(self.outputDir, self.generateAllFiles, self.printSwitch, self.id, self.paramInNativeBitwidth, *state)
+        elif util.forX86() and util.forPosit():
+            codegen = x86Posit.X86Posit(self.outputDir, self.generateAllFiles, self.printSwitch, self.id, self.paramInNativeBitwidth, *state)
         else:
             assert False
 
@@ -137,9 +140,14 @@ class Compiler:
 
         if ((util.getEncoding() == config.Encoding.fixed) or (util.getEncoding() == config.Encoding.posit)) and config.ddsEnabled:
             self.intermediateScales = self.readDataDrivenScales()
+        encoding_is_posit = util.forPosit()
+        util.setEncoding(config.Encoding.fixed)
 
         compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
         res = compiler.visit(ast)
+
+        if (encoding_is_posit):
+            util.setEncoding(config.Encoding.posit)
 
         util.getLogger().debug(compiler.varScales)
         self.biasShifts = compiler.biasShifts

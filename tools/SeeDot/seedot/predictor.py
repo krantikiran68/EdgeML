@@ -45,12 +45,15 @@ class Predictor:
             if config.wordLength == 8:
                 file.write("#define INT8\n")
                 file.write("typedef int8_t MYINT;\n\n")
+                file.write("typedef int32_t ACINT;\n\n")
             elif config.wordLength == 16:
                 file.write("#define INT16\n")
                 file.write("typedef int16_t MYINT;\n\n")
+                file.write("typedef int64_t ACINT;\n\n")
             elif config.wordLength == 32:
                 file.write("#define INT32\n")
                 file.write("typedef int32_t MYINT;\n\n")
+                file.write("typedef int128_t ACINT;\n\n")
 
             file.write("typedef int16_t MYITE;\n")
             file.write("typedef uint16_t MYUINT;\n\n")

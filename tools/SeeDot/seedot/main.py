@@ -633,7 +633,7 @@ class Main:
 
         # Generate input files for training dataset.
         # Even Posit encoding will accept conversion to fixed encoding
-        res = self.convert(config.Encoding.fixed,
+        res = self.convert(self.encoding,
                            config.DatasetType.training, config.Target.x86)
         if res == False:
             return False

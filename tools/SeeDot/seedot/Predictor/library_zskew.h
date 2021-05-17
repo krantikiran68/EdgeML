@@ -31,7 +31,7 @@
  * 		Similarly, the second last letter controls the input of matrix A.
  * 		On Arduino-like devices with Harvard architecture, the reading of RAM and flash variables is different, hence the different functions.
  **/
-void MatAdd(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC);
+void MatAdd(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max);
 
 /**
  * Dimensions: 	I, J, shrA, shrB, shrC are integers
@@ -46,7 +46,7 @@ void MatAdd(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, AC
  * 		shrA, shrB are used to bring matrices A and B to the same scale for addition.
  * 		shrC adjusts the output matrix if required to prevent overflows.
  **/
-void MatAddBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC);
+void MatAddBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max);
 
 /**
  * Dimensions: 	I, J, shrA, shrB, shrC are integers
@@ -61,7 +61,7 @@ void MatAddBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left
  * 		shrA, shrB are used to bring matrices A and B to the same scale for addition.
  * 		shrC adjusts the output matrix if required to prevent overflows.
  **/
-void MatSubBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC);
+void MatSubBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max);
 
 /**
  * Dimensions: 	A, B, C are matrices, dim(A) = [I][J], dim(B) = [J][K], dim(C) = [I][K]; tmp is a vector, dim(tmp) = [J] I, K, J, shrA, shrB, H1, H2 are integers.
@@ -87,7 +87,7 @@ void MatSubBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left
  * For fixed point arithmetic, in the first H1 (parameter) stages, we divide the addition result by 2 to avoid overflows,
  * and in the next H2 (parameter) stages (assuming no overflows), we do not do the division to conserve precision.
  **/
-void MatMul(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE K, MYITE J, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, MYITE N);
+void MatMul(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE K, MYITE J, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, MYITE N, ACINT clamp_min, ACINT clamp_max);
 
 /**
  * Dimensions: 	A, B, C are matrices, dim(A) = dim(B) = dim(C) = [I][J]; I, J, shrA, shrB, shrC are integers.
@@ -97,16 +97,7 @@ void MatMul(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE K, MYITE J, ACINT zeroA
  * shrA, shrB are scaling constants which are computed in irBuilder.py::getShrTreeSumAndDemoteParamsForMul(bw(A), sc(A), bw(B), sc(B), bw(C), sc(C), bw(C), sc(C), 1).
  * 		shrA, shrB are used to alter the scales of matrices A and B so that the multiplication avoids overflows but maintains as many bits as possible.
  **/
-void Hadamard(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, MYITE N);
-
-/**
- * Dimensions:	A, B are matrices, dim(A) = dim(B) = [I][J]. I, J, scale_in, scale_out are integers.
- *
- * TanH
- * Computes tanH(A) element-wise and stores the result in B.
- * scale_in is the scale of the input matrix A, and scale_out is the scale of the output matrix B.
- */
-void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, );
+void Hadamard(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, MYITE N, ACINT clamp_min, ACINT clamp_max);
 
 /**
  * Dimensions: 	I, J, shrA, shrB are integers
@@ -118,7 +109,16 @@ void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, );
  * shrA, shrB are scaling constants which are computed in irBuilder.py::getShrTreeSumAndDemoteParamsForMul(bw(A), sc(A), bw(B), sc(B), bw(C), sc(C), bw(C), sc(C), 1).
  * 		shrA, shrB are used to alter the scales of matrices A and B so that the multiplication avoids overflows but maintains as many bits as possible.
  */
-void MatMulBroadcastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, MYITE N);
+void MatMulBroadcastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, MYITE N, ACINT clamp_min, ACINT clamp_max);
+
+/**
+ * Dimensions:	A, B are matrices, dim(A) = dim(B) = [I][J]. I, J, scale_in, scale_out are integers.
+ *
+ * TanH
+ * Computes tanH(A) element-wise and stores the result in B.
+ * scale_in is the scale of the input matrix A, and scale_out is the scale of the output matrix B.
+ */
+void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT M0, MYITE N, ACINT clamp_radius);
 
 /**
  * Dimensions:	A, B are matrices, dim(A) = dim(B) = [I][J]; div, add, sigmoid_limit, scale_in, scale_out are integers.
@@ -136,43 +136,14 @@ void MatMulBroadcastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zero
  * 		sigmoid_limit represents the fixed point version of 1.0 in the expression.
  * If flag FLOATEXP is disabled, and if new table exponentiation (Util.py::class Config) is not used, this piecewise approximation is used. Else, the above 3 parameters are not used.
  */
-void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, );
+void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT M0, MYITE N, ACINT clamp_radius);
 
 //Templated Operations: For cases when Variable BitWidth is enabled.
 
 template<class InputType, class OutputType>
-inline OutputType Saturate(InputType inp) {
-	return (OutputType)inp;
-}
-
-template<>
-inline uint16_t Saturate(int64_t inp) {
-#ifdef SATURATE
-	inp = inp > 65535 ? 65535 : inp;
-	return (uint16_t)(inp < 0 ? 0 : inp);
-#else
-	return (uint16_t)inp;
-#endif
-}
-
-template<>
-inline uint16_t Saturate(int32_t inp) {
-#ifdef SATURATE
-	inp = inp > 65535 ? 65535 : inp;
-	return (uint16_t)(inp < 0 ? 0 : inp);
-#else
-	return (uint16_t)inp;
-#endif
-}
-
-template<>
-inline uint8_t Saturate(int32_t inp) {
-#ifdef SATURATE
-	inp = inp > 255 ? 255 : inp;
-	return (uint8_t)(inp < 0 ? 0 : inp);
-#else
-	return (uint8_t)inp;
-#endif
+inline OutputType Saturate(InputType inp, InputType min_value, InputType max_value) {
+  inp = inp < min_value ? min_value : inp;
+  return (OutputType)(inp > max_value ? max_value : inp);
 }
 
 template <typename IntegerType>
@@ -245,7 +216,7 @@ inline InputType MulQuantMultiplierGTO(InputType x, InputType multiplier, MYITE 
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void MatAdd(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC) {	
+void MatAdd(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {	
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeAc a = A[i * J + j];
@@ -260,14 +231,14 @@ void MatAdd(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left_shift, Ty
 			b = MulQuantMultiplierLTO<TypeAc>(b, shrB, nB);
 
 			TypeAc c = MulQuantMultiplierLTO<TypeAc>(a + b, shrC, nC);
-			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + c);
+			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + c, clamp_min, clamp_max);
 		}
 	}
 	return;
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC) {
+void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {
 	TypeAc a = (TypeAc) *A;
 	a += zeroA;
 	a *= (1 << left_shift);
@@ -281,14 +252,14 @@ void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left
 			b = MulQuantMultiplierLTO<TypeAc>(b, shrB, nB);
 
 			TypeAc c = MulQuantMultiplierLTO<TypeAc>(a + b, shrC, nC);
-			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + c);
+			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + c, clamp_min, clamp_max);
 		}
 	}
 	return;
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC) {
+void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {
 	TypeAc a = (TypeAc) *A;
 	a += zeroA;
 	a *= (1 << left_shift);
@@ -302,14 +273,14 @@ void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left
 			b = MulQuantMultiplierLTO<TypeAc>(b, shrB, nB);
 
 			TypeAc c = MulQuantMultiplierLTO<TypeAc>(a - b, shrC, nC);
-			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + c);
+			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + c, clamp_min, clamp_max);
 		}
 	}
 	return;
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void MatMul(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE K, MYITE J, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N) {
+void MatMul(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE K, MYITE J, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N, TypeAc clamp_min, TypeAc clamp_max) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeAc sum = 0;
@@ -322,14 +293,14 @@ void MatMul(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE K, MYITE J, TypeAc zero
 			}
 
 			sum = MulQuantMultiplierLTO<TypeAc>(sum, M0, N);
-			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + sum);
+			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + sum, clamp_min, clamp_max);
 		}
 	}
 	return;
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void Hadamard(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N) {
+void Hadamard(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N, , TypeAc clamp_min, TypeAc clamp_max) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeAc a = A[i * K + k];
@@ -338,14 +309,14 @@ void Hadamard(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, TypeAc zeroA, Type
 			TypeAc prod = (a + zeroA) * (b + zeroB);
 
 			prod = MulQuantMultiplierLTO<TypeAc>(prod, M0, N);
-			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + prod);
+			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + prod, clamp_min, clamp_max);
 		}
 	}
 	return;
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void MatMulBroadcastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N) {
+void MatMulBroadcastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N, TypeAc clamp_min, TypeAc clamp_max) {
 	TypeAc a = (TypeAc) *A;
 	a += zeroA;
 
@@ -355,30 +326,38 @@ void MatMulBroadcastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, TypeAc zer
 			TypeAc prod = a * (b + zeroB);
 
 			prod = MulQuantMultiplierLTO<TypeAc>(prod, M0, N);
-			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + prod);
+			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + prod, clamp_min, clamp_max);
 		}
 	}
 	return;
 }
 
 template<class TypeA>
-void Sigmoid(TypeA* A, TypeA* B, MYITE I, MYITE J, ) {
+void Sigmoid(TypeA* A, TypeA* B, MYITE I, MYITE J, TypeAc zeroA, TypeAc M0, MYITE N, TypeAc clamp_radius) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			TypeA x = A[i * J + j];
-			x = (x / div) + add;
-			TypeA y;
+			ACINT x = A[i * J + j];
+			x += zeroA;
 
-			if (x >= sigmoid_limit) {
-				y = sigmoid_limit;
-			} else if (x <= 0) {
-				y = 0;
+			MYINT y;
+			if (x < -clamp_radius) {
+				y = std::numeric_limits<MYINT>::min();
+			} else if (x > clamp_radius) {
+				y = std::numeric_limits<MYINT>::max();
 			} else {
-				y = x;
+				const ACINT x_rescaled = MultiplyByQuantizedMultiplierGreaterThanOne(x, M0, N);
+				using FixedPoint4 = gemmlowp::FixedPoint<ACINT, 4>;
+				using FixedPoint0 = gemmlowp::FixedPoint<ACINT, 0>;
+				const FixedPoint4 x_f4 = FixedPoint4::FromRaw(x_rescaled);
+				const FixedPoint0 y_f0 = gemmlowp::logistic(x_f4);
+
+				ACINT y_s32 = RoundingDivideByPOT(y_f0.raw(), 23);
+				if (y_s32 == 256) {
+					y_s32 = std::numeric_limits<MYINT>::max();
+				}
 			}
 
-			y = y * scale_diff;
-			B[i * J + j] = y;
+			B[i * J + j] = Saturate<ACINT, MYINT>(y, 0, 255);
 		}
 	}
 	return;
@@ -388,19 +367,6 @@ template<class TypeA>
 void TanH(TypeA* A, TypeA* B, MYITE I, MYITE J, ) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			TypeA x = A[i * J + j], y;
-
-			if (x >= scale_in) {
-				y = scale_in;
-			} else if (x <= -scale_in) {
-				y = -scale_in;
-			} else {
-				y = x;
-			}
-
-			TypeA scale_diff = scale_out / scale_in;
-			y *= scale_diff;
-			B[i * J + j] = y;
 		}
 	}
 	return;

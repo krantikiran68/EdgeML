@@ -7,8 +7,11 @@ It also contains the various classes for CLI arguments.
 '''
 
 # Target word length. Currently set to match the word length of Arduino (2 bytes).
-wordLength = 16
+wordLength = 8
 availableBitwidths = [8, 16, 32]
+
+positBitwidth = 14
+positBitwidths = [8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,32]
 
 # Range of max scale factor used for exploration.
 # In the old SeeDot (PLDI'19), this explores across the maxscale parameter.

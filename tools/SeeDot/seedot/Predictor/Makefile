@@ -14,6 +14,8 @@ PREDICTOR_INCLUDES=datatypes.h \
                    vars_fixed.h \
                    vars_float.h \
                    library_posit.h \
+                   vars_posit.h \
+                   model_posit.h \
 
 PREDICTOR_OBJS=debug.o \
                library_fixed.o \
@@ -23,6 +25,7 @@ PREDICTOR_OBJS=debug.o \
                seedot_fixed.o \
                seedot_float.o \
                library_posit.o \
+               seedot_posit.o \
 
 all: Predictor
 

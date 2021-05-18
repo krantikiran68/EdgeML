@@ -158,11 +158,14 @@ class Main:
         os.makedirs(logDir, exist_ok=True)
         if encoding == config.Encoding.floatt:
             outputLogFile = os.path.join(logDir, "log-float.txt")
+        elif encoding == config.Encoding.posit:
+            outputLogFile = os.path.join(logDir, "log-posit.txt")
         else:
             if config.ddsEnabled:
                 outputLogFile = os.path.join(logDir, "log-fixed-" + str(abs(scaleForX)) + ".txt")
             else:
                 outputLogFile = os.path.join(logDir, "log-fixed-" + str(abs(sf)) + ".txt")
+
 
         if target == config.Target.arduino:
             outdir = os.path.join(config.outdir, str(config.wordLength), self.algo, self.dataset)
@@ -294,8 +297,12 @@ class Main:
         # During the third exploration phase, when multiple codes are generated at once, codeIdToScaleFactorMap
         # is populated with the codeID to the code description (bitwidth assignments of different variables).
         # After executing the code, print out the accuracy of the code against the code ID.
+            
         if codeIdToScaleFactorMap is not None:
             for codeId, sf in codeIdToScaleFactorMap.items():
+                if encoding == config.Encoding.posit and sf == None:
+                    sf = 0
+                    self.sf = 0 if self.sf == None else self.sf
                 self.accuracy[sf] = execMap[str(codeId)]
                 if printAlso:
                     print("Accuracy at scale factor %d is %.3f%%, Disagreement Count is %d, Reduced Disagreement Count is %d" % (sf, execMap[str(codeId)][0], execMap[str(codeId)][1], execMap[str(codeId)][2]))
@@ -653,26 +660,27 @@ class Main:
         print("Prediction on testing dataset")
         print("-------------------------------\n")
 
-        Util.getLogger().debug("Setting max scaling factor to %d\n" % (self.sf))
+        if self.encoding != config.Encoding.posit:
+            Util.getLogger().debug("Setting max scaling factor to %d\n" % (self.sf))
 
         if config.vbwEnabled:
             Util.getLogger().debug("Demoted Vars with Offsets: %s\n" % (str(self.demotedVarsOffsets)))
 
         # Generate files for the testing dataset.
-        res = self.convert(config.Encoding.fixed,
+        res = self.convert(self.encoding,
                            config.DatasetType.testing, config.Target.x86)
         if res == False:
             return False
 
         # Compile and run code using the best scaling factor.
         if config.vbwEnabled:
-            compiled = self.partialCompile(config.Encoding.fixed, config.Target.x86, self.sf, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
+            compiled = self.partialCompile(self.encoding, config.Target.x86, self.sf, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
         else:
-            compiled = self.partialCompile(config.Encoding.fixed, config.Target.x86, self.sf, True, None, 0)
+            compiled = self.partialCompile(self.encoding, config.Target.x86, self.sf, True, None, 0)
         if compiled == False:
             return False
 
-        res, exit = self.runAll(config.Encoding.fixed, config.DatasetType.testing, {"default" : self.sf}, printAlso=True)
+        res, exit = self.runAll(self.encoding, config.DatasetType.testing, {"default" : self.sf}, printAlso=True)
         if res == False:
             return False
 
@@ -755,10 +763,11 @@ class Main:
             return False
 
         # Obtain best scaling factor.
-        if self.sf == None:
-            res = self.findBestScalingFactor()
-            if res == False:
-                return False
+        if(self.encoding != config.Encoding.posit):
+            if self.sf == None:
+                res = self.findBestScalingFactor()
+                if res == False:
+                    return False
 
         res = self.runOnTestingDataset()
         if res == False:

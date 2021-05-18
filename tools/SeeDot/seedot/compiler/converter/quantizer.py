@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT license.
 
+from seedot.util import forPosit
 from antlr4 import *
 import os
 
@@ -161,6 +162,8 @@ class Quantizer:
                     bw = self.varsForBitwidth[param.name] if param.name not in self.promoteParam else 2 * self.varsForBitwidth[param.name]
                     assert len(param.shape) > 0
                     writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d" + ("*%d" * (len(param.shape) - 1)) + "]") % tuple(param.shape), bw=bw)
+                elif forX86 and (getEncoding() == config.Encoding.posit):
+                    writeMatAsArray(param.data, param.name + "_temp", self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape))
                 else:
                     if hasattr(self, 'varsForBitwidth') and param.name in self.varsForBitwidth:
                         writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape), bw=self.varsForBitwidth[param.name])

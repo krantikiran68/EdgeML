@@ -77,52 +77,46 @@ class X86Posit(X86):
         self.out.printf('\n};\n')
 
     def printCHeader(self):
-        if forFloat():
-            func = "Float"
-            type = "float"
-        else:
-            func = "Fixed"
-            type = "MYINT"
-        if forFloat():
-            self.out.printf('void seedot%s(%s **X, float* res) {\n' % (func, type), indent=True)
-        else:
-            self.out.printf('void seedot%s%s(%s **X%s, int32_t* res) {\n' % (func, self.idStr if not self.generateAllFiles else "", type, "_temp" if config.vbwEnabled else ""), indent=True)
+        
+        self.out.printf('void seedotPosit%s(float **X_temp, int32_t* res) {\n' % (self.idStr if not self.generateAllFiles else ""), indent=True)
         self.out.increaseIndent()
 
     def printModelParamsWithBitwidth(self):
-        if config.vbwEnabled and forFixed():
-            for var in self.globalVars:
-                if var + "idx" in self.globalVars and var + "val" in self.globalVars:
-                    continue
-                bw = self.varsForBitwidth[var]
-                typ_str = "int%d_t" % bw
-                size = self.decls[var].shape
-                sizestr = ''.join(["[%d]" % (i) for i in size])
+        for var in self.globalVars:
+            if var + "idx" in self.globalVars and var + "val" in self.globalVars:
+                continue
+            bw = self.varsForBitwidth[var]
+            
+            typ_str = self.getPositType(bw)
+            bitwidth_PX2_suffix = self.getPX2Suffix(bw)
+            conversion_func = self.getConversionFunction(bw)
 
-                Xindexstr = ''
-                Xintstar = ''.join(["*" for i in size])
+            size = self.decls[var].shape
+            sizestr = ''.join(["[%d]" % (i) for i in size])
 
-                if self.paramInNativeBitwidth or var == 'X':
-                    if var != 'X':
-                        self.out.printf(typ_str + " " + var + sizestr + ";\n", indent = True)
-                    else:
-                        self.out.printf(typ_str + Xintstar + " " + var + ";\n", indent = True)
+            Xindexstr = ''
+            Xintstar = ''.join(["*" for i in size])
 
-                    for i in range(len(size)):
-                        Xindexstr += ("[i" + str(i-1) + "]" if i > 0 else "")
-                        if var == 'X':
-                            Xintstar = Xintstar[:-1]
-                            self.out.printf("X%s = new %s%s[%d];\n" % (Xindexstr, typ_str, Xintstar, size[i]), indent=True)
-                        self.out.printf("for (int i%d = 0; i%d < %d; i%d ++) {\n" % (i,i,size[i], i), indent = True)
-                        self.out.increaseIndent()
+            if self.paramInNativeBitwidth or var == 'X':
+                if var != 'X':
+                    self.out.printf(typ_str + " " + var + sizestr + ";\n", indent = True)
+                else:
+                    self.out.printf(typ_str + Xintstar + " " + var + ";\n", indent = True)
 
-                    indexstr = ''.join("[i" + str(i) + "]" for i in range(len(size)))
-                    divide = int(round(np.ldexp(1, config.wordLength - self.varsForBitwidth[var] + (self.demotedVarsOffsets.get(var, 0) if self.varsForBitwidth[var] != config.wordLength else 0) ))) if var[-3:] != "idx" and var != "X" else 1
-                    self.out.printf(var + indexstr + " = " + var + "_temp" + indexstr + "/" + str(divide) + ";\n", indent = True)
+                for i in range(len(size)):
+                    Xindexstr += ("[i" + str(i-1) + "]" if i > 0 else "")
+                    if var == 'X':
+                        Xintstar = Xintstar[:-1]
+                        self.out.printf("X%s = new %s%s[%d];\n" % (Xindexstr, typ_str, Xintstar, size[i]), indent=True)
+                    self.out.printf("for (int i%d = 0; i%d < %d; i%d ++) {\n" % (i,i,size[i], i), indent = True)
+                    self.out.increaseIndent()
 
-                    for i in range(len(size)):
-                        self.out.decreaseIndent()
-                        self.out.printf("}\n", indent = True)
+                indexstr = ''.join("[i" + str(i) + "]" for i in range(len(size)))
+                self.out.printf(var + indexstr + " = " + conversion_func + "(" + var + "_temp" + indexstr + bitwidth_PX2_suffix +  ")" + ";\n", indent = True)
+
+                for i in range(len(size)):
+                    self.out.decreaseIndent()
+                    self.out.printf("}\n", indent = True)
 
     def printVarDecls(self, globalVarDecl=True):
         if self.generateAllFiles:
@@ -139,14 +133,12 @@ class X86Posit(X86):
             if decl in self.globalVars:
                 continue
 
-            if forFloat() and decl not in self.internalVars:
-                typ_str = IR.DataType.getFloatStr()
-            elif forFixed() and decl not in self.internalVars:
+            if decl not in self.internalVars:
                 if config.vbwEnabled and decl not in self.internalVars:
                     bw = self.varsForBitwidth.get(decl, config.wordLength)
-                    typ_str = "int%d_t" % bw
+                    typ_str = self.getPositType(bw)
                 else:
-                    typ_str = IR.DataType.getIntStr()
+                    typ_str = self.getPositType(config.positBitwidth)
             else:
                 typ_str = "int"
 
@@ -166,9 +158,9 @@ class X86Posit(X86):
                 if forFixed() and idf_str in self.varsForBitwidth and idf_str[:3] == "tmp":
                     if globalVarDecl:
                         for bw in config.availableBitwidths:
-                            self.out.printf("int%d_t vars_%s::%s_%d%s;\n", bw, getEncoding(), idf_str, bw, shape_str, indent=True)
+                            self.out.printf("%s vars_%s::%s_%d%s;\n", self.getPositType(bw), getEncoding(), idf_str, bw, shape_str, indent=True)
                     else:
-                        self.out.printf("int%d_t %s_%d%s;\n", self.varsForBitwidth[idf_str], idf_str, bw, shape_str, indent=True)
+                        self.out.printf("%s %s_%d%s;\n", self.getPositType(self.varsForBitwidth[idf_str]), idf_str, bw, shape_str, indent=True)
                 else:
                     if globalVarDecl:
                         self.out.printf("%s vars_%s::%s%s;\n", typ_str, getEncoding(), idf_str, shape_str, indent=True)
@@ -178,7 +170,7 @@ class X86Posit(X86):
                 if self.generateAllFiles:
                     if forFixed() and idf_str in self.varsForBitwidth and idf_str[:3] == "tmp":
                         for bw in config.availableBitwidths:
-                            varsFile.printf("extern int%d_t %s_%d%s;\n", bw, idf_str, bw, shape_str, indent=True)
+                            varsFile.printf("extern %s %s_%d%s;\n", self.getPositType(bw), idf_str, bw, shape_str, indent=True)
                     else:
                         varsFile.printf("extern %s %s%s;\n", typ_str, idf_str, shape_str, indent=True)
 
@@ -201,6 +193,7 @@ class X86Posit(X86):
         debugFile.printf("#include \"profile.h\"\n")
         debugFile.printf("#include \"vars_fixed.h\"\n")
         debugFile.printf("#include \"vars_float.h\"\n\n")
+        debugFile.printf("#include \"vars_posit.h\"\n\n")
         debugFile.printf("using namespace std;\n\n")
         debugFile.printf("void debug() {\n\n")
 
@@ -312,7 +305,7 @@ class X86Posit(X86):
         
     def printFuncCall(self, ir):
         if not Config.x86MemoryOptimize or forFloat():
-            super().printFuncCall(ir)
+            self.printFuncCallOrig(ir)
         else:
             self.out.printf("{\n", indent=True)
             self.out.increaseIndent()
@@ -352,3 +345,98 @@ class X86Posit(X86):
             self.out.printf(");\n")
             self.out.decreaseIndent()
             self.out.printf("}\n", indent=True)
+
+    def getPositType(self, bw):
+        getLogger().debug("Always returning based on the value of config.positBitiwidth and not the variable value")
+        bw = config.positBitwidth
+        if bw == 8:
+            return "posit8_t"
+        if bw == 16:
+            return "posit16_t"
+        if bw == 32:
+            return "posit32_t"
+        return "posit_2_t"
+    
+    def getConversionFunction(self, bw):
+        getLogger().debug("Always returning based on the value of config.positBitiwidth and not the variable value")
+        bw = config.positBitwidth
+        if bw == 8:
+            return "convertDoubleToP8"
+        if bw == 16:
+            return "convertDoubleToP16"
+        if bw == 32:
+            return "convertDoubleToP32"
+        return "convertDoubleToPX2"
+
+    def printFuncCallOrig(self, ir):
+        self.out.printf("{\n", indent=True)
+        self.out.increaseIndent()
+        self.printLocalVarDecls(ir)
+        self.out.printf("%s(" % ir.name, indent=True)
+        keys = list(ir.argList)
+        if config.positBitwidth not in [8, 16, 32]:
+            keys.append(IR.Int(config.positBitwidth))
+        
+        for i in range(len(keys)):
+            arg = keys[i]
+            if isinstance(arg, IR.Var) and (arg.idf in self.decls.keys() or arg.idf in self.localDecls.keys()) and not arg.idf == 'X':
+                type = self.decls[arg.idf] if arg.idf in self.decls else self.localDecls[arg.idf]
+                if isinstance(type, Type.Tensor):
+                    if type.dim == 0:
+                        x = -1
+                    else:
+                        x = type.dim - len(arg.idx)
+                else:
+                    x = -1
+            else:
+                x = 0
+            if x != 0:
+                self.out.printf("&")
+            self.print(arg)
+            if x != 0 and x != -1:
+                self.out.printf("[0]" * x)
+            if i != len(keys) - 1:
+                self.out.printf(", ")
+        self.out.printf(");\n")
+        self.out.decreaseIndent()
+        self.out.printf("}\n", indent=True)
+    
+    def printConstDecls(self):
+        for cnst in self.cnsts:
+            var, num = cnst, self.cnsts[cnst]
+
+            if forFloat() and var in self.floatConstants:
+                self.out.printf('%s = %f;\n', var,
+                                self.floatConstants[var], indent=True)
+            else:
+                if config.vbwEnabled and var in self.varsForBitwidth.keys() and (forX86() or forM3()):
+                    assert False, "No vbw for Posits"
+                    if np.iinfo(np.int16).min <= num <= np.iinfo(np.int16).max:
+                        self.out.printf('%s_%d = %d;\n', var, self.varsForBitwidth[var], num, indent=True)
+                    elif np.iinfo(np.int32).min <= num <= np.iinfo(np.int32).max:
+                        self.out.printf('%s_%d = %dL;\n', var, self.varsForBitwidth[var], num, indent=True)
+                    elif np.iinfo(np.int64).min <= num <= np.iinfo(np.int64).max:
+                        self.out.printf('%s_%d = %dLL;\n', var, self.varsForBitwidth[var], num, indent=True)
+                    else:
+                        assert False
+                else:
+                    float_val = self.fixedVarToFloat(var, num)
+                    conversion_func = self.getConversionFunction(config.positBitwidth)
+                    bitwidth_str_PX2 = ", %d"%(config.positBitwidth) if self.getPositType(config.positBitwidth == "posit_2_t") else ""
+                    self.out.printf('%s = %s(%f%s);\n', var, conversion_func, float_val, bitwidth_str_PX2, indent=True)
+                    
+    def fixedVarToFloat(self, var, num):
+        scale = self.scales[var]
+        float_val = float(np.ldexp(float(num), scale))
+        return float_val
+    
+    def getPX2Suffix(self, bw):
+        getLogger().debug("Always returning based on the value of config.positBitiwidth and not the variable value")
+        bw = config.positBitwidth
+        if bw == 8:
+            return ""
+        if bw == 16:
+            return ""
+        if bw == 32:
+            return ""
+        return ", %d"%(config.positBitwidth)

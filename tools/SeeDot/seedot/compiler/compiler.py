@@ -141,7 +141,8 @@ class Compiler:
         if ((util.getEncoding() == config.Encoding.fixed) or (util.getEncoding() == config.Encoding.posit)) and config.ddsEnabled:
             self.intermediateScales = self.readDataDrivenScales()
         encoding_is_posit = util.forPosit()
-        util.setEncoding(config.Encoding.fixed)
+        if encoding_is_posit:
+            util.setEncoding(config.Encoding.fixed)
 
         compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
         res = compiler.visit(ast)

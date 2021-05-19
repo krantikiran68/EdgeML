@@ -41,7 +41,7 @@ int16_t SaturatingRoundingDoublingHighMul(int16_t a, int16_t b) {
 // Each function takes the scaling factors as arguments along with the pointers to the operands.
 
 // C = A + B
-void MatAdd(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC) {
+void MatAdd(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT a = A[i * J + j];
@@ -56,14 +56,14 @@ void MatAdd(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, AC
 			b = MulQuantMultiplierLTO<ACINT>(b, shrB, nB);
 
 			ACINT c = MulQuantMultiplierLTO<ACINT>(a + b, shrC, nC);
-			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + c);
+			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + c, clamp_min, clamp_max);
 		}
 	}
 	return;
 }
 
 // C = a + B
-void MatAddBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC) {
+void MatAddBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max) {
 	ACINT a = (ACINT) *A;
 	a += zeroA;
 	a *= (1 << left_shift);
@@ -77,14 +77,14 @@ void MatAddBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left
 			b = MulQuantMultiplierLTO<ACINT>(b, shrB, nB);
 
 			ACINT c = MulQuantMultiplierLTO<ACINT>(a + b, shrC, nC);
-			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + c);
+			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + c, clamp_min, clamp_max);
 		}
 	}
 	return;
 }
 
 // C = a - B
-void MatSubBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC) {
+void MatSubBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max) {
 	ACINT a = (ACINT) *A;
 	a += zeroA;
 	a *= (1 << left_shift);
@@ -98,14 +98,14 @@ void MatSubBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left
 			b = MulQuantMultiplierLTO<ACINT>(b, shrB, nB);
 
 			ACINT c = MulQuantMultiplierLTO<ACINT>(a - b, shrC, nC);
-			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + c);
+			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + c, clamp_min, clamp_max);
 		}
 	}
 	return;
 }
 
 // C = A * B
-void MatMul(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE K, MYITE J, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, MYITE N) {
+void MatMul(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE K, MYITE J, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, MYITE N, ACINT clamp_min, ACINT clamp_max) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT sum = 0;
@@ -118,14 +118,14 @@ void MatMul(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE K, MYITE J, ACINT zeroA
 			}
 
 			sum = MulQuantMultiplierLTO<ACINT>(sum, M0, N);
-			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + sum);
+			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + sum, clamp_min, clamp_max);
 		}
 	}
 	return;
 }
 
 // C = A <*> B
-void Hadamard(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, MYITE N) {
+void Hadamard(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, MYITE N, ACINT clamp_min, ACINT clamp_max) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT a = A[i * J + j];
@@ -134,14 +134,14 @@ void Hadamard(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zeroA, ACINT
 			ACINT prod = (a + zeroA) * (b + zeroB);
 
 			prod = MulQuantMultiplierLTO<ACINT>(prod, M0, N);
-			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + prod);
+			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + prod, clamp_min, clamp_max);
 		}
 	}
 	return;
 }
 
 // C = a * B
-void MatMulBroadcastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, MYITE N) {
+void MatMulBroadcastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, MYITE N, ACINT clamp_min, ACINT clamp_max) {
 	ACINT a = (ACINT) *A;
 	a += zeroA;
 
@@ -151,77 +151,48 @@ void MatMulBroadcastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zero
 			ACINT prod = a * (b + zeroB);
 
 			prod = MulQuantMultiplierLTO<ACINT>(prod, M0, N);
-			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + prod);
+			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + prod, clamp_min, clamp_max);
 		}
 	}
 	return;
 }
 
 // A = tanh(A)
-void TanHZSkew(MYINT* A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out, MYINT* B) {
+void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT M0, MYITE N, ACINT clamp_radius) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			#ifdef FLOATEXP
-				float x = float(A[i * J + j]) / scale_in;
-				float y = tanh(x);
-				MYINT z = MYINT(y * scale_out);
-
-				B[i * J + j] = z;
-			#else
-				MYINT x = A[i * J + j], y;
-
-				if (x >= scale_in) {
-					y = scale_in;
-				} else if (x <= -scale_in) {
-					y = -scale_in;
-				} else {
-					y = x;
-				}
-
-				MYINT scale_diff = scale_out / scale_in;
-
-				y *= scale_diff;
-
-				B[i * J + j] = y;
-			#endif
 		}
 	}
 	return;
 }
 
 // B = Sigmoid(A)
-void SigmoidZSkew(MYINT* A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_limit, MYINT scale_in, MYINT scale_out, MYINT* B) {
-	MYINT scale_diff = scale_out / scale_in;
+void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT M0, MYITE N, ACINT clamp_radius) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			#ifdef FLOATEXP
-				float x = float(A[i * J + j]) / scale_in;
+			ACINT x = A[i * J + j];
+			x += zeroA;
 
-				float y = 1 / (1 + exp(-x));
+			MYINT y;
+			if (x < -clamp_radius) {
+				y = std::numeric_limits<MYINT>::min();
+			} else if (x > clamp_radius) {
+				y = std::numeric_limits<MYINT>::max();
+			} else {
+				const ACINT x_rescaled = MultiplyByQuantizedMultiplierGreaterThanOne(x, M0, N);
+				using FixedPoint4 = gemmlowp::FixedPoint<ACINT, 4>;
+				using FixedPoint0 = gemmlowp::FixedPoint<ACINT, 0>;
+				const FixedPoint4 x_f4 = FixedPoint4::FromRaw(x_rescaled);
+				const FixedPoint0 y_f0 = gemmlowp::logistic(x_f4);
 
-				MYINT z = MYINT(y * scale_out);
-
-				B[i * J + j] = z;
-			#else
-				MYINT x = A[i * J + j];
-
-				x = (x / div) + add;
-
-				MYINT y;
-				if (x >= sigmoid_limit) {
-					y = sigmoid_limit;
-				} else if (x <= 0) {
-					y = 0;
-				} else {
-					y = x;
+				ACINT y_s32 = RoundingDivideByPOT(y_f0.raw(), 23);
+				if (y_s32 == 256) {
+					y_s32 = std::numeric_limits<MYINT>::max();
 				}
+			}
 
-				y = y * scale_diff;
-
-				B[i * J + j] = y;
-			#endif
+			B[i * J + j] = Saturate<ACINT, MYINT>(y, 0, 255);
 		}
 	}
 	return;
 }
-

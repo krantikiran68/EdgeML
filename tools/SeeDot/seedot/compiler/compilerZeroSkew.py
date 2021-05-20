@@ -179,6 +179,7 @@ class CompilerZeroSkew(Compiler):
     # The code to read scales and zeros for ZSkew representation
     def readDataDrivenScalesAndZeros(self):
         tempScales = {}
+        self.varIntervals = {}
         error = 0.01
         with open('temp/Predictor/dump.profile', 'r') as f:
             for line in f:

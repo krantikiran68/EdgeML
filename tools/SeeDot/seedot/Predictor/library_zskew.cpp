@@ -161,6 +161,28 @@ void MatMulBroadcastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zero
 void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT M0, MYITE N, ACINT clamp_radius) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
+			ACINT x = A[i * J + j];
+			x += zeroA;
+
+			MYINT y;
+			if (x < -clamp_radius) {
+				y = std::numeric_limits<MYINT>::min();
+			} else if (x > clamp_radius) {
+				y = std::numeric_limits<MYINT>::max();
+			} else {
+				const ACINT x_rescaled = MulQuantMultiplier<ACINT>(x, M0, N);
+				using FixedPoint4 = gemmlowp::FixedPoint<TypeAc, 4>;
+				using FixedPoint0 = gemmlowp::FixedPoint<TypeAc, 0>;
+				const FixedPoint4 x_f4 = FixedPoint4::FromRaw(x_rescaled);
+				const FixedPoint0 y_f0 = gemmlowp::tanh(x_f4);
+
+				ACINT y_s32 = RoundingDivideByPOT(y_f0.raw(), 24);
+				if (y_s32 == 256) {
+					y_s32 = std::numeric_limits<MYINT>::max();
+				}
+			}
+
+			B[i * J + j] = Saturate<ACINT, MYINT>(y, std::numeric_limits<MYINT>::min(), std::numeric_limits<MYINT>::max());
 		}
 	}
 	return;
@@ -179,9 +201,9 @@ void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT M0, MYITE 
 			} else if (x > clamp_radius) {
 				y = std::numeric_limits<MYINT>::max();
 			} else {
-				const ACINT x_rescaled = MultiplyByQuantizedMultiplierGreaterThanOne(x, M0, N);
-				using FixedPoint4 = gemmlowp::FixedPoint<ACINT, 4>;
-				using FixedPoint0 = gemmlowp::FixedPoint<ACINT, 0>;
+				const ACINT x_rescaled = MulQuantMultiplier<ACINT>(x, M0, N);
+				using FixedPoint4 = gemmlowp::FixedPoint<TypeAc, 4>;
+				using FixedPoint0 = gemmlowp::FixedPoint<TypeAc, 0>;
 				const FixedPoint4 x_f4 = FixedPoint4::FromRaw(x_rescaled);
 				const FixedPoint0 y_f0 = gemmlowp::logistic(x_f4);
 
@@ -191,7 +213,7 @@ void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT M0, MYITE 
 				}
 			}
 
-			B[i * J + j] = Saturate<ACINT, MYINT>(y, 0, 255);
+			B[i * J + j] = Saturate<ACINT, MYINT>(y, std::numeric_limits<MYINT>::min(), std::numeric_limits<MYINT>::max());
 		}
 	}
 	return;

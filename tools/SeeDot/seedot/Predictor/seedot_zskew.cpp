@@ -11,7 +11,17 @@
 
 using namespace std;
 using namespace seedot_zskew;
-void seedotZSkew(MYINT **X, int32_t* res) {
+void seedotZeroSkew(MYINT **X, int32_t* res) {
 	*res = 0;
 	return;
 }
+
+const int zSwitches = 0;
+
+void seedotZeroSkewSwitch(int i, MYINT** X_temp, int32_t* res) {
+  switch(i) {
+    default: res[0] = -1;
+             return;
+  }
+}
+

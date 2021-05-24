@@ -152,12 +152,12 @@ class MainZeroSkew(Main):
         self.allZeros = dict(obj.varZeros)
 
         self.problemType = obj.problemType # Regression or classification is inferred from here
-        # if id is None:
-        #     self.scaleForX = obj.scaleForX
-        #     self.scaleForY = obj.scaleForY
-        # else:
-        #     self.scalesForX[id] = obj.scaleForX
-        #     self.scalesForY[id] = obj.scaleForY
+        if id is None:
+            self.scaleForX = obj.scaleForX, obj.zeroForX
+            self.scaleForY = obj.scaleForY, obj.zeroForY
+        else:
+            self.scalesForX[id] = obj.scaleForX, obj.zeroForX
+            self.scalesForY[id] = obj.scaleForY, obj.zeroForY
 
         Util.getLogger().debug("Completed")
         return True

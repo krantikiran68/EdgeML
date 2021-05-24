@@ -1,0 +1,3 @@
+[submodule "tools/SeeDot/seedot/Predictor/gemmlowp"]
+	path = tools/SeeDot/seedot/Predictor/gemmlowp
+	url = https://github.com/google/gemmlowp.git

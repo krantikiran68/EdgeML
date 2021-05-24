@@ -96,7 +96,7 @@ class IRBuilderZeroSkew(IRBuilder):
         M = (scale_in_A * scale_in_B)/scale_out
 
         assert (M < 1.0 and M > 0.0 ), "The multiplier in matmul must be in (0,1)"
-        m_scale = self.getScale(M)
+        m_scale = self.getScale(M, bitwidth_out)
         M0 = np.ldexp(M, -m_scale)
         N = -m_scale
         return M0, N
@@ -138,14 +138,14 @@ class IRBuilderZeroSkew(IRBuilder):
         
         # If either of the input parameters are model parameters, change the function name which would read the model parameter differently on the target device (no difference in x86 mode).
         c = ''
-        if expr_in_A.idf in self.globalVars:
-            c += 'C'
-        else:
-            c += 'N'
-        if expr_in_B.idf in self.globalVars:
-            c += 'C'
-        else:
-            c += 'N'
+        # if expr_in_A.idf in self.globalVars:
+        #     c += 'C'
+        # else:
+        #     c += 'N'
+        # if expr_in_B.idf in self.globalVars:
+        #     c += 'C'
+        # else:
+        #     c += 'N'
 
         expr_in_A.inputVar = False
         expr_in_B.inputVar = False
@@ -168,7 +168,7 @@ class IRBuilderZeroSkew(IRBuilder):
             expr_in_A: "A",
             expr_in_B: "B",
             expr_out: "C",
-            expr_temp: "T",
+            # expr_temp: "T",
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(K): "K",
@@ -176,14 +176,14 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(-zero_in_B): "zero_B",
             IR.Int(-zero_out): "zero_C",
             IR.Int(M0): "M0",
-            IR.Int(N): "N",
+            IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
             IR.Int(clamp_max): "clamp_max"
         }) if not self.vbwEnabled else IR.FuncCall("MatMul" + c + ("<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out)), {
             expr_in_A: "A",
             expr_in_B: "B",
             expr_out: "C",
-            expr_temp: "T",
+            # expr_temp: "T",
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(K): "K",
@@ -191,7 +191,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(-zero_in_B): "zero_B",
             IR.Int(-zero_out): "zero_C",
             IR.Int(M0): "M0",
-            IR.Int(N): "N",
+            IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
             IR.Int(clamp_max): "clamp_max",
             IR.Int(demote): "demote"
@@ -426,7 +426,12 @@ class IRBuilderZeroSkew(IRBuilder):
     
     def getScaleAndZero(self, minVal, maxVal, bw=config.wordLength):
         maxVar = config.maxVar8Bit if bw == 8 else config.maxVar16Bit
-
+        
+        if maxVal == minVal:
+            scale = self.getScale(maxVal, bw)
+            zero = 0
+            scale = np.ldexp(1.0, scale)
+            return scale, zero
         zero = -1*((minVal + maxVal) / 2)
 
         minVal += zero
@@ -993,7 +998,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(-zero_in_B): "zero_B",
             IR.Int(-zero_out): "zero_C",
             IR.Int(M0): "M0",
-            IR.Int(N): "N",
+            IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
             IR.Int(clamp_max): "clamp_max"
         }) if not self.vbwEnabled else IR.FuncCall("ScalarMul<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
@@ -1006,9 +1011,9 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(-zero_in_B): "zero_B",
             IR.Int(-zero_out): "zero_C",
             IR.Int(M0): "M0",
-            IR.Int(N): "N",
+            IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
-            IR.Int(clamp_max): "clamp_max"
+            IR.Int(clamp_max): "clamp_max",
             IR.Int(demote): "demote"
         })
 
@@ -1120,7 +1125,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(-zero_in_B): "zero_B",
             IR.Int(-zero_out): "zero_C",
             IR.Int(M0): "M0",
-            IR.Int(N): "N",
+            IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
             IR.Int(clamp_max): "clamp_max"
         }) if not self.vbwEnabled else IR.FuncCall("Hadamard<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
@@ -1133,7 +1138,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(-zero_in_B): "zero_B",
             IR.Int(-zero_out): "zero_C",
             IR.Int(M0): "M0",
-            IR.Int(N): "N",
+            IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
             IR.Int(clamp_max): "clamp_max"
         })
@@ -1199,15 +1204,15 @@ class IRBuilderZeroSkew(IRBuilder):
 
             # Depending on whether one of the inputs is a model parameter, change the function name so that the model parameter is read differently in the arduino codegen. No difference in case of x86 code.
             c = ''
-            if op_fn == operator.add:
-                if expr_in_A.idf in self.globalVars:
-                    c += 'C'
-                else:
-                    c += 'N'
-                if expr_in_B.idf in self.globalVars:
-                    c += 'C'
-                else:
-                    c += 'N'
+            # if op_fn == operator.add:
+            #     if expr_in_A.idf in self.globalVars:
+            #         c += 'C'
+            #     else:
+            #         c += 'N'
+            #     if expr_in_B.idf in self.globalVars:
+            #         c += 'C'
+            #     else:
+            #         c += 'N'
 
             # If one of the inputs is a scalar, the operator will broadcast that input.
             if type_A.dim == 0:
@@ -1266,14 +1271,17 @@ class IRBuilderZeroSkew(IRBuilder):
                     IR.Int(I): "I",
                     IR.Int(J): "J",
                     IR.Int(left_shift): "left_shift",
+                    IR.Int(-zero_in_A): "zero_in_A",
                     IR.Int(shrA): "shrA",
-                    IR.Int(nA): "nA",
+                    IR.Int(-nA): "nA",
+                    IR.Int(-zero_in_B): "zero_in_B",
                     IR.Int(shrB): "shrB",
-                    IR.Int(nB): "nB",
+                    IR.Int(-nB): "nB",
+                    IR.Int(-zero_out): "zero_out",
                     IR.Int(shrC): "shrC",
-                    IR.Int(nC): "nC",
+                    IR.Int(-nC): "nC",
                     IR.Int(clamp_min): "clamp_min",
-                    IR.Float(clamp_max): "clamp_max"
+                    IR.Int(clamp_max): "clamp_max"
                 }) if not self.vbwEnabled else IR.FuncCall(funcName + c + ("<int%d_t, int%d_t, int%d_t, int%d_t>" % (bitwidth_in_A, bitwidth_in_B, bitwidth_temp, bitwidth_out)), {
                     expr_in_A: "A",
                     expr_in_B: "B",
@@ -1281,14 +1289,17 @@ class IRBuilderZeroSkew(IRBuilder):
                     IR.Int(I): "I",
                     IR.Int(J): "J",
                     IR.Int(left_shift): "left_shift",
+                    IR.Int(-zero_in_A): "zero_in_A",
                     IR.Int(shrA): "shrA",
-                    IR.Int(nA): "nA",
+                    IR.Int(-nA): "nA",
+                    IR.Int(-zero_in_B): "zero_in_B",
                     IR.Int(shrB): "shrB",
-                    IR.Int(nB): "nB",
+                    IR.Int(-nB): "nB",
+                    IR.Int(-zero_out): "zero_out",
                     IR.Int(shrC): "shrC",
-                    IR.Int(nC): "nC",
+                    IR.Int(-nC): "nC",
                     IR.Int(clamp_min): "clamp_min",
-                    IR.Float(clamp_max): "clamp_max"
+                    IR.Int(clamp_max): "clamp_max"
                     # irdemote: "demote"
                 })
             elif type_out.dim == 4:
@@ -1301,14 +1312,17 @@ class IRBuilderZeroSkew(IRBuilder):
                     IR.Int(W): "W",
                     IR.Int(C): "C",
                     IR.Int(left_shift): "left_shift",
+                    IR.Int(-zero_in_A): "zero_in_A",
                     IR.Int(shrA): "shrA",
-                    IR.Int(nA): "nA",
+                    IR.Int(-nA): "nA",
+                    IR.Int(-zero_in_B): "zero_in_B",
                     IR.Int(shrB): "shrB",
-                    IR.Int(nB): "nB",
+                    IR.Int(-nB): "nB",
+                    IR.Int(-zero_out): "zero_out",
                     IR.Int(shrC): "shrC",
-                    IR.Int(nC): "nC",
+                    IR.Int(-nC): "nC",
                     IR.Int(clamp_min): "clamp_min",
-                    IR.Float(clamp_max): "clamp_max"
+                    IR.Int(clamp_max): "clamp_max"
                 }) if not self.vbwEnabled else IR.FuncCall(funcName + "4" + ("<int%d_t, int%d_t, int%d_t, int%d_t>" % (bitwidth_in_A, bitwidth_in_B, self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add", bitwidth_out), bitwidth_out)), {
                     expr_in_A: "A",
                     expr_in_B: "B",
@@ -1318,14 +1332,17 @@ class IRBuilderZeroSkew(IRBuilder):
                     IR.Int(W): "W",
                     IR.Int(C): "C",
                     IR.Int(left_shift): "left_shift",
+                    IR.Int(-zero_in_A): "zero_in_A",
                     IR.Int(shrA): "shrA",
-                    IR.Int(nA): "nA",
+                    IR.Int(-nA): "nA",
+                    IR.Int(-zero_in_B): "zero_in_B",
                     IR.Int(shrB): "shrB",
-                    IR.Int(nB): "nB",
+                    IR.Int(-nB): "nB",
+                    IR.Int(-zero_out): "zero_out",
                     IR.Int(shrC): "shrC",
-                    IR.Int(nC): "nC",
+                    IR.Int(-nC): "nC",
                     IR.Int(clamp_min): "clamp_min",
-                    IR.Float(clamp_max): "clamp_max"
+                    IR.Int(clamp_max): "clamp_max"
                     # irdemote: "demote"
                 })
 
@@ -1442,7 +1459,7 @@ class IRBuilderZeroSkew(IRBuilder):
         return -int((bw - 1) - c)
 
     def getQuantizedMultiplierLTO(self, m, bitwidth_temp, bitwidth_in_A):
-        assert m <=1.0
+        # assert m <=1.0
         scale = self.getScale(m, bitwidth_temp)
 
         m0 = np.ldexp(m, -scale)
@@ -1563,11 +1580,15 @@ class IRBuilderZeroSkew(IRBuilder):
             expr_in: "A",
             IR.Int(I): "I",
             IR.Int(J): "J",
+            IR.Float(scale_in): "scale_in",
+            IR.Int(-zero_in): "zero_in",
             expr_out: "index"
         }) if not self.vbwEnabled else IR.FuncCall("ArgMax<int%d_t>"%(bitwidth_in), {
             expr_in: "A",
             IR.Int(I): "I",
             IR.Int(J): "J",
+            IR.Float(scale_in): "scale_in",
+            IR.Int(-zero_in): "zero_in",
             expr_out: "index"
         })
 
@@ -1621,25 +1642,28 @@ class IRBuilderZeroSkew(IRBuilder):
         scale_out, zero_out = self.getScaleAndZero(-config.tanhLimit, config.tanhLimit, bw = config.wordLength//2 if expr_out.idf in self.demotedVarsList else config.wordLength)
         # scale_out = scale_in # self.getScale(1.5)
         # tanh_limit_out = 2 ** -scale_out
+        M0, N, clamp_radius = self.getTanHShrAndN(scale_in, zero_in, scale_out, zero_out, intv_in, bitwidth_in)
 
-        funcCall = IR.FuncCall("TanHZSkew", {
+        funcCall = IR.FuncCall("TanH", {
             expr_in: "A",
+            expr_out: "B",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            IR.Float(scale_in): "scale_in",
-            IR.Int(zero_in): "zero_in",
-            IR.Float(scale_out): "scale_out",
-            IR.Int(zero_out): "zero_out",
-            expr_out: "B"
+            IR.Int(-zero_in): "zero_in",
+            # IR.Int(-zero_out): "zero_out",
+            IR.Int(M0): "M0",
+            IR.Int(-N): "N",
+            IR.Int(clamp_radius): "clamp_radius"
         }) if not self.vbwEnabled else IR.FuncCall("TanH<int%d_t>"%(bitwidth_in), {
             expr_in: "A",
+            expr_out: "B",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            IR.Float(scale_in): "scale_in",
-            IR.Int(zero_in): "zero_in",
-            IR.Float(scale_out): "scale_out",
-            IR.Int(zero_out): "zero_out",
-            expr_out: "B"
+            IR.Int(-zero_in): "zero_in",
+            # IR.Int(zero_out): "zero_out",
+            IR.Int(M0): "M0",
+            IR.Int(-N): "N",
+            IR.Int(clamp_radius): "clamp_radius"
         })
 
         self.counter_inst += 1
@@ -1656,6 +1680,55 @@ class IRBuilderZeroSkew(IRBuilder):
         self.varZeros[expr_out.idf] = zero_out
 
         return (prog_out, expr_out)
+    
+    def getTanHShrAndN(self, scale_in, zero_in, scale_out, zero_out, intv_in, bitwidth_in, bitwidth_temp = None):
+        if intv_in == (0,0):
+            intv_in = (-config.maxVar8Bit, config.maxVar8Bit)
+            assert (not config.vbwEnabled) and (config.wordLength == 8) 
+        tanh_min, tanh_max = intv_in
+        getLogger().debug("TanH internval in Zero Skew: " + str(tanh_min) + ", " + str(tanh_max))
+        assert config.wordLength == 8, "TanH not implemented for anything other than 8-bits"
+        float_max = tanh_max * scale_in
+        scale_comp = self.getScale(float_max, bw=bitwidth_in)
+        getLogger().debug("TanH fixed point scale in Zero Skew: " + str(scale_comp))
+
+        scale_up = -24 - scale_comp
+        scale_up  = -scale_up
+        if bitwidth_temp == None:
+            bitwidth_temp = 32 if (config.wordLength == 8) else 64
+        M = 1.0
+        scale_comp = self.getScale(M, bitwidth_temp)
+        M0 = np.ldexp(M,-scale_comp)
+
+        clamp_min, clamp_max = self.getClampValues(bitwidth_in)
+        return int(M0), int(scale_up), int(min(abs(clamp_max), abs(clamp_min)))
+        
+    def getSigmoidShrAndN(self, scale_in, zero_in, scale_out, zero_out, intv_in, bitwidth_in, bitwidth_temp = None):
+        if intv_in == (0,0):
+            intv_in = (-config.maxVar8Bit, config.maxVar8Bit)
+            assert (not config.vbwEnabled) and (config.wordLength == 8) 
+        sigmoid_min, sigmoid_max = intv_in
+        getLogger().debug("TanH internval in Zero Skew: " + str(sigmoid_min) + ", " + str(sigmoid_max))
+        assert config.wordLength == 8, "TanH not implemented for anything other than 8-bits"
+        float_max = sigmoid_max * scale_in
+        scale_comp = self.getScale(float_max, bw=bitwidth_in)
+        getLogger().debug("TanH fixed point scale in Zero Skew: " + str(scale_comp))
+
+        scale_up = -24 - scale_comp
+        scale_up  = -scale_up
+        if bitwidth_temp == None:
+            bitwidth_temp = 32 if (config.wordLength == 8) else 64
+        M = 1.0
+        scale_comp = self.getScale(M, bitwidth_temp)
+        M0 = int(np.ldexp(M,-scale_comp))
+
+        scale_out_fixed_point = -7
+        zero_out = int(np.ldexp(-0.5, -scale_out_fixed_point))
+        scale_out = (-0.5)/zero_out
+
+        clamp_min, clamp_max = self.getClampValues(bitwidth_in)
+        return M0, scale_up, min(abs(clamp_max), abs(clamp_min)), scale_out, zero_out
+
 
     def visitSigmoid(self, node: AST.Func):
         # y = max(min( x/4 + 2/4 , 1), 0), 1).
@@ -1716,27 +1789,31 @@ class IRBuilderZeroSkew(IRBuilder):
         # bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf) 
         expr_in.inputVar = False
 
+        M0, N, clamp_radius, scale_out, zero_out = self.getSigmoidShrAndN(scale_in, zero_in, scale_out, zero_out, intv_in, bitwidth_in)
+
         comment = IR.Comment("Sigmoid(" + expr_in.idf + ")", self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
 
-        funcCall = IR.FuncCall("SigmoidZSkew", {
+        funcCall = IR.FuncCall("Sigmoid", {
             expr_in: "A",
+            expr_out: "B",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            IR.Float(scale_in): "scale_in",
-            IR.Int(zero_in): "zero_in",
-            IR.Float(scale_out): "scale_out",
-            IR.Int(zero_out): "zero_out",
-            expr_out: "B"
+            IR.Int(-zero_in): "zero_in",
+            # IR.Int(-zero_out): "zero_out",
+            IR.Int(M0): "M0",
+            IR.Int(-N): "N",
+            IR.Int(clamp_radius): "clamp_radius"
         }) if not self.vbwEnabled else IR.FuncCall("Sigmoid<int%d_t>"%(bitwidth_in), {
             expr_in: "A",
+            expr_out: "B",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            IR.Float(scale_in): "scale_in",
-            IR.Int(zero_in): "zero_in",
-            IR.Float(scale_out): "scale_out",
-            IR.Int(zero_out): "zero_out",
-            expr_out: "B"
+            IR.Int(-zero_in): "zero_in",
+            # IR.Int(-zero_out): "zero_out",
+            IR.Int(M0): "M0",
+            IR.Int(-N): "N",
+            IR.Int(clamp_radius): "clamp_radius"
         })
 
         self.counter_inst += 1

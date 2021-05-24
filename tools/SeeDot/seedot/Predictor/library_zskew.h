@@ -8,7 +8,7 @@
 #include "datatypes.h"
 #include <cassert>
 #include <limits>
-#include "fixedpoint/fixedpoint.h"
+#include "gemmlowp/fixedpoint/fixedpoint.h"
 
 /**
  * Note: This implementation only works for 8-bit quantization. TFLite follows a different
@@ -57,6 +57,8 @@ void MatAdd(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, AC
  * 		shrC adjusts the output matrix if required to prevent overflows.
  **/
 void MatAddBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max);
+void MatAddBroadCastB(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max);
+
 
 /**
  * Dimensions: 	I, J, shrA, shrB, shrC are integers
@@ -69,9 +71,11 @@ void MatAddBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left
  * 		For MatSubBroadCastB, add scalar B to all elements of A and store result in C.
  * shrA, shrB, shrC are scaling constants which are computed in irBuilder.py::getScaleForAddAndSub(sc(A), sc(B), sc(C)).
  * 		shrA, shrB are used to bring matrices A and B to the same scale for addition.
- * 		shrC adjusts the output matrix if required to prevent overflows.
+ * 		
+ * shrC adjusts the output matrix if required to prevent overflows.
  **/
 void MatSubBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max);
+void MatSubBroadCastB(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max);
 
 /**
  * Dimensions: 	A, B, C are matrices, dim(A) = [I][J], dim(B) = [J][K], dim(C) = [I][K]; tmp is a vector, dim(tmp) = [J] I, K, J, shrA, shrB, H1, H2 are integers.
@@ -148,6 +152,9 @@ void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT M0, MYITE 
  */
 void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT M0, MYITE N, ACINT clamp_radius);
 
+void ArgMax(MYINT* A, MYINT I, MYINT J, float scale_in, MYINT zero_in, int* index);
+
+
 //Templated Operations: For cases when Variable BitWidth is enabled.
 
 template<class InputType, class OutputType>
@@ -156,53 +163,53 @@ inline OutputType Saturate(InputType inp, InputType min_value, InputType max_val
 	return (OutputType)(inp > max_value ? max_value : inp);
 }
 
-template <typename IntegerType>
-IntegerType SaturatingRoundingDoublingHighMul(IntegerType a, IntegerType b) {
-	static_assert(std::is_same<IntegerType, void>::value, "Unimplemented");
-	return a;
-}
+// template <typename IntegerType>
+// IntegerType SaturatingRoundingDoublingHighMul(IntegerType a, IntegerType b) {
+// 	static_assert(std::is_same<IntegerType, void>::value, "Unimplemented");
+// 	return a;
+// }
 
-int64_t SaturatingRoundingDoublingHighMul(int64_t a, int64_t b);
+// int64_t SaturatingRoundingDoublingHighMul(int64_t a, int64_t b);
 
-int32_t SaturatingRoundingDoublingHighMul(int32_t a, int32_t b);
+// int32_t SaturatingRoundingDoublingHighMul(int32_t a, int32_t b);
 
-int16_t SaturatingRoundingDoublingHighMul(int16_t a, int16_t b);
+// int16_t SaturatingRoundingDoublingHighMul(int16_t a, int16_t b);
 
 // Correctly-rounded-to-nearest division by a power-of-two.
 // Also known as a rounding arithmetic right shift.
-template <typename IntegerType, typename ExponentType>
-IntegerType RoundingDivideByPOT(IntegerType x, ExponentType exponent) {
-	assert(exponent >= 0);
-	assert(exponent <= 31);
-	const IntegerType mask = (1ll << exponent) - 1;
-	const IntegerType remainder = x & mask;
-	IntegerType threshold = (mask >> 1);
-	if (x < 0) {
-		threshold += 1;
-	}
+// template <typename IntegerType, typename ExponentType>
+// IntegerType RoundingDivideByPOT(IntegerType x, ExponentType exponent) {
+// 	assert(exponent >= 0);
+// 	assert(exponent <= 31);
+// 	const IntegerType mask = (1ll << exponent) - 1;
+// 	const IntegerType remainder = x & mask;
+// 	IntegerType threshold = (mask >> 1);
+// 	if (x < 0) {
+// 		threshold += 1;
+// 	}
 
-	if (remainder > threshold) {
-		return (x >> exponent) + 1;
-	}
+// 	if (remainder > threshold) {
+// 		return (x >> exponent) + 1;
+// 	}
 
-	return (x >> exponent);
-}
+// 	return (x >> exponent);
+// }
 
 template<class InputType>
-inline int32_t MulQuantMultiplier(InputType x, InputType multiplier, MYITE shift) {
+inline int32_t MulQuantMultiplier(InputType x, InputType quantized_multiplier, MYITE shift) {
   int left_shift = shift > 0 ? shift : 0;
   int right_shift = shift > 0 ? 0 : -shift;
-  return RoundingDivideByPOT(SaturatingRoundingDoublingHighMul(x * (1 << left_shift), quantized_multiplier), right_shift);
+  return gemmlowp::RoundingDivideByPOT(gemmlowp::SaturatingRoundingDoublingHighMul(x * (1 << left_shift), quantized_multiplier), right_shift);
 }
 
 template<class InputType>
 inline InputType MulQuantMultiplierLTO(InputType x, InputType multiplier, MYITE left_shift) {
-	return RoundingDivideByPOT(SaturatingRoundingDoublingHighMul(x, multiplier), -left_shift);
+	return gemmlowp::RoundingDivideByPOT(gemmlowp::SaturatingRoundingDoublingHighMul(x, multiplier), -left_shift);
 }
 
 template<class InputType>
 inline InputType MulQuantMultiplierGTO(InputType x, InputType multiplier, MYITE left_shift) {
-	return SaturatingRoundingDoublingHighMul(x * (1 << left_shift), multiplier);
+	return gemmlowp::SaturatingRoundingDoublingHighMul(x * (1 << left_shift), multiplier);
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>

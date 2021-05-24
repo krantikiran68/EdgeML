@@ -332,7 +332,7 @@ def writeMatAsArray(mat, name: str, fileName: str, shapeStr=None, bw=None):
 
     with open(fileName, 'a') as file:
         if not config.vbwEnabled or "float" in fileName:
-            file.write('static const %s%s %s%s = {\n' % (arduinoStr, dataType, name, shapeStr))
+            file.write('static %s%s %s%s = {\n' % (arduinoStr, dataType, name, shapeStr))
         else:
             file.write('static const %s%s %s%s%s = {\n' % (arduinoStr, dataType, name, "_temp" if (forX86() and bw is None) else "", shapeStr))
 

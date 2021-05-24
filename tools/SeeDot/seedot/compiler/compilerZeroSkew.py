@@ -159,7 +159,9 @@ class CompilerZeroSkew(Compiler):
 
         # Input and output scales are stored, problem type is identified as regression or classification.
         self.scaleForX = compiler.varScales['X']
-        self.scaleForY = compiler.varScales[res[1].idf] if res[1].idf in compiler.varScales else 0
+        self.zeroForX = compiler.varZeros['X']
+        self.scaleForY = compiler.varScales[res[1].idf] if res[1].idf in compiler.varScales else 1.0
+        self.zeroForY = compiler.varZeros[res[1].idf] if res[1].idf in compiler.varZeros else 0
         self.problemType = config.ProblemType.classification if res[1].idf not in compiler.varScales else config.ProblemType.regression
 
         return res, state

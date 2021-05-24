@@ -22,10 +22,11 @@ using namespace std;
  * and translates them into integers, and then puts them through multiple generated inference codes and evaluates each result.
  */
 
-enum Version
+enum Encoding
 {
 	Fixed,
-	Float
+	Float,
+	ZeroSkew
 };
 enum DatasetType
 {
@@ -101,6 +102,18 @@ void populateFixedVector(MYINT** features_int, vector<string> features, int scal
 	return;
 }
 
+void populateZeroSkewVector(MYINT** features_int, vector<string> features, float scale, int zero) {
+	int features_size = (int)features.size();
+
+	for (int i = 0; i < features_size; i++) {
+		double f = (double)(atof(features.at(i).c_str()));
+		double f_int = (f / scale) + zero; 
+		features_int[i][0] = (MYINT)(f_int);
+	}
+
+	return;
+}
+
 // Take in the input floating point datapoint and store it.
 void populateFloatVector(float** features_float, vector<string> features) {
 	int features_size = (int)features.size();
@@ -114,12 +127,28 @@ void populateFloatVector(float** features_float, vector<string> features) {
 // Each thread, which invokes the following method, is responsible for taking in one datapoint
 // and running it through all the generated codes.
 // Number of threads generated equals the number of datapoints in the given dataset.
-void launchThread(int features_size, MYINT** features_int, MYINT*** features_intV, float** features_float, int counter, float* float_res, int* res, int** resV) {
-	seedotFixed(features_int, res);
+void launchThread(int features_size, MYINT** features_int, MYINT*** features_intV, float** features_float, int counter, float* float_res, int* res, int** resV, Encoding encoding) {
+	if(encoding == Fixed)
+	{
+		seedotFixed(features_int, res);
+	}
+	else if(encoding == ZeroSkew)
+	{
+		seedotZeroSkew(features_int, res);
+	}
 	seedotFloat(features_float, float_res);
 
-	for (int i = 0; i < switches; i++) {
-		seedotFixedSwitch(i, features_intV[i], resV[i]);
+	if(encoding == Fixed)
+	{
+		for (int i = 0; i < switches; i++) {
+			seedotFixedSwitch(i, features_intV[i], resV[i]);
+		}
+	}
+	if(encoding == ZeroSkew)
+	{
+		for (int i = 0; i < zSwitches; i++) {
+			seedotZeroSkewSwitch(i, features_intV[i], resV[i]);
+		}
 	}
 
 	for (int i = 0; i < features_size; i++) {
@@ -144,13 +173,15 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	Version version;
+	Encoding encoding;
 	if (strcmp(argv[1], "fixed") == 0) {
-		version = Fixed;
+		encoding = Fixed;
 	} else if (strcmp(argv[1], "float") == 0) {
-		version = Float;
+		encoding = Float;
+	} else if (strcmp(argv[1], "zskew") == 0) {
+		encoding = ZeroSkew;
 	} else {
-		cout << "Argument mismatch for version\n";
+		cout << "Argument mismatch for encoding\n";
 		return 1;
 	}
 	string versionStr = argv[1];
@@ -220,7 +251,7 @@ int main(int argc, char* argv[]) {
 	string line1, line2;
 	int counter = 0;
 
-	if (version == Float) {
+	if (encoding == Float) {
 		profilingEnabled = true;
 	}
 
@@ -267,12 +298,17 @@ int main(int argc, char* argv[]) {
 		}
 
 		// Populate the array using the feature vector.
-		if (debugMode || version == Fixed) {
+		if (debugMode || encoding == Fixed) {
 			populateFixedVector(features_int, features, scaleForX);
 			for (int i = 0; i < switches; i++) {
 				populateFixedVector(features_intV[i], features, scalesForX[i]);
 			}
 			populateFloatVector(features_float, features);
+		} else if (encoding == ZeroSkew) {
+			populateZeroSkewVector(features_int, features, scaleXZeroSkew,zeroPointXZeroSkew);
+			for(int i=0; i < zSwitches; i++) {
+				populateZeroSkewVector(features_intV[i], features, scalesXZeroSkew[i], zeroPointsXZeroSkew[i]);
+			}
 		} else {
 			populateFloatVector(features_float, features);
 		}
@@ -298,7 +334,7 @@ int main(int argc, char* argv[]) {
 			vector_int_resV.push_back(NULL);
 		} else {
 			// There are several codes generated which are built simultaneously.
-			if (version == Fixed) {
+			if (encoding == Fixed || encoding == ZeroSkew) {
 				vector_float_res.push_back(new float[numOutputs]);
 				vector_int_res.push_back(new int32_t[numOutputs]);
 				// Populating labels for each generated code.
@@ -333,8 +369,8 @@ int main(int argc, char* argv[]) {
 					}
 				}
 				// Launching one thread which processes one datapoint.
-				threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back()));
-			} else if (version == Float) {
+				threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back(), encoding));
+			} else if (encoding == Float) {
 				float_res = new float[numOutputs];
 				seedotFloat(features_float, float_res);
 				vector_float_res.push_back(float_res);
@@ -382,7 +418,7 @@ int main(int argc, char* argv[]) {
 		if (problem == Classification) {
 			for (int j = 0; j < numOutputs; j++) {
 				float res;
-				if (version == Float) {
+				if (encoding == Float) {
 					res = float_res[j];
 				} else {
 					res = (float) fixed_res[j];
@@ -405,7 +441,7 @@ int main(int argc, char* argv[]) {
 				total++;
 
 				for (int k = 0; k < switches; k++) {
-					if (version == Float) {
+					if (encoding == Float) {
 						throw "Multiple codes not expected in Floating point execution";
 					}
 
@@ -429,7 +465,7 @@ int main(int argc, char* argv[]) {
 		} else {
 			for (int j = 0; j < numOutputs; j++) {
 				float res;
-				if (version == Float) {
+				if (encoding == Float) {
 					res = float_res[j];
 				} else {
 					res = ((float)fixed_res[j]) / ldexp(1.0, -scaleForY);
@@ -444,7 +480,7 @@ int main(int argc, char* argv[]) {
 				total++;
 
 				for (int k = 0; k < switches; k++) {
-					if (version == Float) {
+					if (encoding == Float) {
 						throw "Multiple codes not expected in Floating point execution";
 					}
 					float normRes = ((float) resV[k][j]) / ldexp(1.0 , -scalesForY[k]);
@@ -523,7 +559,7 @@ int main(int argc, char* argv[]) {
 		stats << "0.000\n";
 	}
 
-	if (version == Fixed) {
+	if (encoding == Fixed || encoding == ZeroSkew) {
 		for (int i = 0; i < switches; i++) {
 			stats << i + 1 << "\n";
 			if (problem == Classification) {
@@ -544,7 +580,7 @@ int main(int argc, char* argv[]) {
 
 	stats.close();
 
-	if (version == Float) {
+	if (encoding == Float) {
 		dumpProfile();
 	}
 

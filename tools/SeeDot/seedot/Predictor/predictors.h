@@ -7,4 +7,8 @@ void seedotFixed(MYINT** X, int32_t* res);
 void seedotFloat(float** X, float* res);
 void seedotFixedSwitch(int i, MYINT** X, int32_t* res);
 
+void seedotZeroSkew(MYINT** X, int32_t* res);
+void seedotZeroSkewSwitch(int i, MYINT** X, int32_t* res);
+
 extern const int switches;
+extern const int zSwitches;

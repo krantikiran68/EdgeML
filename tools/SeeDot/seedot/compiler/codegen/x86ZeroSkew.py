@@ -101,16 +101,10 @@ class X86ZeroSkew(X86):
         self.out.printf('\n};\n')
 
     def printCHeader(self):
-        if forFloat():
-            func = "Float"
-            type = "float"
-        else:
-            func = "Fixed"
-            type = "MYINT"
-        if forFloat():
-            self.out.printf('void seedot%s(%s **X, float* res) {\n' % (func, type), indent=True)
-        else:
-            self.out.printf('void seedot%s%s(%s **X%s, int32_t* res) {\n' % (func, self.idStr if not self.generateAllFiles else "", type, "_temp" if config.vbwEnabled else ""), indent=True)
+        func = "ZeroSkew"
+        type = "MYINT"
+    
+        self.out.printf('void seedot%s%s(%s **X%s, int32_t* res) {\n' % (func, self.idStr if not self.generateAllFiles else "", type, "_temp" if config.vbwEnabled else ""), indent=True)
         self.out.increaseIndent()
 
     def printModelParamsWithBitwidth(self):
@@ -315,13 +309,13 @@ class X86ZeroSkew(X86):
 
         if forZeroSkew():
             if (int(self.printSwitch) if isInt(self.printSwitch) else -2) > -1:
-                self.out.printf("const int switches = %d;\n" % (int(self.printSwitch)), indent = True)
-                self.out.printf('void seedotFixedSwitch(int i, MYINT **X_temp, int32_t* res) {\n', indent=True)
+                self.out.printf("const int zSwitches = %d;\n" % (int(self.printSwitch)), indent = True)
+                self.out.printf('void seedotZeroSkewSwitch(int i, MYINT **X_temp, int32_t* res) {\n', indent=True)
                 self.out.increaseIndent()
                 self.out.printf('switch(i) {\n', indent = True)
                 self.out.increaseIndent()
                 for i in range(int(self.printSwitch)):
-                    self.out.printf('case %d: seedotFixed%d(X_temp, res); return;\n' % (i,i+1), indent = True)
+                    self.out.printf('case %d: seedotZeroSkew%d(X_temp, res); return;\n' % (i,i+1), indent = True)
                 self.out.printf('default: res[0] = -1; return;\n', indent = True)
                 self.out.decreaseIndent()
                 self.out.printf('}\n', indent=True)

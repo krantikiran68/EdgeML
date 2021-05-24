@@ -1001,7 +1001,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
             IR.Int(clamp_max): "clamp_max"
-        }) if not self.vbwEnabled else IR.FuncCall("ScalarMul<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
+        }) if not self.vbwEnabled else IR.FuncCall("MatMulBroadcastA<int%d_t, int%d_t, int%d_t, int%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
             a: "A",
             b: "B",
             expr_out: "C",
@@ -1013,8 +1013,8 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(M0): "M0",
             IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
-            IR.Int(clamp_max): "clamp_max",
-            IR.Int(demote): "demote"
+            IR.Int(clamp_max): "clamp_max"
+            # IR.Int(demote): "demote"
         })
 
         self.counter_inst += 1

@@ -254,3 +254,287 @@ void Reverse2(posit_2_t* A, MYINT axis, MYINT I, MYINT J, posit_2_t* B, int bitw
 
 void NormaliseL2(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA, int bitwidth);
 
+
+void convertPosit(posit8_t* a, posit8_t *b);
+
+void convertPosit(posit8_t* a, posit16_t *b);
+
+void convertPosit(posit8_t* a, posit32_t *b);
+
+void convertPosit(posit16_t* a, posit8_t *b);
+
+void convertPosit(posit16_t* a, posit16_t *b);
+
+void convertPosit(posit16_t* a, posit32_t *b);
+
+void convertPosit(posit32_t* a, posit8_t *b);
+
+void convertPosit(posit32_t* a, posit16_t *b);
+
+void convertPosit(posit32_t* a, posit32_t *b);
+
+posit8_t positAdd(posit8_t a, posit8_t b);
+posit16_t positAdd(posit16_t a, posit16_t b);
+posit32_t positAdd(posit32_t a, posit32_t b);
+
+posit8_t positSub(posit8_t a, posit8_t b);
+posit16_t positSub(posit16_t a, posit16_t b);
+posit32_t positSub(posit32_t a, posit32_t b);
+
+posit8_t positMul(posit8_t a, posit8_t b);
+posit16_t positMul(posit16_t a, posit16_t b);
+posit32_t positMul(posit32_t a, posit32_t b);
+
+double convertPositToDouble(posit8_t a);
+double convertPositToDouble(posit16_t a);
+double convertPositToDouble(posit32_t a);
+
+void convertDoubleToPosit(double a, posit8_t *b);
+void convertDoubleToPosit(double a, posit16_t *b);
+void convertDoubleToPosit(double a, posit32_t *b);
+
+quire8_t clearQuire(quire8_t q);
+quire16_t clearQuire(quire16_t q);
+quire32_t clearQuire(quire32_t q);
+
+posit8_t convertQuireToPosit(quire8_t q);
+posit16_t convertQuireToPosit(quire16_t q);
+posit32_t convertQuireToPosit(quire32_t q);
+
+quire8_t positFMA(quire8_t q, posit8_t a, posit8_t b);
+quire16_t positFMA(quire16_t q, posit16_t a, posit16_t b);
+quire32_t positFMA(quire32_t q, posit32_t a, posit32_t b);
+
+template<class TypeA, class TypeB, class TypeTemp, class TypeC>
+void MatAdd(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			TypeTemp a;
+            convertPosit(&A[i * J + j], &a);
+			TypeTemp b;
+            convertPosit(&B[i * J + j], &b);
+
+			TypeTemp c = positAdd(a, b);
+
+			convertPosit(&c, &C[i * J + j]);
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeTemp, class TypeC>
+void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+    TypeTemp a;
+    convertPosit(A, &a);
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			TypeTemp b;
+            convertPosit(&B[i * J + j], &b);
+			
+            TypeTemp c = positAdd(a, b);
+
+			convertPosit(&c, &C[i * J + j]);
+
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeTemp, class TypeC>
+void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+    TypeTemp b;
+    convertPosit(B, &b);
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			TypeTemp a;
+            convertPosit(&A[i * J + j], &a);
+
+			TypeTemp c = positAdd(a, b);
+
+			convertPosit(&c, &C[i * J + j]);
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeTemp, class TypeC>
+// TODO: shrB is int32_t because in 8-bit/16-bit code, shrB is usually very high and int8_t/int16_t will overflow.
+void MatSub(TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, int32_t shrB, MYINT shrC, MYINT demote) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			TypeTemp a;
+            convertPosit(&A[i * J + j], &a);
+			TypeTemp b;
+            convertPosit(&B[i * J + j], &b);
+
+			TypeTemp c = positSub(a, b);
+
+			convertPosit(&c, &C[i * J + j]);
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeTemp, class TypeC>
+void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+    TypeTemp a;
+    convertPosit(A, &a);
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			TypeTemp b;
+            convertPosit(&B[i * J + j], &b);
+
+			TypeTemp c = positSub(a, b);
+
+			convertPosit(&c, &C[i * J + j]);
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeTemp, class TypeC>
+void MatSubBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
+    TypeTemp b;
+    convertPosit(B, &b);
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			TypeTemp a;
+            convertPosit(&A[i * J + j], &a);
+
+			TypeTemp c = positSub(a, b);
+
+			convertPosit(&c, &C[i * J + j]);
+		}
+	}
+	return;
+}
+
+
+template<class TypeA, class TypeB, class TypeTemp, class QuireType, class TypeC>
+void MatMul(TypeA* A, TypeB* B, TypeC* C, TypeTemp* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, MYINT demote) {
+	QuireType q;
+    int positSize = 8 * sizeof(TypeTemp);
+    for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+            q = clearQuire(q);
+			for (MYITE k = 0; k < K; k++) {
+				TypeTemp a;
+                convertPosit(&A[i * K + k], &a);
+                TypeTemp b;
+                convertPosit(&B[k * J + j], &b);
+
+				q = positFMA(q, a, b);
+
+			}
+            TypeTemp c_temp = convertQuireToPosit(q);
+			convertPosit(&c_temp, &C[i * J + j]);
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeTemp, class TypeC>
+void MulCir(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT demote) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+            TypeTemp a;
+            convertPosit(&A[i * J + j], &a);
+			TypeTemp b;
+            convertPosit(&B[i * J + j], &b);
+			
+            TypeTemp prod = positMul(a, b);
+			convertPosit(&prod, &C[i * J + j]);
+		}
+	}
+	return;
+}
+
+template<class TypeA>
+void ArgMax(TypeA* A, MYINT I, MYINT J, int* index) {
+	double max = convertPositToDouble(A[0]);
+	MYITE maxIndex = 0, counter = 0;
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			double x = convertPositToDouble(A[i * J + j]);
+
+			if (max < x) {
+				maxIndex = counter;
+				max = x;
+			}
+
+			counter++;
+		}
+	}
+
+	*index = maxIndex;
+	return;
+}
+
+template<class TypeA>
+void Transpose(TypeA* A, TypeA* B, MYINT I, MYINT J) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			B[i * J + j] = A[j * I + i];
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeTemp, class TypeC>
+void ScalarMul(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, int demote) {
+    TypeTemp a;
+    convertPosit(A, &a);
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			TypeTemp b;
+            convertPosit(&B[i * J + j], &b);
+
+			TypeTemp prod = positMul(a, b);
+			convertPosit(&prod, &C[i * J + j]);
+		}
+	}
+	return;
+}
+
+
+template<class TypeA>
+void Sigmoid(TypeA* A, MYINT I, MYINT J, MYINT div, MYINT add, MYINT sigmoid_limit, MYINT scale_in, MYINT scale_out, TypeA* B) {
+
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+				double x = convertPositToDouble(A[i * J + j]);
+
+				#ifdef FLOATEXP
+                    double y = 1 / (1 + exp(-x));
+                #else
+                    double y = (x + 1) / 2;
+                    y = y > 0 ? y : 0;
+                    y = y < 1 ? y : 1;
+                #endif
+			
+				convertDoubleToPosit(y, &B[i *J + j]);
+        }
+	}
+	return;
+}
+
+template<class TypeA>
+void TanH(TypeA* A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out, TypeA* B) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+            double x = convertPositToDouble(A[i * J + j]);
+	        
+            #ifdef FLOATEXP
+				double y = tanh(x);
+			#else
+				double y = x > -1 ? x : -1;
+				y = y < 1 ? y : 1;
+			#endif
+			
+            convertDoubleToPosit(y, &B[i *J + j]);
+		}
+	}
+	return;
+}
+
+

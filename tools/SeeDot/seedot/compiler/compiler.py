@@ -21,6 +21,7 @@ import seedot.compiler.codegen.x86Posit as x86Posit
 import seedot.compiler.codegen.m3 as m3
 
 import seedot.compiler.ir.irBuilder as irBuilder
+import seedot.compiler.ir.irBuilderPosit as irBuilderPosit
 import seedot.compiler.ir.irUtil as irUtil
 
 import seedot.compiler.TF.ProcessTFGraph as TFMain
@@ -142,9 +143,12 @@ class Compiler:
             self.intermediateScales = self.readDataDrivenScales()
         encoding_is_posit = util.forPosit()
         if encoding_is_posit:
+            compiler = irBuilderPosit.IRBuilderPosit(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
             util.setEncoding(config.Encoding.fixed)
+        else:
+            compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
 
-        compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
+        
         res = compiler.visit(ast)
 
         if (encoding_is_posit):

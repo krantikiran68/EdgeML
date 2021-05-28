@@ -163,7 +163,7 @@ class Quantizer:
                     assert len(param.shape) > 0
                     writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d" + ("*%d" * (len(param.shape) - 1)) + "]") % tuple(param.shape), bw=bw)
                 elif forX86 and (getEncoding() == config.Encoding.posit):
-                    writeMatAsArray(param.data, param.name + "_temp", self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape))
+                    writeMatAsArray(param.data, param.name + ("_temp" if (not config.vbwEnabled) else ""), self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape))
                 else:
                     if hasattr(self, 'varsForBitwidth') and param.name in self.varsForBitwidth:
                         writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape), bw=self.varsForBitwidth[param.name])

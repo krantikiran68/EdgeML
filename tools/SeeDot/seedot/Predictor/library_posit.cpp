@@ -3915,3 +3915,180 @@ void AdjustScaleShr(posit_2_t* A, MYINT I, MYINT J, MYINT scale) {
 void AdjustScaleShl(posit_2_t* A, MYINT I, MYINT J, MYINT scale) {
 	return;
 }
+
+void convertPosit(posit8_t* a, posit8_t *b)
+{
+        *b=*a;
+}
+
+
+void convertPosit(posit8_t* a, posit16_t *b)
+{
+        *b = p8_to_p16(*a);
+}
+
+
+void convertPosit(posit8_t* a, posit32_t *b)
+{
+        *b = p8_to_p32(*a);
+}
+
+
+void convertPosit(posit16_t* a, posit8_t *b)
+{
+        *b = p16_to_p8(*a);
+}
+
+
+void convertPosit(posit16_t* a, posit16_t *b)
+{
+        *b=*a;
+}
+
+
+void convertPosit(posit16_t* a, posit32_t *b)
+{
+        *b = p16_to_p32(*a);
+}
+
+
+void convertPosit(posit32_t* a, posit8_t *b)
+{
+        *b = p32_to_p8(*a);
+}
+
+
+void convertPosit(posit32_t* a, posit16_t *b)
+{
+        *b = p32_to_p16(*a);
+}
+
+
+void convertPosit(posit32_t* a, posit32_t *b)
+{
+        *b=*a;
+}
+
+posit8_t positAdd(posit8_t a, posit8_t b)
+{
+	return p8_add(a, b);
+}
+
+posit16_t positAdd(posit16_t a, posit16_t b)
+{
+	return p16_add(a, b);
+}
+
+
+posit32_t positAdd(posit32_t a, posit32_t b)
+{
+	return p32_add(a, b);
+}
+
+posit8_t positSub(posit8_t a, posit8_t b)
+{
+	return p8_sub(a, b);
+}
+
+posit16_t positSub(posit16_t a, posit16_t b)
+{
+	return p16_sub(a, b);
+}
+
+
+posit32_t positSub(posit32_t a, posit32_t b)
+{
+	return p32_sub(a, b);
+}
+
+posit8_t positMul(posit8_t a, posit8_t b)
+{
+	return p8_mul(a, b);
+}
+
+posit16_t positMul(posit16_t a, posit16_t b)
+{
+	return p16_mul(a, b);
+}
+
+
+posit32_t positMul(posit32_t a, posit32_t b)
+{
+	return p32_mul(a, b);
+}
+
+double convertPositToDouble(posit8_t a)
+{
+	return convertP8ToDouble(a);
+}
+
+double convertPositToDouble(posit16_t a)
+{
+	return convertP16ToDouble(a);
+}
+
+double convertPositToDouble(posit32_t a)
+{
+	return convertP32ToDouble(a);
+}
+
+
+void convertDoubleToPosit(double a, posit8_t *b)
+{
+	*b = convertDoubleToP8(a);
+}
+
+void convertDoubleToPosit(double a, posit16_t *b)
+{
+	*b = convertDoubleToP16(a);
+}
+
+void convertDoubleToPosit(double a, posit32_t *b)
+{
+	*b = convertDoubleToP32(a);
+}
+
+quire8_t clearQuire(quire8_t q)
+{
+	return q8_clr(q);
+}
+
+quire16_t clearQuire(quire16_t q)
+{
+	return q16_clr(q);
+}
+
+quire32_t clearQuire(quire32_t q)
+{
+	return q32_clr(q);
+}
+
+posit8_t convertQuireToPosit(quire8_t q)
+{
+	return q8_to_p8(q);
+}
+
+posit16_t convertQuireToPosit(quire16_t q)
+{
+	return q16_to_p16(q);
+}
+
+posit32_t convertQuireToPosit(quire32_t q)
+{
+	return q32_to_p32(q);
+}
+
+quire8_t positFMA(quire8_t q, posit8_t a, posit8_t b)
+{
+	return q8_fdp_add(q, a, b);
+}
+
+quire16_t positFMA(quire16_t q, posit16_t a, posit16_t b)
+{
+	return q16_fdp_add(q, a, b);
+}
+
+quire32_t positFMA(quire32_t q, posit32_t a, posit32_t b)
+{
+	return q32_fdp_add(q, a, b);
+}

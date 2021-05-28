@@ -13,6 +13,8 @@ from seedot.compiler.codegen.x86 import X86
 import seedot.compiler.ir.ir as IR
 import seedot.compiler.ir.irUtil as IRUtil
 
+from functools import reduce
+
 import seedot.compiler.type as Type
 from seedot.util import *
 from seedot.writer import Writer
@@ -25,7 +27,23 @@ class X86Posit(X86):
 
     def __init__(self, outputDir, generateAllFiles, printSwitch, idStr, paramInNativeBitwidth, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals, notScratch, coLocatedVariables):
         super().__init__(outputDir, generateAllFiles, printSwitch, idStr, paramInNativeBitwidth, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals, notScratch, coLocatedVariables)
-        
+    
+    def storeFlashSize(self):
+        size_full = 0
+        bw = config.positBitwidth
+        if bw in [9, 10, 12]:
+            bw = 32
+        for var in self.globalVars:
+            if var == 'X':
+                continue
+            size = self.decls[var].shape
+            size_ = 1
+            size_ = reduce(lambda x, y: x*y , size)
+            size_full += size_
+        f = open("flashsize.txt", "w")
+        f.write(str((size_full * bw)//8))
+        f.close()
+
     def printPrefix(self):
         if self.generateAllFiles:
             self.printCincludes()
@@ -33,7 +51,7 @@ class X86Posit(X86):
             self.printExpTables()
 
         self.printCHeader()
-
+        self.storeFlashSize()
         self.computeScratchLocationsFirstFitPriority() # computeScratchLocations computeScratchLocationsFirstFit computeScratchLocationsFirstFitPriority computeScratchLocationsDLX
 
         self.printModelParamsWithBitwidth()
@@ -156,7 +174,7 @@ class X86Posit(X86):
                     varsFile.printf('extern %s %s%s;\n', typ_str,
                                 idf_str, shape_str, indent=True)
             else:
-                if forFixed() and idf_str in self.varsForBitwidth and idf_str[:3] == "tmp":
+                if idf_str in self.varsForBitwidth and idf_str[:3] == "tmp":
                     if globalVarDecl:
                         for bw in config.availableBitwidths:
                             self.out.printf("%s vars_%s::%s_%d%s;\n", self.getPositType(bw), getEncoding(), idf_str, bw, shape_str, indent=True)
@@ -351,7 +369,6 @@ class X86Posit(X86):
 
     def getPositType(self, bw):
         getLogger().debug("Always returning based on the value of config.positBitiwidth and not the variable value")
-        bw = config.positBitwidth
         if bw == 8:
             return "posit8_t"
         if bw == 16:
@@ -362,7 +379,6 @@ class X86Posit(X86):
     
     def getConversionFunction(self, bw):
         getLogger().debug("Always returning based on the value of config.positBitiwidth and not the variable value")
-        bw = config.positBitwidth
         if bw == 8:
             return "convertDoubleToP8"
         if bw == 16:
@@ -413,15 +429,17 @@ class X86Posit(X86):
                                 self.floatConstants[var], indent=True)
             else:
                 if config.vbwEnabled and var in self.varsForBitwidth.keys() and (forX86() or forM3()):
-                    assert False, "No vbw for Posits"
-                    if np.iinfo(np.int16).min <= num <= np.iinfo(np.int16).max:
-                        self.out.printf('%s_%d = %d;\n', var, self.varsForBitwidth[var], num, indent=True)
-                    elif np.iinfo(np.int32).min <= num <= np.iinfo(np.int32).max:
-                        self.out.printf('%s_%d = %dL;\n', var, self.varsForBitwidth[var], num, indent=True)
-                    elif np.iinfo(np.int64).min <= num <= np.iinfo(np.int64).max:
-                        self.out.printf('%s_%d = %dLL;\n', var, self.varsForBitwidth[var], num, indent=True)
-                    else:
-                        assert False
+                    float_val = self.fixedVarToFloat(var, num)
+                    conversion_func = self.getConversionFunction(self.varsForBitwidth[var])
+                    self.out.printf('%s_%d = %s(%f);\n', var, self.varsForBitwidth[var], conversion_func, float_val, indent=True)
+                    # if np.iinfo(np.int16).min <= num <= np.iinfo(np.int16).max:
+                    #     self.out.printf('%s_%d = %d;\n', var, self.varsForBitwidth[var], num, indent=True)
+                    # elif np.iinfo(np.int32).min <= num <= np.iinfo(np.int32).max:
+                    #     self.out.printf('%s_%d = %dL;\n', var, self.varsForBitwidth[var], num, indent=True)
+                    # elif np.iinfo(np.int64).min <= num <= np.iinfo(np.int64).max:
+                    #     self.out.printf('%s_%d = %dLL;\n', var, self.varsForBitwidth[var], num, indent=True)
+                    # else:
+                    #     assert False
                 else:
                     float_val = self.fixedVarToFloat(var, num)
                     conversion_func = self.getConversionFunction(config.positBitwidth)
@@ -435,7 +453,7 @@ class X86Posit(X86):
     
     def getPX2Suffix(self, bw):
         getLogger().debug("Always returning based on the value of config.positBitiwidth and not the variable value")
-        bw = config.positBitwidth
+        # bw = config.positBitwidth
         if bw == 8:
             return ""
         if bw == 16:
@@ -448,7 +466,7 @@ class X86Posit(X86):
     def printMemset(self, ir):
         self.out.printf('memset(', indent=True)
         # If a memory optimized mapping is available for a variable, use that else use original variable name.
-        if Config.x86MemoryOptimize and forFixed() and forX86() and self.numberOfMemoryMaps in self.scratchSubs:
+        if Config.x86MemoryOptimize and forX86() and self.numberOfMemoryMaps in self.scratchSubs:
             self.out.printf("(scratch + %d)", self.scratchSubs[self.numberOfMemoryMaps][ir.e.idf])
         else:
             self.print(ir.e)
@@ -505,12 +523,12 @@ class X86Posit(X86):
         self.out.printf(', sizeof(%s) * %d);\n' % (typ_str, ir.length))
     
     def bitSizeToPositSize(self, size, bw):
-        if config.positBitwidth == 8:
-            bw = 8
-        elif config.positBitwidth == 16:
-            bw = 16
-        else:
-            bw = 32
+        # if config.positBitwidth == 8:
+        #     bw = 8
+        # elif config.positBitwidth == 16:
+        #     bw = 16
+        # else:
+        #     bw = 32
         return (size*bw)//8
         
 
@@ -632,6 +650,9 @@ class X86Posit(X86):
             if not forM3():
                 self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
             self.out.printf("/* %s */"%(str(self.scratchSubs)))
+            f = open("writingPositBW.txt", "w")
+            f.write(str(totalScratchSize + 1))
+            f.close()
             return totalScratchSize + 1
 
     def preProcessRawMemData(self):
@@ -680,3 +701,72 @@ class X86Posit(X86):
         for var in todelete:
             del decls[var]
         return varToLiveRange, decls
+
+    def printVar(self, ir, isPointer=False):
+        # If floating point mode is used or VBW mode is off, then the variable is printed normally (see else branch).
+        if config.vbwEnabled:
+            # varsForBitwidth variable must be populated during VBW mode.
+            if hasattr(self, "varsForBitwidth"):
+                # If target code memory optimization is enabled then variables would be renamed to explicit addresses (scratch + N) else they use names like tmpN.
+                if False and Config.x86MemoryOptimize:
+                    # scratchSubs contains the exact offsets each variable is mapped to, must be present if memory optimizations enabled.
+                    if hasattr(self, 'scratchSubs'):
+                        # If variable has a offset to which it is mapped to, then replace them with addresses, else use original variable names.
+                        if self.numberOfMemoryMaps in self.scratchSubs and ir.idf in self.scratchSubs[self.numberOfMemoryMaps]:
+                            type = self.decls[ir.idf]
+                            offset = self.scratchSubs[self.numberOfMemoryMaps][ir.idf]
+                            # Only Tensors are included in memory optimization, scalars are left to use original variable name.
+                            if Type.isTensor(type):
+                                resIndex = ' '
+                                remSize = np.prod(type.shape)
+                                if forM3():
+                                    typeCast = "(Q%d_T*)" % (self.varsForBitwidth[ir.idf] - 1)
+                                    if isPointer:
+                                        self.out.printf("(scratch + %d +" % (offset))
+                                    else:
+                                        self.out.printf("*(%s(&(scratch[%d + " % (typeCast, offset))
+                                else:
+                                    typeCast = self.getPositType(self.varsForBitwidth[ir.idf])
+                                    if isPointer:
+                                        self.out.printf("(scratch + %d +" % (offset))
+                                    else:
+                                        self.out.printf("%s(scratch[%d + " % (typeCast, offset))
+                                self.out.printf("%d * ("% (self.varsForBitwidth[ir.idf] // 8))
+                                for i in range(type.dim):
+                                    if i >= len(ir.idx):
+                                        break
+                                    remSize = remSize // type.shape[i]
+                                    self.print(ir.idx[i])
+                                    self.out.printf("*%d" % remSize)
+                                    self.out.printf("+")
+                                self.out.printf("0")
+                                if forM3():
+                                    if isPointer:
+                                        self.out.printf("))")
+                                    else:
+                                        self.out.printf(")])))")
+                                else:
+                                    if isPointer:
+                                        self.out.printf("))")
+                                    else:
+                                        self.out.printf(")])")
+                                return
+                            else:
+                                pass
+                        else:
+                            pass
+                    else:
+                        assert False, "Illegal state, scratchSubs variable should be present if memory optimisation enabled"
+
+                if ir.idf in self.varsForBitwidth and ir.idf[:3] == "tmp" and ir.idf in self.decls:
+                    self.out.printf("%s_%d", ir.idf, self.varsForBitwidth[ir.idf])
+                else:
+                    self.out.printf("%s", ir.idf)
+            else:
+                assert False, "Illegal state, codegenBase must have variable bitwidth info for VBW mode"
+        else:
+            self.out.printf("%s", ir.idf)
+        for e in ir.idx:
+            self.out.printf('[')
+            self.print(e)
+            self.out.printf(']')

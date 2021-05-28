@@ -7,10 +7,10 @@ It also contains the various classes for CLI arguments.
 '''
 
 # Target word length. Currently set to match the word length of Arduino (2 bytes).
-wordLength = 8
+wordLength = 16# int(open("positBw.txt").read())
 availableBitwidths = [8, 16, 32]
 
-positBitwidth = 14
+positBitwidth = wordLength
 positBitwidths = [8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,32]
 
 # Range of max scale factor used for exploration.
@@ -34,7 +34,7 @@ msbuildPathOptions = [r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Comm
 ddsEnabled = True
 
 # Enable variable bit-width code generation. Setting this to false results in a code which uses mostly 16 bits.
-vbwEnabled = False
+vbwEnabled = True
 
 # For exponential activation functions, turning this on restricts the range of the values taken by TanH and Sigmoid,
 # which results in a better scale assignment (OOPSLA'20 Section 5.4).

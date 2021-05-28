@@ -450,6 +450,7 @@ class Main:
                 break
 
             if config.vbwEnabled:
+                # return
                 # Stage III exploration.
                 print("Stage III Exploration: Demoting variables one at a time...")
 

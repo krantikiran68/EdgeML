@@ -13,6 +13,8 @@ import tempfile
 import traceback
 from tqdm import tqdm
 import numpy as np
+import csv
+from itertools import chain, combinations
 
 from seedot.compiler.converter.converter import Converter
 
@@ -265,6 +267,31 @@ class Main:
         os.chdir(curDir)
         return execMap
 
+    def create_demoted_subsets(self, demoteBatch):
+        s = [i[0][0] for i in demoteBatch]
+        r = dict((i[0][0], i[1]) for i in demoteBatch)
+        l = list(chain.from_iterable(combinations(s, r) for r in range(len(s) + 1)))
+        maxUsage = 0
+        for var in s:
+            maxUsage += self.varSizes[var] * config.wordLength // 8
+        totalUsage = [maxUsage] * len(l)
+        for i, _ in enumerate(totalUsage):
+            for var in l[i]:
+                totalUsage[i] -= self.varSizes[var] * config.wordLength // 16
+        l = [x for _, x in sorted(zip(totalUsage, l))]
+        totalUsage = sorted(totalUsage)
+        nonModelMemoryUsage = [0] * len(l)
+        for i, _ in enumerate(nonModelMemoryUsage):
+            for var in s:
+                if var.startswith('tmp'):
+                    if var in l[i]:
+                        nonModelMemoryUsage[i] += self.varSizes[var] * config.wordLength // 16
+                    else:
+                        nonModelMemoryUsage[i] += self.varSizes[var] * config.wordLength // 8
+        self.totalUse = totalUsage
+        self.RAMUse = nonModelMemoryUsage
+        return l, r
+
     # Compile and run the generated code once for a given scaling factor.
     # The arguments are explain in the description of self.compile().
     # The function is named partial compile as in one C++ output file multiple inference codes are generated.
@@ -474,7 +501,7 @@ class Main:
                 redBatchSize = np.max((batchSize, 16)) / config.offsetsPerDemotedVariable
 
                 totalSize = len(attemptToDemote)
-                numBatches = int(np.ceil(totalSize / redBatchSize))
+                numBatches = 1 #int(np.ceil(totalSize / redBatchSize))
 
                 self.varDemoteDetails = []
                 for i in tqdm(range(numBatches)):
@@ -523,7 +550,7 @@ class Main:
                 # Again, we compute only a limited number of inference codes per generated C++ so as to not bloat up the memory usage of the compiler.
                 redBatchSize *= config.offsetsPerDemotedVariable
                 totalSize = len(self.varDemoteDetails)
-                numBatches = int(np.ceil(totalSize / redBatchSize))
+                numBatches = 1 #int(np.ceil(totalSize / redBatchSize))
 
                 sortedVars1 = []
                 sortedVars2 = []
@@ -557,24 +584,31 @@ class Main:
                     firstVarIndex = (totalSize * i) // numBatches
                     lastVarIndex = (totalSize * (i+1)) // numBatches
                     demoteBatch = [sortedVars[i] for i in range(firstVarIndex, lastVarIndex)]
+                    demoteSubset, offsets = self.create_demoted_subsets(demoteBatch)
+                    newbitwidths = dict(self.variableToBitwidthMap)
+                    for var in demoteSubset[0]:
+                        newbitwidths[var] = config.wordLength // 2
 
-                    self.partialCompile(self.encoding, config.Target.x86, self.sf, True, None, -1 if len(attemptToDemote) > 0 else 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
+                    self.partialCompile(self.encoding, config.Target.x86, self.sf, True, None, -1 if len(attemptToDemote) > 0 else 0, newbitwidths, list(demoteSubset[0]), dict(offsets))
                     contentToCodeIdMap = {}
                     codeId = 0
-                    numCodes = len(demoteBatch)
-                    for (demoteVars, offset) in demoteBatch:
+
+                    numCodes = len(demoteSubset)
+                    for demoteVars in demoteSubset:
                         newbitwidths = dict(self.variableToBitwidthMap)
                         for var in demoteVars:
-                            if var not in self.demotedVarsList:
-                                newbitwidths[var] = config.wordLength // 2
-                                demotedVarsOffsets[var] = offset
-                            if var not in demotedVarsList:
-                                demotedVarsList.append(var)
+                            newbitwidths[var] = config.wordLength // 2
+                            demotedVarsOffsets[var] = offsets[var]
                         codeId += 1
-                        contentToCodeIdMap[tuple(demotedVarsList)] = {}
-                        contentToCodeIdMap[tuple(demotedVarsList)][offset] = codeId
-                        demotedVarsListToOffsets[tuple(demotedVarsList)] = dict(demotedVarsOffsets)
-                        compiled = self.partialCompile(self.encoding, config.Target.x86, self.sf, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demotedVarsList), dict(demotedVarsOffsets))
+                        if codeId % 1000 == 0:
+                            print(codeId)
+                        contentToCodeIdMap[tuple(demoteVars)] = {}
+                        if len(demoteVars) > 0:
+                            contentToCodeIdMap[tuple(demoteVars)][offsets[demoteVars[-1]]] = codeId
+                        else:
+                            contentToCodeIdMap[tuple(demoteVars)][0] = codeId
+                        demotedVarsListToOffsets[tuple(demoteVars)] = dict(demotedVarsOffsets)
+                        compiled = self.partialCompile(self.encoding, config.Target.x86, self.sf, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demoteVars), dict(demotedVarsOffsets))
                         if compiled == False:
                             Util.getLogger().error("Variable bitwidth exploration resulted in another compilation error\n")
                             return False
@@ -590,14 +624,18 @@ class Main:
                 acceptedAcc = lastStageAcc
                 for ((demotedVars, _), metrics) in self.varDemoteDetails:
                     acc = metrics[0]
-                    if self.problemType == config.ProblemType.classification and (self.flAccuracy - acc) > config.permittedClassificationAccuracyLoss:
+                    if self.problemType == config.ProblemType.classification and (self.flAccuracy - acc) < config.permittedClassificationAccuracyLoss:
+                        okToDemote = demotedVars
+                        acceptedAcc = acc
                         break
                     elif self.problemType == config.ProblemType.regression and acc > config.permittedRegressionNumericalLossMargin:
                         break
                     else:
-                        okToDemote = demotedVars
-                        acceptedAcc = acc
+                        if acc > acceptedAcc:
+                            okToDemote = demotedVars
+                            acceptedAcc = acc
 
+                print('Demoted Variables: ' + str(okToDemote))
                 self.demotedVarsList = [i for i in okToDemote] + [i for i in self.demotedVarsList]
                 self.demotedVarsOffsets.update(demotedVarsListToOffsets.get(okToDemote, {}))
 
@@ -610,6 +648,11 @@ class Main:
             if not config.vbwEnabled or not config.fixedPointVbwIteration:
                 break
 
+        with open('log.csv', 'w') as out_file:
+            writer = csv.writer(out_file)
+            writer.writerow(("Demoted Variables", "Accuracy", "Model Variable Memory Usage", "Non Model Variable Memory Usage", "Total Usage"))
+            for ((demotedVars, _), metrics), ramUse, totalUse in zip(self.varDemoteDetails, self.RAMUse, self.totalUse):
+                writer.writerow((demotedVars, metrics[0], totalUse - ramUse, ramUse, totalUse))
         return True
 
     # Reverse sort the accuracies, print the top 5 accuracies and return the

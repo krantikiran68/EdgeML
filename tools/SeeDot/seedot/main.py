@@ -807,11 +807,10 @@ class Main:
             return False
 
         # Obtain best scaling factor.
-        if(self.encoding != config.Encoding.posit):
-            if self.sf == None:
-                res = self.findBestScalingFactor()
-                if res == False:
-                    return False
+        if self.sf == None:
+            res = self.findBestScalingFactor()
+            if res == False:
+                return False
 
         res = self.runOnTestingDataset()
         if res == False:

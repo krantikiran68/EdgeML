@@ -16,7 +16,7 @@
                 "-a",
                 "fastgrnn",
                 "-e",
-                "fixed",
+                "posit",
                 "-d",
                 "usps10",
                 "-m",

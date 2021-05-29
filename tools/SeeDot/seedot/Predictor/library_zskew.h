@@ -163,6 +163,8 @@ inline OutputType Saturate(InputType inp, InputType min_value, InputType max_val
 	return (OutputType)(inp > max_value ? max_value : inp);
 }
 
+void debugPrint(MYINT* A, int I, int J, float scale, int zero, std::string varName);
+
 // template <typename IntegerType>
 // IntegerType SaturatingRoundingDoublingHighMul(IntegerType a, IntegerType b) {
 // 	static_assert(std::is_same<IntegerType, void>::value, "Unimplemented");

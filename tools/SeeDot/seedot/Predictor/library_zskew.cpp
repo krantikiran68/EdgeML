@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <cmath>
-
+#include <fstream>
 #include "datatypes.h"
 #include "library_zskew.h"
 
@@ -52,10 +52,10 @@ void MatAdd(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, AC
 			a *= (1 << left_shift);
 			b *= (1 << left_shift);
 
-			a = MulQuantMultiplierLTO<ACINT>(a, shrA, nA);
-			b = MulQuantMultiplierLTO<ACINT>(b, shrB, nB);
+			a = MulQuantMultiplier<ACINT>(a, shrA, nA);
+			b = MulQuantMultiplier<ACINT>(b, shrB, nB);
 
-			ACINT c = MulQuantMultiplierLTO<ACINT>(a + b, shrC, nC);
+			ACINT c = MulQuantMultiplier<ACINT>(a + b, shrC, nC);
 			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + c, clamp_min, clamp_max);
 		}
 	}
@@ -67,16 +67,16 @@ void MatAddBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left
 	ACINT a = (ACINT) *A;
 	a += zeroA;
 	a *= (1 << left_shift);
-	a = MulQuantMultiplierLTO<ACINT>(a, shrA, nA);
+	a = MulQuantMultiplier<ACINT>(a, shrA, nA);
 
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT b = B[i * J + j];
 			b += zeroB;
 			b *= (1 << left_shift);
-			b = MulQuantMultiplierLTO<ACINT>(b, shrB, nB);
+			b = MulQuantMultiplier<ACINT>(b, shrB, nB);
 
-			ACINT c = MulQuantMultiplierLTO<ACINT>(a + b, shrC, nC);
+			ACINT c = MulQuantMultiplier<ACINT>(a + b, shrC, nC);
 			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + c, clamp_min, clamp_max);
 		}
 	}
@@ -88,16 +88,16 @@ void MatAddBroadCastB(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left
 	ACINT b = (ACINT) *B;
 	b += zeroB;
 	b *= (1 << left_shift);
-	b = MulQuantMultiplierLTO<ACINT>(b, shrB, nB);
+	b = MulQuantMultiplier<ACINT>(b, shrB, nB);
 
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT a = A[i * J + j];
 			a += zeroA;
 			a *= (1 << left_shift);
-			a = MulQuantMultiplierLTO<ACINT>(a, shrA, nA);
+			a = MulQuantMultiplier<ACINT>(a, shrA, nA);
 
-			ACINT c = MulQuantMultiplierLTO<ACINT>(a + b, shrC, nC);
+			ACINT c = MulQuantMultiplier<ACINT>(a + b, shrC, nC);
 			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + c, clamp_min, clamp_max);
 		}
 	}
@@ -110,16 +110,16 @@ void MatSubBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left
 	ACINT a = (ACINT) *A;
 	a += zeroA;
 	a *= (1 << left_shift);
-	a = MulQuantMultiplierLTO<ACINT>(a, shrA, nA);
+	a = MulQuantMultiplier<ACINT>(a, shrA, nA);
 
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT b = B[i * J + j];
 			b += zeroB;
 			b *= (1 << left_shift);
-			b = MulQuantMultiplierLTO<ACINT>(b, shrB, nB);
+			b = MulQuantMultiplier<ACINT>(b, shrB, nB);
 
-			ACINT c = MulQuantMultiplierLTO<ACINT>(a - b, shrC, nC);
+			ACINT c = MulQuantMultiplier<ACINT>(a - b, shrC, nC);
 			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + c, clamp_min, clamp_max);
 		}
 	}
@@ -132,16 +132,16 @@ void MatSubBroadCastB(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left
 	ACINT b = (ACINT) *B;
 	b += zeroB;
 	b *= (1 << left_shift);
-	b = MulQuantMultiplierLTO<ACINT>(b, shrB, nB);
+	b = MulQuantMultiplier<ACINT>(b, shrB, nB);
 
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT a = A[i * J + j];
 			a += zeroA;
 			a *= (1 << left_shift);
-			a = MulQuantMultiplierLTO<ACINT>(a, shrA, nA);
+			a = MulQuantMultiplier<ACINT>(a, shrA, nA);
 
-			ACINT c = MulQuantMultiplierLTO<ACINT>(a - b, shrC, nC);
+			ACINT c = MulQuantMultiplier<ACINT>(a - b, shrC, nC);
 			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + c, clamp_min, clamp_max);
 		}
 	}
@@ -291,4 +291,23 @@ void ArgMax(MYINT* A, MYINT I, MYINT J, float scale_in, MYINT zero_in, int* inde
 	}
 	*index = maxIndex;
 	return;
+}
+
+void debugPrint(MYINT* A, int I, int J, float scale, int zero, std::string varName)
+{
+	#ifdef DEBUG
+	std::ofstream f("debugLog", std::ios::app);
+	
+	f << "Printing log of variable "<< varName<<std::endl;
+	for(int i=0;i<I;i++)
+	{
+		for(int j=0;j<J;j++)
+		{
+			float a = A[i*J + j];
+			f<<scale*(a - zero) << ", ";
+		}
+	}
+	f<<std::endl<<std::endl;
+	f.close();
+	#endif
 }

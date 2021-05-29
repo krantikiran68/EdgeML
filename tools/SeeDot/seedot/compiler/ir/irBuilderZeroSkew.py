@@ -96,9 +96,10 @@ class IRBuilderZeroSkew(IRBuilder):
         M = (scale_in_A * scale_in_B)/scale_out
 
         assert (M < 1.0 and M > 0.0 ), "The multiplier in matmul must be in (0,1)"
-        m_scale = self.getScale(M, bitwidth_out)
+        m_scale = self.getScale(M, bitiwidth_temp)
         M0 = np.ldexp(M, -m_scale)
         N = -m_scale
+        N -= 31
         return M0, N
 
     def visitBopMul2DTensor(self, node: AST.Bop1):
@@ -174,7 +175,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(K): "K",
             IR.Int(-1*zero_in_A): "zero_A",
             IR.Int(-zero_in_B): "zero_B",
-            IR.Int(-zero_out): "zero_C",
+            IR.Int(zero_out): "zero_C",
             IR.Int(M0): "M0",
             IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
@@ -189,7 +190,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(K): "K",
             IR.Int(-1*zero_in_A): "zero_A",
             IR.Int(-zero_in_B): "zero_B",
-            IR.Int(-zero_out): "zero_C",
+            IR.Int(zero_out): "zero_C",
             IR.Int(M0): "M0",
             IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
@@ -197,11 +198,21 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(demote): "demote"
         })
 
+        debugPrint = IR.FuncCall("debugPrint", {
+            expr_out: "expr",
+            # expr_temp: "T",
+            IR.Int(I): "I",
+            IR.Int(K): "J",
+            IR.Float(scale_out): "scale",
+            IR.Int(zero_out): "zero",
+            IR.String(expr_out): "varName"
+        })
+
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out, expr_temp])
 
         
-        prog_mul = IR.Prog([comment, funcCall])
+        prog_mul = IR.Prog([comment, funcCall, debugPrint])
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -977,7 +988,9 @@ class IRBuilderZeroSkew(IRBuilder):
             zero_in_B, zero_in_A = zero_in_A, zero_in_B
             [I, J] = type_in_A.shape
 
-        M0, N = self.getMatMulShrAndN(scale_in_A, scale_in_B, scale_out, zero_in_A, zero_in_B, zero_out, bitwidth_in_A, bitwidth_in_B, bitwidth_temp, bitwidth_out)
+        bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
+    
+        M0, N = self.getMatMulShrAndN(scale_in_A, scale_in_B, scale_out, zero_in_A, zero_in_B, zero_out, bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out)
         a.inputVar = False
         b.inputVar = False
         expr_out.inputVar = False
@@ -987,7 +1000,6 @@ class IRBuilderZeroSkew(IRBuilder):
         comment = IR.Comment(expr_in_A.idf + ' * ' + expr_in_B.idf, self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
         # Compute bit-width of intermediate variable.
-        bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
         funcCall = IR.FuncCall("MatMulBroadcastA", {
             a: "A",
             b: "B",
@@ -996,7 +1008,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(J): "J",
             IR.Int(-1*zero_in_A): "zero_A",
             IR.Int(-zero_in_B): "zero_B",
-            IR.Int(-zero_out): "zero_C",
+            IR.Int(zero_out): "zero_C",
             IR.Int(M0): "M0",
             IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
@@ -1009,7 +1021,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(J): "J",
             IR.Int(-1*zero_in_A): "zero_A",
             IR.Int(-zero_in_B): "zero_B",
-            IR.Int(-zero_out): "zero_C",
+            IR.Int(zero_out): "zero_C",
             IR.Int(M0): "M0",
             IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
@@ -1020,8 +1032,18 @@ class IRBuilderZeroSkew(IRBuilder):
         self.counter_inst += 1
         self.updateLiveRange([a, b, expr_out])
 
+        debugPrint = IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                # expr_temp: "T",
+                IR.Int(I): "I",
+                IR.Int(J): "J",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
+                IR.String(expr_out): "varName"
+            })
 
-        prog_mul = IR.Prog([comment, funcCall])
+
+        prog_mul = IR.Prog([comment, funcCall, debugPrint])
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -1048,8 +1070,8 @@ class IRBuilderZeroSkew(IRBuilder):
             # biggerBitWidth = max(bitwidthA, bitwidthB)
             return (32 if config.wordLength == 8 else 128)
         elif op == "add":
-            assert bitwidthC is not None, "Illegal call to getTempBitwidth()"
-            biggerBitWidth = max(bitwidthA, bitwidthB, bitwidthC)
+            # assert bitwidthC is not None, "Illegal call to getTempBitwidth()"
+            # biggerBitWidth = max(bitwidthA, bitwidthB, bitwidthC)
             return (32 if config.wordLength == 8 else 128)
         else:
             assert False, "Illegal operation specified for temp bitwidth"
@@ -1123,7 +1145,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(J): "J",
             IR.Int(-1*zero_in_A): "zero_A",
             IR.Int(-zero_in_B): "zero_B",
-            IR.Int(-zero_out): "zero_C",
+            IR.Int(zero_out): "zero_C",
             IR.Int(M0): "M0",
             IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
@@ -1136,17 +1158,27 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(J): "J",
             IR.Int(-1*zero_in_A): "zero_A",
             IR.Int(-zero_in_B): "zero_B",
-            IR.Int(-zero_out): "zero_C",
+            IR.Int(zero_out): "zero_C",
             IR.Int(M0): "M0",
             IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
             IR.Int(clamp_max): "clamp_max"
         })
 
+        debugPrint = IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                # expr_temp: "T",
+                IR.Int(I): "I",
+                IR.Int(J): "J",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
+                IR.String(expr_out): "varName"
+            })
+
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
 
-        prog_mul = IR.Prog([comment, funcCall])
+        prog_mul = IR.Prog([comment, funcCall, debugPrint])
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -1277,7 +1309,7 @@ class IRBuilderZeroSkew(IRBuilder):
                     IR.Int(-zero_in_B): "zero_in_B",
                     IR.Int(shrB): "shrB",
                     IR.Int(-nB): "nB",
-                    IR.Int(-zero_out): "zero_out",
+                    IR.Int(zero_out): "zero_out",
                     IR.Int(shrC): "shrC",
                     IR.Int(-nC): "nC",
                     IR.Int(clamp_min): "clamp_min",
@@ -1295,7 +1327,7 @@ class IRBuilderZeroSkew(IRBuilder):
                     IR.Int(-zero_in_B): "zero_in_B",
                     IR.Int(shrB): "shrB",
                     IR.Int(-nB): "nB",
-                    IR.Int(-zero_out): "zero_out",
+                    IR.Int(zero_out): "zero_out",
                     IR.Int(shrC): "shrC",
                     IR.Int(-nC): "nC",
                     IR.Int(clamp_min): "clamp_min",
@@ -1318,7 +1350,7 @@ class IRBuilderZeroSkew(IRBuilder):
                     IR.Int(-zero_in_B): "zero_in_B",
                     IR.Int(shrB): "shrB",
                     IR.Int(-nB): "nB",
-                    IR.Int(-zero_out): "zero_out",
+                    IR.Int(zero_out): "zero_out",
                     IR.Int(shrC): "shrC",
                     IR.Int(-nC): "nC",
                     IR.Int(clamp_min): "clamp_min",
@@ -1338,13 +1370,24 @@ class IRBuilderZeroSkew(IRBuilder):
                     IR.Int(-zero_in_B): "zero_in_B",
                     IR.Int(shrB): "shrB",
                     IR.Int(-nB): "nB",
-                    IR.Int(-zero_out): "zero_out",
+                    IR.Int(zero_out): "zero_out",
                     IR.Int(shrC): "shrC",
                     IR.Int(-nC): "nC",
                     IR.Int(clamp_min): "clamp_min",
                     IR.Int(clamp_max): "clamp_max"
                     # irdemote: "demote"
                 })
+
+            debugPrint = IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                # expr_temp: "T",
+                IR.Int(I): "I",
+                IR.Int(J): "J",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
+                IR.String(expr_out): "varName"
+            })
+
 
             self.counter_inst += 1
             self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
@@ -1407,7 +1450,7 @@ class IRBuilderZeroSkew(IRBuilder):
             # else:
             #     assert False, "Illegal number of dimensions"
 
-            prog_bop = IR.Prog( [comment, funcCall])
+            prog_bop = IR.Prog( [comment, funcCall, debugPrint])
 
             prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_bop)
 
@@ -1434,15 +1477,18 @@ class IRBuilderZeroSkew(IRBuilder):
             if not config.vbwEnabled:   
                 # q3  = (s1/s3)*(q1-z1) + (s2/s3)*(q2-z2)
 
-                left_shift = int((bitwidth_temp - bitwidth_in_A) - 1)
+                left_shift = 0 # int((bitwidth_temp - bitwidth_in_A) - 1)
                 # Make the input quantized to 32-bits. 
 
-                s1_s3 = scale_in_A/scale_out
-                s2_s3 = scale_in_B/scale_out
-                s3_s3 = 1.0
+                s1_s3 = scale_in_A
+                s2_s3 = scale_in_B
+                s3_s3 = 1.0/scale_out
                 m1, n1 = self.getQuantizedMultiplierLTO(s1_s3, bitwidth_temp, bitwidth_in_A)
                 m2, n2 = self.getQuantizedMultiplierLTO(s2_s3, bitwidth_temp, bitwidth_in_B)
                 m3, n3 = self.getQuantizedMultiplierLTO(s3_s3, bitwidth_temp, bitwidth_out)
+                n1 -= 31 + left_shift
+                n2 -= 31 + left_shift
+                n3 -= 31 + left_shift
 
                 return (left_shift, m1, n1, m2, n2, m3, n3)
             else:
@@ -1650,7 +1696,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(-zero_in): "zero_in",
-            # IR.Int(-zero_out): "zero_out",
+            # IR.Int(zero_out): "zero_out",
             IR.Int(M0): "M0",
             IR.Int(-N): "N",
             IR.Int(clamp_radius): "clamp_radius"
@@ -1666,10 +1712,20 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(clamp_radius): "clamp_radius"
         })
 
+        debugPrint = IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                # expr_temp: "T",
+                IR.Int(I): "I",
+                IR.Int(J): "J",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
+                IR.String(expr_out): "varName"
+            })
+
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        prog_tanh = IR.Prog([comment, funcCall])
+        prog_tanh = IR.Prog([comment, funcCall, debugPrint])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_tanh)
 
@@ -1800,7 +1856,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(-zero_in): "zero_in",
-            # IR.Int(-zero_out): "zero_out",
+            # IR.Int(zero_out): "zero_out",
             IR.Int(M0): "M0",
             IR.Int(-N): "N",
             IR.Int(clamp_radius): "clamp_radius"
@@ -1810,7 +1866,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(-zero_in): "zero_in",
-            # IR.Int(-zero_out): "zero_out",
+            # IR.Int(zero_out): "zero_out",
             IR.Int(M0): "M0",
             IR.Int(-N): "N",
             IR.Int(clamp_radius): "clamp_radius"
@@ -1819,7 +1875,17 @@ class IRBuilderZeroSkew(IRBuilder):
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        prog_sigmoid = IR.Prog([comment, funcCall])
+        debugPrint = IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                # expr_temp: "T",
+                IR.Int(I): "I",
+                IR.Int(J): "J",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
+                IR.String(expr_out): "varName"
+            })
+
+        prog_sigmoid = IR.Prog([comment, funcCall, debugPrint])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_sigmoid)
 

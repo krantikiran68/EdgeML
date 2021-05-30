@@ -40,6 +40,8 @@ enum ProblemType
 };
 
 bool profilingEnabled = false;
+int switchCount;
+
 
 // Split the CSV row into multiple values.
 vector<string> readCSVLine(string line) {
@@ -207,7 +209,7 @@ int main(int argc, char* argv[]) {
 
 	ofstream output(outputFile);
 	ofstream stats(statsFile);
-	int switchCount;
+
 	if(encoding == Posit)
 	{
 		switchCount = positSwitches;

@@ -283,7 +283,7 @@ class Main:
         nonModelMemoryUsage = [0] * len(l)
         for i, _ in enumerate(nonModelMemoryUsage):
             for var in s:
-                if var.startswith('tmp'):
+                if var.startswith('tmp') or var == 'X':
                     if var in l[i]:
                         nonModelMemoryUsage[i] += self.varSizes[var] * config.wordLength // 16
                     else:

@@ -543,7 +543,7 @@ int main(int argc, char* argv[]) {
 		stats << "0.000\n";
 	}
 
-	if (encoding == Fixed) {
+	if (encoding == Fixed || encoding == Posit) {
 		for (int i = 0; i < switchCount; i++) {
 			stats << i + 1 << "\n";
 			if (problem == Classification) {

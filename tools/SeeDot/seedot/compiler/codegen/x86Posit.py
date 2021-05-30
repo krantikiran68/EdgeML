@@ -301,20 +301,19 @@ class X86Posit(X86):
             except:
                 return False
 
-        if forFixed():
-            if (int(self.printSwitch) if isInt(self.printSwitch) else -2) > -1:
-                self.out.printf("const int switches = %d;\n" % (int(self.printSwitch)), indent = True)
-                self.out.printf('void seedotFixedSwitch(int i, MYINT **X_temp, int32_t* res) {\n', indent=True)
-                self.out.increaseIndent()
-                self.out.printf('switch(i) {\n', indent = True)
-                self.out.increaseIndent()
-                for i in range(int(self.printSwitch)):
-                    self.out.printf('case %d: seedotFixed%d(X_temp, res); return;\n' % (i,i+1), indent = True)
-                self.out.printf('default: res[0] = -1; return;\n', indent = True)
-                self.out.decreaseIndent()
-                self.out.printf('}\n', indent=True)
-                self.out.decreaseIndent()
-                self.out.printf('}\n', indent=True)
+        if (int(self.printSwitch) if isInt(self.printSwitch) else -2) > -1:
+            self.out.printf("const int positSwitches = %d;\n" % (int(self.printSwitch)), indent = True)
+            self.out.printf('void seedotPositSwitch(int i, float **X_temp, int32_t* res) {\n', indent=True)
+            self.out.increaseIndent()
+            self.out.printf('switch(i) {\n', indent = True)
+            self.out.increaseIndent()
+            for i in range(int(self.printSwitch)):
+                self.out.printf('case %d: seedotPosit%d(X_temp, res); return;\n' % (i,i+1), indent = True)
+            self.out.printf('default: res[0] = -1; return;\n', indent = True)
+            self.out.decreaseIndent()
+            self.out.printf('}\n', indent=True)
+            self.out.decreaseIndent()
+            self.out.printf('}\n', indent=True)
 
         getLogger().debug("Closing file after outputting cpp code: ID " + self.idStr)
         self.out.close()

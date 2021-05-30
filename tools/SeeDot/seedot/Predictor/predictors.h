@@ -7,5 +7,8 @@ void seedotFixed(MYINT** X, int32_t* res);
 void seedotPosit(float** X, int32_t* res);
 void seedotFloat(float** X, float* res);
 void seedotFixedSwitch(int i, MYINT** X, int32_t* res);
+void seedotPositSwitch(int i, float** X, int32_t* res);
 
 extern const int switches;
+extern const int positSwitches;
+extern int switchCount;

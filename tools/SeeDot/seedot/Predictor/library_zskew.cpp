@@ -161,7 +161,7 @@ void MatMul(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE K, MYITE J, ACINT zeroA
 				sum += (a + zeroA) * (b + zeroB);
 			}
 
-			sum = MulQuantMultiplierLTO<ACINT>(sum, M0, N);
+			sum = MulQuantMultiplier<ACINT>(sum, M0, N);
 			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + sum, clamp_min, clamp_max);
 		}
 	}
@@ -177,7 +177,7 @@ void Hadamard(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zeroA, ACINT
 
 			ACINT prod = (a + zeroA) * (b + zeroB);
 
-			prod = MulQuantMultiplierLTO<ACINT>(prod, M0, N);
+			prod = MulQuantMultiplier<ACINT>(prod, M0, N);
 			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + prod, clamp_min, clamp_max);
 		}
 	}
@@ -194,7 +194,7 @@ void MatMulBroadcastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zero
 			ACINT b = B[i * J + j];
 			ACINT prod = a * (b + zeroB);
 
-			prod = MulQuantMultiplierLTO<ACINT>(prod, M0, N);
+			prod = MulQuantMultiplier<ACINT>(prod, M0, N);
 			C[i * J + j] = Saturate<ACINT, MYINT>(zeroC + prod, clamp_min, clamp_max);
 		}
 	}
@@ -229,8 +229,12 @@ void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT shrA, MYITE n
 				using FixedPoint0 = gemmlowp::FixedPoint<ACINT, 0>;
 				const FixedPoint4 x_f4 = FixedPoint4::FromRaw(x_rescaled);// The scale of the number her is 28
 				const FixedPoint0 y_f0 = gemmlowp::tanh(x_f4);
-				y = gemmlowp::RoundingDivideByPOT<ACINT, ACINT>(y_f0.raw(), 24);// Assuming 32-bit intermediate values
+				float y_flt = y_f0.raw();
+				y_flt /= (1 << 24);
+				y = ACINT(y_flt);
+				// y = gemmlowp::RoundingDivideByPOT(y_f0.raw(), 24);// Assuming 32-bit intermediate values
 			}
+
 			y = MulQuantMultiplier<ACINT>(y, shrB, nB);
 			B[i * J + j] = Saturate<ACINT, MYINT>(y + zeroB, std::numeric_limits<MYINT>::min(), std::numeric_limits<MYINT>::max());
 		}

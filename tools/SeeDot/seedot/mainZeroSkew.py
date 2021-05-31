@@ -460,6 +460,8 @@ class MainZeroSkew(Main):
         if res == False:
             return False
         else:
+            if self.sf == None:
+                self.sf = 0
             self.testingAccuracy = self.accuracy[self.sf]
 
         # Generate code for target.

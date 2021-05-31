@@ -94,7 +94,8 @@ class IRBuilderZeroSkew(IRBuilder):
 
     def getMatMulShrAndN(self, scale_in_A, scale_in_B, scale_out, zero_in_A, zero_in_B, zero_out, bitiwidth_in_A, bitwidth_in_B, bitiwidth_temp, bitwidth_out):
         M = (scale_in_A * scale_in_B)/scale_out
-
+        if  M > 1.0 and math.fabs(M - 1.0) < 0.00001:
+            M = 1.0 - 0.0000001
         assert (M < 1.0 and M > 0.0 ), "The multiplier in matmul must be in (0,1)"
         m_scale = self.getScale(M, bitiwidth_temp)
         M0 = np.ldexp(M, -m_scale)

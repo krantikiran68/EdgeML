@@ -1688,7 +1688,7 @@ class IRBuilderZeroSkew(IRBuilder):
         scale_out, zero_out = self.getScaleAndZero(-config.tanhLimit, config.tanhLimit, bw = config.wordLength//2 if expr_out.idf in self.demotedVarsList else config.wordLength)
         # scale_out = scale_in # self.getScale(1.5)
         # tanh_limit_out = 2 ** -scale_out
-        M0, N, clamp_radius = self.getTanHShrAndN(scale_in, zero_in, scale_out, zero_out, intv_in, bitwidth_in)
+        M1, N1, M2, N2, clamp_radius = self.getTanHShrAndN(scale_in, zero_in, scale_out, zero_out, intv_in, bitwidth_in)
 
         funcCall = IR.FuncCall("TanH", {
             expr_in: "A",
@@ -1696,9 +1696,11 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(-zero_in): "zero_in",
-            # IR.Int(zero_out): "zero_out",
-            IR.Int(M0): "M0",
-            IR.Int(-N): "N",
+            IR.Int(M1): "M1",
+            IR.Int(-N1): "N1",
+            IR.Int(zero_out): "zero_out",
+            IR.Int(M2): "M2",
+            IR.Int(-N2): "N2",
             IR.Int(clamp_radius): "clamp_radius"
         }) if not self.vbwEnabled else IR.FuncCall("TanH<int%d_t>"%(bitwidth_in), {
             expr_in: "A",
@@ -1706,9 +1708,11 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(-zero_in): "zero_in",
-            # IR.Int(zero_out): "zero_out",
-            IR.Int(M0): "M0",
-            IR.Int(-N): "N",
+            IR.Int(M1): "M1",
+            IR.Int(-N1): "N1",
+            IR.Int(zero_out): "zero_out",
+            IR.Int(M2): "M2",
+            IR.Int(-N2): "N2",
             IR.Int(clamp_radius): "clamp_radius"
         })
 
@@ -1738,52 +1742,41 @@ class IRBuilderZeroSkew(IRBuilder):
         return (prog_out, expr_out)
     
     def getTanHShrAndN(self, scale_in, zero_in, scale_out, zero_out, intv_in, bitwidth_in, bitwidth_temp = None):
-        if intv_in == (0,0):
-            intv_in = (-config.maxVar8Bit, config.maxVar8Bit)
-            assert (not config.vbwEnabled) and (config.wordLength == 8) 
-        tanh_min, tanh_max = intv_in
-        getLogger().debug("TanH internval in Zero Skew: " + str(tanh_min) + ", " + str(tanh_max))
+        
         assert config.wordLength == 8, "TanH not implemented for anything other than 8-bits"
-        float_max = tanh_max * scale_in
-        scale_comp = self.getScale(float_max, bw=bitwidth_in)
-        getLogger().debug("TanH fixed point scale in Zero Skew: " + str(scale_comp))
-
-        scale_up = -24 - scale_comp
-        scale_up  = -scale_up
         if bitwidth_temp == None:
             bitwidth_temp = 32 if (config.wordLength == 8) else 64
-        M = 1.0
-        scale_comp = self.getScale(M, bitwidth_temp)
-        M0 = np.ldexp(M,-scale_comp)
+        
+        M1, N1 = self.getQuantizedMultiplierLTO(scale_in, bitwidth_temp, bitwidth_in)
+        N1 -= (31 + 27)
+        M2, N2 = self.getQuantizedMultiplierLTO(1.0/scale_out, bitwidth_temp, bitwidth_in)
+        N2 -= 24
+
+        getLogger().debug("TanH fixed point scale in Zero Skew: " + str(scale_comp))
 
         clamp_min, clamp_max = self.getClampValues(bitwidth_in)
-        return int(M0), int(scale_up), int(min(abs(clamp_max), abs(clamp_min)))
+        return M1, N1, M2, N2, min(abs(clamp_max), abs(clamp_min))
         
     def getSigmoidShrAndN(self, scale_in, zero_in, scale_out, zero_out, intv_in, bitwidth_in, bitwidth_temp = None):
-        if intv_in == (0,0):
-            intv_in = (-config.maxVar8Bit, config.maxVar8Bit)
-            assert (not config.vbwEnabled) and (config.wordLength == 8) 
-        sigmoid_min, sigmoid_max = intv_in
-        getLogger().debug("TanH internval in Zero Skew: " + str(sigmoid_min) + ", " + str(sigmoid_max))
-        assert config.wordLength == 8, "TanH not implemented for anything other than 8-bits"
-        float_max = sigmoid_max * scale_in
-        scale_comp = self.getScale(float_max, bw=bitwidth_in)
-        getLogger().debug("TanH fixed point scale in Zero Skew: " + str(scale_comp))
-
-        scale_up = -24 - scale_comp
-        scale_up  = -scale_up
+        # if intv_in == (0,0):
+        #     intv_in = (-config.maxVar8Bit, config.maxVar8Bit)
+        #     assert (not config.vbwEnabled) and (config.wordLength == 8) 
+        # sigmoid_min, sigmoid_max = intv_in
+        # getLogger().debug("TanH internval in Zero Skew: " + str(sigmoid_min) + ", " + str(sigmoid_max))
+        # assert config.wordLength == 8, "Sigmoid not implemented for anything other than 8-bits"
+        # float_max = sigmoid_max * scale_in
+        # scale_comp = self.getScale(float_max, bw=bitwidth_in)
+        getLogger().debug("Sigmoid fixed point scale in Zero Skew: " + str(scale_comp))
         if bitwidth_temp == None:
             bitwidth_temp = 32 if (config.wordLength == 8) else 64
-        M = 1.0
-        scale_comp = self.getScale(M, bitwidth_temp)
-        M0 = int(np.ldexp(M,-scale_comp))
-
-        scale_out_fixed_point = -7
-        zero_out = int(np.ldexp(-0.5, -scale_out_fixed_point))
-        scale_out = (-0.5)/zero_out
-
+        
+        M1, N1 = self.getQuantizedMultiplierLTO(scale_in, bitwidth_temp, bitwidth_in)
+        N1 -= (31 + 27)
+        M2, N2 = self.getQuantizedMultiplierLTO(1.0/scale_out, bitwidth_temp, bitwidth_in)
+        N2 -= 23
+        
         clamp_min, clamp_max = self.getClampValues(bitwidth_in)
-        return M0, scale_up, min(abs(clamp_max), abs(clamp_min)), scale_out, zero_out
+        return M1, N1, M2, N2, min(abs(clamp_max), abs(clamp_min))
 
 
     def visitSigmoid(self, node: AST.Func):
@@ -1825,7 +1818,7 @@ class IRBuilderZeroSkew(IRBuilder):
                         sigmoid_limit), 0)
         assert m_new <= M_new, "The range of sigmoid has changed. Re-check the assertion."
 
-        scale_out, zero_out = self.getScaleAndZero(m_new, M_new, bw=self.varsForBitwidth[expr_out.idf])
+        scale_out, zero_out = self.getScaleAndZero(0, 1, bw=self.varsForBitwidth[expr_out.idf])
         # scale_out = self.getScale(1.5) + ((config.wordLength // 2 + self.demotedVarsOffsets[expr_in.idf]) if expr_in.idf in self.demotedVarsList else 0)
 
         # # Computing hyperparameters for linear approximation of Sigmoid.
@@ -1845,7 +1838,7 @@ class IRBuilderZeroSkew(IRBuilder):
         # bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf) 
         expr_in.inputVar = False
 
-        M0, N, clamp_radius, scale_out, zero_out = self.getSigmoidShrAndN(scale_in, zero_in, scale_out, zero_out, intv_in, bitwidth_in)
+        M1, N1, M2, N2, clamp_radius = self.getSigmoidShrAndN(scale_in, zero_in, scale_out, zero_out, intv_in, bitwidth_in)
 
         comment = IR.Comment("Sigmoid(" + expr_in.idf + ")", self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
@@ -1856,9 +1849,11 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(-zero_in): "zero_in",
-            # IR.Int(zero_out): "zero_out",
-            IR.Int(M0): "M0",
-            IR.Int(-N): "N",
+            IR.Int(M1): "M1",
+            IR.Int(-N1): "N1",
+            IR.Int(zero_out): "zero_out",
+            IR.Int(M2): "M2",
+            IR.Int(-N2): "N2",
             IR.Int(clamp_radius): "clamp_radius"
         }) if not self.vbwEnabled else IR.FuncCall("Sigmoid<int%d_t>"%(bitwidth_in), {
             expr_in: "A",
@@ -1866,9 +1861,11 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(-zero_in): "zero_in",
-            # IR.Int(zero_out): "zero_out",
-            IR.Int(M0): "M0",
-            IR.Int(-N): "N",
+            IR.Int(M1): "M1",
+            IR.Int(-N1): "N1",
+            IR.Int(zero_out): "zero_out",
+            IR.Int(M2): "M2",
+            IR.Int(-N2): "N2",
             IR.Int(clamp_radius): "clamp_radius"
         })
 

@@ -209,7 +209,7 @@ void MatMulBroadcastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zero
  * represented by the object of this class. 
  **/
 // A = tanh(A)
-void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT M0, MYITE N, ACINT clamp_radius) {
+void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius) {	
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT x = A[i * J + j];
@@ -218,20 +218,23 @@ void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT M0, MYITE N, 
 			MYINT y;
 			if (x < -clamp_radius) {
 				y = std::numeric_limits<MYINT>::min();
+				B[i * J + j] = y;
+				continue;
 			} else if (x > clamp_radius) {
 				y = std::numeric_limits<MYINT>::max();
+				B[i * J + j] = y;
+				continue;
 			} else {
-				const ACINT x_rescaled = MulQuantMultiplier<ACINT>(x, M0, N);
+				const ACINT x_rescaled = MulQuantMultiplier<ACINT>(x, shrA, nA);
 				using FixedPoint4 = gemmlowp::FixedPoint<ACINT, 4>;
 				using FixedPoint0 = gemmlowp::FixedPoint<ACINT, 0>;
 				const FixedPoint4 x_f4 = FixedPoint4::FromRaw(x_rescaled);// The scale of the number her is 28
 				const FixedPoint0 y_f0 = gemmlowp::tanh(x_f4);
 
-				ACINT y_s32 = gemmlowp::RoundingDivideByPOT(y_f0.raw(), 24);// Assuming 32-bit intermediate values
-				if (y_s32 == 256) { // Assuming 8-bit inputs
-					y_s32 = std::numeric_limits<MYINT>::max();
-				}
+				y = gemmlowp::RoundingDivideByPOT(y_f0.raw(), 24);// Assuming 32-bit intermediate values
+				
 			}
+			y = MulQuantMultiplier<ACINT>(y, shrB, nB);
 
 			B[i * J + j] = Saturate<ACINT, MYINT>(y, std::numeric_limits<MYINT>::min(), std::numeric_limits<MYINT>::max());
 		}
@@ -240,31 +243,35 @@ void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT M0, MYITE N, 
 }
 
 // B = Sigmoid(A)
-void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT M0, MYITE N, ACINT clamp_radius) {
+void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT x = A[i * J + j];
 			x += zeroA;
 
-			MYINT y;
+			ACINT y;
 			if (x < -clamp_radius) {
 				y = std::numeric_limits<MYINT>::min();
+				B[i * J + j] = y;
+				continue;
 			} else if (x > clamp_radius) {
 				y = std::numeric_limits<MYINT>::max();
+				B[i * J + j] = y;
+				continue;
 			} else {
-				const ACINT x_rescaled = MulQuantMultiplier<ACINT>(x, M0, N);
+				const ACINT x_rescaled = MulQuantMultiplier<ACINT>(x, shrA, nA);
 				using FixedPoint4 = gemmlowp::FixedPoint<ACINT, 4>;
 				using FixedPoint0 = gemmlowp::FixedPoint<ACINT, 0>;
 				const FixedPoint4 x_f4 = FixedPoint4::FromRaw(x_rescaled);
 				const FixedPoint0 y_f0 = gemmlowp::logistic(x_f4);
 
-				ACINT y_s32 = gemmlowp::RoundingDivideByPOT(y_f0.raw(), 23);
-				if (y_s32 == 256) {
-					y_s32 = std::numeric_limits<MYINT>::max();
-				}
+				y = gemmlowp::RoundingDivideByPOT(y_f0.raw(), 23);		
 			}
 
-			B[i * J + j] = Saturate<ACINT, MYINT>(y, std::numeric_limits<MYINT>::min(), std::numeric_limits<MYINT>::max());
+			y = MulQuantMultiplier<ACINT>(y, shrB, nB);
+			
+
+			B[i * J + j] = Saturate<ACINT, MYINT>(y + zeroB, std::numeric_limits<MYINT>::min(), std::numeric_limits<MYINT>::max());
 		}
 	}
 	return;

@@ -439,9 +439,9 @@ class IRBuilderZeroSkew(IRBuilder):
         maxVar = config.maxVar8Bit if bw == 8 else config.maxVar16Bit
         
         if maxVal == minVal:
-            scale = self.getScale(maxVal, bw)
+            
+            scale = math.fabs(1.0/maxVal) if (maxVal > 1.0) else math.fabs(maxVal)
             zero = 0
-            scale = np.ldexp(1.0, scale)
             return scale, zero
         zero = -1*((minVal + maxVal) / 2)
 

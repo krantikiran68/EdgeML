@@ -1752,7 +1752,7 @@ class IRBuilderZeroSkew(IRBuilder):
         M2, N2 = self.getQuantizedMultiplierLTO(1.0/scale_out, bitwidth_temp, bitwidth_in)
         N2 -= 24
 
-        getLogger().debug("TanH fixed point scale in Zero Skew: " + str(scale_comp))
+        getLogger().debug("TanH fixed point scale in Zero Skew: " + str(scale_out))
 
         clamp_min, clamp_max = self.getClampValues(bitwidth_in)
         return M1, N1, M2, N2, min(abs(clamp_max), abs(clamp_min))
@@ -1766,7 +1766,7 @@ class IRBuilderZeroSkew(IRBuilder):
         # assert config.wordLength == 8, "Sigmoid not implemented for anything other than 8-bits"
         # float_max = sigmoid_max * scale_in
         # scale_comp = self.getScale(float_max, bw=bitwidth_in)
-        getLogger().debug("Sigmoid fixed point scale in Zero Skew: " + str(scale_comp))
+        getLogger().debug("Sigmoid fixed point scale in Zero Skew: " + str(scale_out))
         if bitwidth_temp == None:
             bitwidth_temp = 32 if (config.wordLength == 8) else 64
         

@@ -255,6 +255,8 @@ class MainZeroSkew(Main):
         # After executing the code, print out the accuracy of the code against the code ID.
         if codeIdToScaleFactorMap is not None:
             for codeId, sf in codeIdToScaleFactorMap.items():
+                if sf == None: 
+                    sf = 0
                 self.accuracy[sf] = execMap[str(codeId)]
                 if printAlso:
                     print("Accuracy at scale factor %d is %.3f%%, Disagreement Count is %d, Reduced Disagreement Count is %d" % (sf, execMap[str(codeId)][0], execMap[str(codeId)][1], execMap[str(codeId)][2]))
@@ -458,6 +460,8 @@ class MainZeroSkew(Main):
         if res == False:
             return False
         else:
+            if self.sf == None:
+                self.sf = 0
             self.testingAccuracy = self.accuracy[self.sf]
 
         # Generate code for target.

@@ -92,14 +92,15 @@ class IRBuilderZeroSkew(IRBuilder):
 
         return (prog_out, expr_out)
 
-    def getMatMulShrAndN(self, scale_in_A, scale_in_B, scale_out, zero_in_A, zero_in_B, zero_out, bitiwidth_in_A, bitwidth_in_B, bitiwidth_temp, bitwidth_out):
+    def getMatMulShrAndN(self, scale_in_A, scale_in_B, scale_out, zero_in_A, zero_in_B, zero_out, bitiwidth_in_A, bitwidth_in_B, bitwidth_temp, bitwidth_out):
         M = (scale_in_A * scale_in_B)/scale_out
-
+        if  M > 1.0 and math.fabs(M - 1.0) < 0.00001:
+            M = 1.0 - 0.0000001
         assert (M < 1.0 and M > 0.0 ), "The multiplier in matmul must be in (0,1)"
-        m_scale = self.getScale(M, bitiwidth_temp)
+        m_scale = self.getScale(M, bitwidth_temp)
         M0 = np.ldexp(M, -m_scale)
         N = -m_scale
-        N -= 31
+        N -= (31 if (bitwidth_temp == 32) else 63)
         return M0, N
 
     def visitBopMul2DTensor(self, node: AST.Bop1):
@@ -1486,9 +1487,9 @@ class IRBuilderZeroSkew(IRBuilder):
                 m1, n1 = self.getQuantizedMultiplierLTO(s1_s3, bitwidth_temp, bitwidth_in_A)
                 m2, n2 = self.getQuantizedMultiplierLTO(s2_s3, bitwidth_temp, bitwidth_in_B)
                 m3, n3 = self.getQuantizedMultiplierLTO(s3_s3, bitwidth_temp, bitwidth_out)
-                n1 -= 31 + left_shift
-                n2 -= 31 + left_shift
-                n3 -= 31 + left_shift
+                n1 -= (31 if (bitwidth_temp == 32) else 63) + left_shift
+                n2 -= (31 if (bitwidth_temp == 32) else 63) + left_shift
+                n3 -= (31 if (bitwidth_temp == 32) else 63) + left_shift
 
                 return (left_shift, m1, n1, m2, n2, m3, n3)
             else:
@@ -1748,11 +1749,11 @@ class IRBuilderZeroSkew(IRBuilder):
             bitwidth_temp = 32 if (config.wordLength == 8) else 64
         
         M1, N1 = self.getQuantizedMultiplierLTO(scale_in, bitwidth_temp, bitwidth_in)
-        N1 -= (31 + 27)
+        N1 -= ((31 if (bitwidth_temp == 32) else 63) + (27 if (bitwidth_temp == 32) else 55))
         M2, N2 = self.getQuantizedMultiplierLTO(1.0/scale_out, bitwidth_temp, bitwidth_in)
-        N2 -= 24
+        N2 -= 24 if (bitwidth_temp == 32) else 48
 
-        getLogger().debug("TanH fixed point scale in Zero Skew: " + str(scale_comp))
+        getLogger().debug("TanH fixed point scale in Zero Skew: " + str(scale_out))
 
         clamp_min, clamp_max = self.getClampValues(bitwidth_in)
         return M1, N1, M2, N2, min(abs(clamp_max), abs(clamp_min))
@@ -1766,14 +1767,14 @@ class IRBuilderZeroSkew(IRBuilder):
         # assert config.wordLength == 8, "Sigmoid not implemented for anything other than 8-bits"
         # float_max = sigmoid_max * scale_in
         # scale_comp = self.getScale(float_max, bw=bitwidth_in)
-        getLogger().debug("Sigmoid fixed point scale in Zero Skew: " + str(scale_comp))
+        getLogger().debug("Sigmoid fixed point scale in Zero Skew: " + str(scale_out))
         if bitwidth_temp == None:
             bitwidth_temp = 32 if (config.wordLength == 8) else 64
         
         M1, N1 = self.getQuantizedMultiplierLTO(scale_in, bitwidth_temp, bitwidth_in)
-        N1 -= (31 + 27)
+        N1 -= ((31 if (bitwidth_temp == 32) else 63) + (27 if (bitwidth_temp == 32) else 55))
         M2, N2 = self.getQuantizedMultiplierLTO(1.0/scale_out, bitwidth_temp, bitwidth_in)
-        N2 -= 23
+        N2 -= 23 if (bitwidth_temp == 32) else 46
         
         clamp_min, clamp_max = self.getClampValues(bitwidth_in)
         return M1, N1, M2, N2, min(abs(clamp_max), abs(clamp_min))

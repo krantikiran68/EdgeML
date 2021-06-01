@@ -363,7 +363,7 @@ class DataType:
         x_np = DataType.intType[target][wordLen](x)
         if x_np != x:
             x_np = DataType.intType[target][wordLen * 2](x)
-            if x_np != x and wordLen == 8:
+            if x_np != x:
                 x_np = DataType.intType[target][wordLen * 4](x)
                 if x_np != x:
                     getLogger().debug('Warning: Integer overflow for %d' % (x))

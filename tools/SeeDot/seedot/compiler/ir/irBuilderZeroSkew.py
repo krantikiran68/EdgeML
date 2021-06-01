@@ -119,7 +119,7 @@ class IRBuilderZeroSkew(IRBuilder):
         
         bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf)
         bitwidth_temp, scale_temp, zero_temp = self.getBitwidthScaleZeros(expr_out.idf, native=True)
-        bitwidth_temp = 32 if config.wordLength == 8 else 128
+        bitwidth_temp = 32 if config.wordLength == 8 else 64
     
         type_in_A, type_in_B = node.expr1.type, node.expr2.type
         type_out = node.type
@@ -1069,11 +1069,11 @@ class IRBuilderZeroSkew(IRBuilder):
         if op == "mul":
             # assert bitwidthC is None, "Illegal call to getTempBitwidth()"
             # biggerBitWidth = max(bitwidthA, bitwidthB)
-            return (32 if config.wordLength == 8 else 128)
+            return (32 if config.wordLength == 8 else 64)
         elif op == "add":
             # assert bitwidthC is not None, "Illegal call to getTempBitwidth()"
             # biggerBitWidth = max(bitwidthA, bitwidthB, bitwidthC)
-            return (32 if config.wordLength == 8 else 128)
+            return (32 if config.wordLength == 8 else 64)
         else:
             assert False, "Illegal operation specified for temp bitwidth"
     
@@ -1744,10 +1744,8 @@ class IRBuilderZeroSkew(IRBuilder):
     
     def getTanHShrAndN(self, scale_in, zero_in, scale_out, zero_out, intv_in, bitwidth_in, bitwidth_temp = None):
         
-        assert config.wordLength == 8, "TanH not implemented for anything other than 8-bits"
-        if bitwidth_temp == None:
-            bitwidth_temp = 32 if (config.wordLength == 8) else 64
-        
+        # assert config.wordLength == 8, "TanH not implemented for anything other than 8-bits"
+        bitwidth_temp = 32
         M1, N1 = self.getQuantizedMultiplierLTO(scale_in, bitwidth_temp, bitwidth_in)
         N1 -= ((31 if (bitwidth_temp == 32) else 63) + (27 if (bitwidth_temp == 32) else 55))
         M2, N2 = self.getQuantizedMultiplierLTO(1.0/scale_out, bitwidth_temp, bitwidth_in)
@@ -1768,9 +1766,7 @@ class IRBuilderZeroSkew(IRBuilder):
         # float_max = sigmoid_max * scale_in
         # scale_comp = self.getScale(float_max, bw=bitwidth_in)
         getLogger().debug("Sigmoid fixed point scale in Zero Skew: " + str(scale_out))
-        if bitwidth_temp == None:
-            bitwidth_temp = 32 if (config.wordLength == 8) else 64
-        
+        bitwidth_temp = 32
         M1, N1 = self.getQuantizedMultiplierLTO(scale_in, bitwidth_temp, bitwidth_in)
         N1 -= ((31 if (bitwidth_temp == 32) else 63) + (27 if (bitwidth_temp == 32) else 55))
         M2, N2 = self.getQuantizedMultiplierLTO(1.0/scale_out, bitwidth_temp, bitwidth_in)

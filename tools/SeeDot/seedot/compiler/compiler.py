@@ -161,8 +161,6 @@ class Compiler:
         outputLog.close()
 
         # All state variables are used for codegen.
-        for key in compiler.floatConstants.keys():
-            compiler.varsForBitwidth[key] = config.wordLength
         state = [compiler.varDeclarations, compiler.varDeclarationsLocal, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants, compiler.substitutions, compiler.demotedVarsOffsets, compiler.varsForBitwidth, compiler.varLiveIntervals, compiler.notScratch, compiler.coLocatedVariables]
 
         for key in compiler.varDeclarations.keys():
@@ -185,6 +183,7 @@ class Compiler:
         if util.getEncoding() == config.Encoding.floatt:
             self.independentVars = list(compiler.independentVars)
             self.independentVars += compiler.globalVars
+            self.independentVars += list(compiler.floatConstants.keys())
 
         self.substitutions = compiler.substitutions
 

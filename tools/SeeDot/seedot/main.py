@@ -406,6 +406,18 @@ class Main:
                 # demoted Scale = self.allScales[var] + 8 - offset
 
                 attemptToDemote = [var for var in self.variableToBitwidthMap if (var[-3:] != "val" and var not in self.demotedVarsList)]
+                tmpAttemptToDemote = []
+                for var in attemptToDemote:
+                    tmp_var = var
+                    while tmp_var in self.variableSubstitutions:
+                        tmp_var = self.variableSubstitutions[tmp_var]
+                    if tmp_var in self.varSizes.keys():
+                        if tmp_var not in tmpAttemptToDemote:
+                            print(tmp_var + ": " + str(self.varSizes[tmp_var]))
+                            tmpAttemptToDemote.append(tmp_var)
+                    else:
+                        raise KeyError
+                attemptToDemote = tmpAttemptToDemote
                 numCodes = len(attemptToDemote)
                 # 9 offsets tried for X while 'offsetsPerDemotedVariable' tried for other variables.
 
@@ -504,8 +516,8 @@ class Main:
                     contentToCodeIdMap = {}
                     codeId = 0
 
-                    numCodes = len(demoteSubset[:10])
-                    for demoteVars in demoteSubset[:10]:
+                    numCodes = len(demoteSubset)
+                    for demoteVars in demoteSubset:
                         newbitwidths = dict(self.variableToBitwidthMap)
                         for var in demoteVars:
                             newbitwidths[var] = config.wordLength // 2
@@ -602,7 +614,7 @@ class Main:
         if res == False:
             return False
 
-        Util.getLogger().info("Best scaling factor = %d" % (self.sf))
+        # Util.getLogger().info("Best scaling factor = %d" % (self.sf))
         return True
 
     # After exploration is completed, this function is invoked to show the performance of the final quantised code on a testing dataset,

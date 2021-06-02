@@ -183,7 +183,6 @@ class Compiler:
         if util.getEncoding() == config.Encoding.floatt:
             self.independentVars = list(compiler.independentVars)
             self.independentVars += compiler.globalVars
-            self.independentVars += list(compiler.floatConstants.keys())
 
         self.substitutions = compiler.substitutions
 

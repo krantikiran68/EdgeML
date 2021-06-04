@@ -143,6 +143,7 @@ void MatMulBroadcastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zero
  */
 
 void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius);
+void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT div, ACINT sig_limit, float scale_in,  ACINT zeroA, ACINT shrA, MYITE nA, float scale_out, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius);
 /**
  * Dimensions:	A, B are matrices, dim(A) = dim(B) = [I][J]. I, J, scale_in, scale_out are integers.
  *
@@ -151,7 +152,7 @@ void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT shrA, MYIT
  * scale_in is the scale of the input matrix A, and scale_out is the scale of the output matrix B.
  */
 void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius);
-
+void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, float scale_in, ACINT zeroA, ACINT shrA, MYITE nA, float scale_out, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius);
 void ArgMax(MYINT* A, MYINT I, MYINT J, float scale_in, MYINT zero_in, int* index);
 
 

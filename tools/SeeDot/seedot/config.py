@@ -7,7 +7,7 @@ It also contains the various classes for CLI arguments.
 '''
 
 # Target word length. Currently set to match the word length of Arduino (2 bytes).
-wordLength = 16
+wordLength = 8
 availableBitwidths = [8, 16, 32]
 
 # Range of max scale factor used for exploration.
@@ -65,6 +65,7 @@ maxVar16Bit =  32766
 # Minimum version of gcc required for compilation
 min_gcc_version = 8
 
+printFloatDebug = False
 # Following classes are used sanity checks for arguments passed to the compiler, to prevent unexpected arguments being passed.
 # These lists should be updated as the compiler is expanded to multiple algorithms and datasets.
 

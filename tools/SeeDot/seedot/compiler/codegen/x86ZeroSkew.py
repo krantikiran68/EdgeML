@@ -16,6 +16,8 @@ import seedot.compiler.ir.irUtil as IRUtil
 import seedot.compiler.type as Type
 from seedot.util import *
 from seedot.writer import Writer
+from bokeh.plotting import figure, output_file, show
+from functools import reduce
 
 import time
 
@@ -49,6 +51,22 @@ class X86ZeroSkew(X86):
 
         self.paramInNativeBitwidth = paramInNativeBitwidth
 
+    def storeFlashSize(self):
+        size_full = 0
+        bw = config.wordLength
+        if bw in [9, 10, 12]:
+            bw = 32
+        for var in self.globalVars:
+            if var == 'X':
+                continue
+            size = self.decls[var].shape
+            size_ = 1
+            size_ = reduce(lambda x, y: x*y , size)
+            size_full += size_
+        f = open("flashsize.txt", "w")
+        f.write(str((size_full * bw)//8))
+        f.close()
+
     def printPrefix(self):
         if self.generateAllFiles:
             self.printCincludes()
@@ -56,7 +74,7 @@ class X86ZeroSkew(X86):
             self.printExpTables()
 
         self.printCHeader()
-
+        self.storeFlashSize()
         self.computeScratchLocationsFirstFitPriority() # computeScratchLocations computeScratchLocationsFirstFit computeScratchLocationsFirstFitPriority computeScratchLocationsDLX
 
         self.printModelParamsWithBitwidth()
@@ -370,3 +388,140 @@ class X86ZeroSkew(X86):
             self.out.printf(");\n")
             self.out.decreaseIndent()
             self.out.printf("}\n", indent=True)
+    
+    def printMemset(self, ir):
+        self.out.printf('memset(', indent=True)
+        # If a memory optimized mapping is available for a variable, use that else use original variable name.
+        if Config.x86MemoryOptimize and forFixed() and forX86() and self.numberOfMemoryMaps in self.scratchSubs:
+            self.out.printf("(scratch + %d)", self.scratchSubs[self.numberOfMemoryMaps][ir.e.idf])
+        else:
+            self.print(ir.e)
+        typ_str = "MYINT"
+        if config.vbwEnabled:
+            if hasattr(self, 'varsForBitwidth'):
+                typ_str = ("int%d_t" % (self.varsForBitwidth[ir.e.idf])) if ir.e.idf in self.varsForBitwidth else typ_str
+            else:
+                assert False, "Illegal state, VBW mode but no variable information present"
+        self.out.printf(', 0, sizeof(%s) * %d);\n' %
+                        ("float" if forFloat() else typ_str, ir.len))   
+    
+    # def computeScratchLocationsFirstFitPriority(self):
+    #     varToLiveRange, decls = self.preProcessRawMemData()
+    #     def sortkey(a):
+    #         return (a[0][0], -a[0][1], -(a[2]*a[3])//8)
+    #     varToLiveRange.sort(key=sortkey)
+    #     freeSpace = {0:-1}
+    #     freeSpaceRev = {-1:0}
+    #     usedSpaceMap = {}
+    #     totalScratchSize = -1
+    #     listOfDimensions = []
+    #     for ([_,_], var, size, atomSize) in varToLiveRange:
+    #         listOfDimensions.append(size)
+    #     priorityMargin = 19200
+    #     plot = figure(plot_width=1000, plot_height=1000)
+    #     x = []
+    #     y = []
+    #     w = []
+    #     h = []
+    #     c = []
+    #     visualisation = []
+    #     i = 0
+    #     for i in range(len(varToLiveRange)):
+    #         ([startIns, endIns], var, size, atomSize) = varToLiveRange[i]
+    #         if var in self.notScratch:
+    #             continue
+    #         spaceNeeded = size * atomSize // 8 # 256 * np.ceil(size * atomSize // 8 /256)
+    #         varsToKill = []
+    #         for activeVar in usedSpaceMap.keys():
+    #             endingIns = usedSpaceMap[activeVar][0]
+    #             if endingIns < startIns:
+    #                 varsToKill.append(activeVar)
+    #         for tbk in varsToKill:
+    #             (st, en) = usedSpaceMap[tbk][1]
+    #             en += 1
+    #             freeSpace[st] = en
+    #             freeSpaceRev[en] = st
+    #             if en in freeSpace.keys():
+    #                 freeSpace[st] = freeSpace[en]
+    #                 freeSpaceRev[freeSpace[st]] = st
+    #                 del freeSpace[en]
+    #                 del freeSpaceRev[en]
+    #             if st in freeSpaceRev.keys():
+    #                 freeSpaceRev[freeSpace[st]] = freeSpaceRev[st]
+    #                 freeSpace[freeSpaceRev[st]] = freeSpace[st]
+    #                 del freeSpace[st]
+    #                 del freeSpaceRev[st]
+    #             del usedSpaceMap[tbk]
+    #         potentialStart = -1
+    #         potentialEnd = -1
+    #         offset = 0
+    #         for j in range(i+1, len(varToLiveRange)):
+    #             ([startIns_, endIns_], var_, size_, atomSize_) = varToLiveRange[j]
+    #             if var_ in self.notScratch:
+    #                 continue
+    #             if startIns_ > endIns:
+    #                 break
+    #             spaceNeeded_ = (size_ * atomSize_) // 8
+    #             if spaceNeeded_ >= priorityMargin and spaceNeeded < priorityMargin:
+    #             # if spaceNeeded_ > spaceNeeded or (spaceNeeded_ == spaceNeeded and spaceNeeded < priorityMargin and (endIns_ - startIns_ > endIns - startIns)):
+    #                 offset = max(offset, spaceNeeded_)
+
+    #         if offset not in freeSpace.keys() and offset > 0:
+    #             j = 0
+    #             for key in sorted(freeSpace.keys()):
+    #                 j = key
+    #                 if freeSpace[key] > offset:
+    #                     break
+    #             if key < offset:
+    #                 st = j
+    #                 en = freeSpace[j]
+    #                 freeSpace[st] = offset
+    #                 freeSpace[offset] = en
+    #                 freeSpaceRev[en] = offset
+    #                 freeSpaceRev[offset] = st
+
+    #         for start in sorted(freeSpace.keys()):
+    #             if start < offset:
+    #                 continue
+    #             end = freeSpace[start]
+    #             if end - start >= spaceNeeded or end == -1:
+    #                 potentialStart = start
+    #                 potentialEnd = potentialStart + spaceNeeded - 1
+    #                 break
+    #             else:
+    #                 continue
+
+    #         usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
+    #         freeSpaceEnd = freeSpace[potentialStart]
+    #         del freeSpace[potentialStart]
+    #         if potentialEnd + 1 != freeSpaceEnd:
+    #             freeSpace[potentialEnd + 1] = freeSpaceEnd
+    #         freeSpaceRev[freeSpaceEnd] = potentialEnd + 1
+    #         if freeSpaceEnd == potentialEnd + 1:
+    #             del freeSpaceRev[freeSpaceEnd]
+    #         totalScratchSize = max(totalScratchSize, potentialEnd)
+    #         if self.numberOfMemoryMaps not in self.scratchSubs.keys():
+    #             self.scratchSubs[self.numberOfMemoryMaps] = {}
+    #         self.scratchSubs[self.numberOfMemoryMaps][var] = potentialStart
+    #         varf = var
+    #         if not Config.faceDetectionHacks:
+    #             while varf in self.coLocatedVariables:
+    #                 varf = self.coLocatedVariables[varf]
+    #                 self.scratchSubs[self.numberOfMemoryMaps][varf] = potentialStart
+    #         x.append((endIns + 1 + startIns) / 2)
+    #         w.append(endIns - startIns + 1)
+    #         y.append((usedSpaceMap[var][1][0] + usedSpaceMap[var][1][1]) / 20000)
+    #         h.append((usedSpaceMap[var][1][1] - usedSpaceMap[var][1][0]) / 10000)
+    #         c.append("#" + ''.join([str(int(j)) for j in 10*np.random.rand(6)]))
+    #         visualisation.append((startIns, var, endIns, usedSpaceMap[var][1][0], usedSpaceMap[var][1][1]))
+    #     plot.rect(x=x, y=y, width=w, height=h, color=c, width_units="data", height_units="data")
+    #     if not forX86():
+    #         show(plot)
+    #     if not forM3():
+    #         self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
+    #     self.out.printf("/* %s */"%(str(self.scratchSubs)))
+        
+    #     f = open("writingPositBW.txt", "w")
+    #     f.write(str(totalScratchSize + 1))
+    #     f.close()
+    #     return totalScratchSize + 1

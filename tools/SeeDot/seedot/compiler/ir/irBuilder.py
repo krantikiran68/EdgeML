@@ -897,7 +897,16 @@ class IRBuilder(ASTVisitor):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.String(expr_out): "varName"
+                }))
+
+        prog_mul = IR.Prog(([comment, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else [comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -1025,8 +1034,17 @@ class IRBuilder(ASTVisitor):
         })
         if forFloat():
             self.independentVars.append(expr_out.idf)
+        
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(K): "J",
+                    IR.String(expr_out): "varName"
+                }))
 
-        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        prog_mul = IR.Prog(([comment, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else [comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -1276,7 +1294,16 @@ class IRBuilder(ASTVisitor):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall] + adjust)
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.String(expr_out): "varName"
+                }))
+
+        prog_mul = IR.Prog(([comment, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else [comment, funcCall] + adjust)
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -2119,7 +2146,17 @@ class IRBuilder(ASTVisitor):
             else:
                 assert False, "Illegal number of dimensions"
 
-            prog_bop = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall] + adjust)
+            debugPrint = []
+            if forFloat() and config.printFloatDebug:
+                debugPrint.append(IR.FuncCall("debugPrint", {
+                        expr_out: "expr",
+                        IR.Int(I): "I",
+                        IR.Int(J): "J",
+                        IR.String(expr_out): "varName"
+                    }))
+
+
+            prog_bop = IR.Prog(([comment, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else [comment, funcCall] + adjust)
 
             prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_bop)
 
@@ -2861,7 +2898,16 @@ class IRBuilder(ASTVisitor):
         #     self.independentVars.append(expr_out.idf)
         # profile = None
         # prog_tanh = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
-        prog_tanh = IR.Prog([comment, funcCall])
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.String(expr_out): "varName"
+                }))
+
+        prog_tanh = IR.Prog([comment, funcCall] + debugPrint)
         prog_out = IRUtil.concatPrograms(prog_in, prog_tanh)
 
         # Updating metadata.
@@ -3045,7 +3091,16 @@ class IRBuilder(ASTVisitor):
         self.updateLiveRange([expr_in, expr_out])
 
         # prog_sigmoid = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
-        prog_sigmoid = IR.Prog([comment, funcCall])
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.String(expr_out): "varName"
+                }))
+
+        prog_sigmoid = IR.Prog([comment, funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_sigmoid)
 

@@ -209,7 +209,7 @@ void MatMulBroadcastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zero
  * represented by the object of this class. 
  **/
 // A = tanh(A)
-void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius) {	
+void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, float scale_in, ACINT zeroA, ACINT shrA, MYITE nA, float scale_out, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius) {	
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			int32_t x = A[i * J + j];
@@ -234,6 +234,20 @@ void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT shrA, MYITE n
 			}
 
 			y = MulQuantMultiplier<int32_t>(y, shrB, nB);
+
+			// if (x < int32_t(-1.0 / scale_in))
+			// {
+			// 	y = int32_t(-1.0 / scale_out);
+			// }
+			// else if(x > int32_t(1.0 / scale_in))
+			// {
+			// 	y = int32_t (1.0 / scale_out);
+			// }
+			// else
+			// {
+			// 	y = int32_t(x * (scale_in/scale_out));
+			// }
+
 			B[i * J + j] = Saturate<int32_t, MYINT>(y + zeroB, std::numeric_limits<MYINT>::min(), std::numeric_limits<MYINT>::max());
 		}
 	}
@@ -241,7 +255,7 @@ void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT shrA, MYITE n
 }
 
 // B = Sigmoid(A)
-void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius) {
+void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT div, ACINT sig_limit, float scale_in,  ACINT zeroA, ACINT shrA, MYITE nA, float scale_out, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			int32_t x = A[i * J + j];
@@ -267,6 +281,20 @@ void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT shrA, MYIT
 			}
 
 			y = MulQuantMultiplier<int32_t>(y, shrB, nB);
+
+			// x = (x + sig_limit)/div;
+
+			// if (x < int32_t(-1.0 / scale_in))
+			// {
+			// 	y = 0;
+			// }
+			// else if (x > int32_t(1.0 / scale_in)){
+			// 	y = int32_t(1.0 / scale_out);
+			// }
+			// else 
+			// {
+			// 	y = int32_t(x * (scale_in/scale_out));
+			// }
 			
 
 			B[i * J + j] = Saturate<int32_t, MYINT>(y + zeroB, std::numeric_limits<MYINT>::min(), std::numeric_limits<MYINT>::max());
@@ -303,13 +331,13 @@ void debugPrint(MYINT* A, int I, int J, float scale, int zero, std::string varNa
 	#ifdef DEBUG
 	std::ofstream f("debugLog", std::ios::app);
 	
-	f << "Printing log of variable "<< varName<<std::endl;
+	f << varName<<std::endl;
 	for(int i=0;i<I;i++)
 	{
 		for(int j=0;j<J;j++)
 		{
 			float a = A[i*J + j];
-			f<<scale*(a - zero) << ", ";
+			f<<scale*(a - zero) << " ";
 		}
 	}
 	f<<std::endl<<std::endl;

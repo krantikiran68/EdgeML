@@ -532,7 +532,7 @@ class IRBuilderZeroSkew(IRBuilder):
         self.allDepths[self.counter_inst+1] = self.curDepth
 
         # If the initial value is zero, memset is more efficient to set all values to zero.
-        if node.value == 0:
+        if node.value == (-zero * scale):
             memset = IR.Memset(expr, node.type.size())
             prog_init = IR.Prog([comment, memset])
         # Using loops to initialize non-zero values instead of memset.
@@ -1478,7 +1478,7 @@ class IRBuilderZeroSkew(IRBuilder):
             if not config.vbwEnabled:   
                 # q3  = (s1/s3)*(q1-z1) + (s2/s3)*(q2-z2)
 
-                left_shift = 0 # int((bitwidth_temp - bitwidth_in_A) - 1)
+                left_shift = 16 if (config.wordLength == 8) else 32 # int((bitwidth_temp - bitwidth_in_A) - 1)
                 # Make the input quantized to 32-bits. 
 
                 s1_s3 = scale_in_A
@@ -1487,9 +1487,9 @@ class IRBuilderZeroSkew(IRBuilder):
                 m1, n1 = self.getQuantizedMultiplierLTO(s1_s3, bitwidth_temp, bitwidth_in_A)
                 m2, n2 = self.getQuantizedMultiplierLTO(s2_s3, bitwidth_temp, bitwidth_in_B)
                 m3, n3 = self.getQuantizedMultiplierLTO(s3_s3, bitwidth_temp, bitwidth_out)
-                n1 -= (31 if (bitwidth_temp == 32) else 63) + left_shift
-                n2 -= (31 if (bitwidth_temp == 32) else 63) + left_shift
-                n3 -= (31 if (bitwidth_temp == 32) else 63) + left_shift
+                n1 -= ((31 if (bitwidth_temp == 32) else 63))
+                n2 -= ((31 if (bitwidth_temp == 32) else 63))
+                n3 -= ((31 if (bitwidth_temp == 32) else 63)- left_shift)
 
                 return (left_shift, m1, n1, m2, n2, m3, n3)
             else:
@@ -1696,9 +1696,11 @@ class IRBuilderZeroSkew(IRBuilder):
             expr_out: "B",
             IR.Int(I): "I",
             IR.Int(J): "J",
+            IR.Float(scale_in): "scale_in",
             IR.Int(-zero_in): "zero_in",
             IR.Int(M1): "M1",
             IR.Int(-N1): "N1",
+            IR.Float(scale_out): "scale_out",
             IR.Int(zero_out): "zero_out",
             IR.Int(M2): "M2",
             IR.Int(-N2): "N2",
@@ -1845,9 +1847,13 @@ class IRBuilderZeroSkew(IRBuilder):
             expr_out: "B",
             IR.Int(I): "I",
             IR.Int(J): "J",
+            IR.Int(denominator): "div",
+            IR.Int(sigmoid_limit / scale_in): "lim",
+            IR.Float(scale_in): "scale_in",
             IR.Int(-zero_in): "zero_in",
             IR.Int(M1): "M1",
             IR.Int(-N1): "N1",
+            IR.Float(scale_out): "scale_out",
             IR.Int(zero_out): "zero_out",
             IR.Int(M2): "M2",
             IR.Int(-N2): "N2",

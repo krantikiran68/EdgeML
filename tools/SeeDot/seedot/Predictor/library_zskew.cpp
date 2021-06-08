@@ -49,8 +49,8 @@ void MatAdd(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, AC
 
 			a += zeroA;
 			b += zeroB;
-			a *= (1 << left_shift);
-			b *= (1 << left_shift);
+			a *= ACINT(1LL << left_shift);
+			b *= ACINT(1LL << left_shift);
 
 			a = MulQuantMultiplier<ACINT>(a, shrA, nA);
 			b = MulQuantMultiplier<ACINT>(b, shrB, nB);
@@ -66,14 +66,14 @@ void MatAdd(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, AC
 void MatAddBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max) {
 	ACINT a = (ACINT) *A;
 	a += zeroA;
-	a *= (1 << left_shift);
+	a *= ACINT(1LL << left_shift);
 	a = MulQuantMultiplier<ACINT>(a, shrA, nA);
 
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT b = B[i * J + j];
 			b += zeroB;
-			b *= (1 << left_shift);
+			b *= ACINT(1LL << left_shift);
 			b = MulQuantMultiplier<ACINT>(b, shrB, nB);
 
 			ACINT c = MulQuantMultiplier<ACINT>(a + b, shrC, nC);
@@ -87,14 +87,14 @@ void MatAddBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left
 void MatAddBroadCastB(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max) {
 	ACINT b = (ACINT) *B;
 	b += zeroB;
-	b *= (1 << left_shift);
+	b *= ACINT(1LL << left_shift);
 	b = MulQuantMultiplier<ACINT>(b, shrB, nB);
 
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT a = A[i * J + j];
 			a += zeroA;
-			a *= (1 << left_shift);
+			a *= ACINT(1LL << left_shift);
 			a = MulQuantMultiplier<ACINT>(a, shrA, nA);
 
 			ACINT c = MulQuantMultiplier<ACINT>(a + b, shrC, nC);
@@ -109,14 +109,14 @@ void MatAddBroadCastB(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left
 void MatSubBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max) {
 	ACINT a = (ACINT) *A;
 	a += zeroA;
-	a *= (1 << left_shift);
+	a *= ACINT(1LL << left_shift);
 	a = MulQuantMultiplier<ACINT>(a, shrA, nA);
 
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT b = B[i * J + j];
 			b += zeroB;
-			b *= (1 << left_shift);
+			b *= ACINT(1LL << left_shift);
 			b = MulQuantMultiplier<ACINT>(b, shrB, nB);
 
 			ACINT c = MulQuantMultiplier<ACINT>(a - b, shrC, nC);
@@ -131,14 +131,14 @@ void MatSubBroadCastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left
 void MatSubBroadCastB(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, MYITE left_shift, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT zeroC, ACINT shrC, MYITE nC, ACINT clamp_min, ACINT clamp_max) {
 	ACINT b = (ACINT) *B;
 	b += zeroB;
-	b *= (1 << left_shift);
+	b *= ACINT(1LL << left_shift);
 	b = MulQuantMultiplier<ACINT>(b, shrB, nB);
 
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT a = A[i * J + j];
 			a += zeroA;
-			a *= (1 << left_shift);
+			a *= ACINT(1LL << left_shift);
 			a = MulQuantMultiplier<ACINT>(a, shrA, nA);
 
 			ACINT c = MulQuantMultiplier<ACINT>(a - b, shrC, nC);

@@ -7,7 +7,7 @@ It also contains the various classes for CLI arguments.
 '''
 
 # Target word length. Currently set to match the word length of Arduino (2 bytes).
-wordLength = 8
+wordLength = 16
 availableBitwidths = [8, 16, 32]
 
 # Range of max scale factor used for exploration.

@@ -527,9 +527,11 @@ def trimMatrix(X, Y=None):
 def getScaleAndZero(m, M):
     maxVar = (config.maxVar8Bit) if config.wordLength == 8 else (config.maxVar16Bit) # 63334 = 2^16 - 1 - 1, 126 = 2^8 -1 -1 
 
-    zero = 0
+    zero = -m
 
-    scale = (max(abs(M), abs(m))) / maxVar
+    M = M + zero
+
+    scale = (M) / (2*maxVar)
 
     return scale, int(zero / scale)
 

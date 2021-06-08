@@ -441,10 +441,10 @@ class IRBuilderZeroSkew(IRBuilder):
     def getScaleAndZero(self, minVal, maxVal, bw=config.wordLength, decl=False, varName = None):
         maxVar = config.maxVar8Bit if bw == 8 else config.maxVar16Bit
 
-        if decl and varName != 'X':
-            zero = 0
-            scale = (maxVal - minVal)/(2 * maxVar)
-            return scale, int(zero)
+        # if decl and varName != 'X':
+        #     zero = 0
+        #     scale = (maxVal - minVal)/(2 * maxVar)
+        #     return scale, int(zero)
         
         if maxVal == minVal:
             

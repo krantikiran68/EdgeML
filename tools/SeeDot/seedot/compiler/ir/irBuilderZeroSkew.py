@@ -265,6 +265,8 @@ class IRBuilderZeroSkew(IRBuilder):
 
     def visitLet(self, node: AST.Let):
         # Visit RHS of the let statement.
+        if(isinstance(node.decl, AST.Decl)):
+            self.declVarName = node.name
         (prog_decl, expr_decl) = self.visit(node.decl)
 
         type_decl = node.decl.type
@@ -436,15 +438,20 @@ class IRBuilderZeroSkew(IRBuilder):
             new_zero = int(zero*scale/new_scale)
             return new_scale, new_zero
     
-    def getScaleAndZero(self, minVal, maxVal, bw=config.wordLength):
+    def getScaleAndZero(self, minVal, maxVal, bw=config.wordLength, decl=False, varName = None):
         maxVar = config.maxVar8Bit if bw == 8 else config.maxVar16Bit
+
+        if decl and varName != 'X':
+            zero = 0
+            scale = (maxVal - minVal)/(2 * maxVar)
+            return scale, int(zero)
         
         if maxVal == minVal:
             
             scale = math.fabs(1.0/maxVal) if (maxVal > 1.0) else math.fabs(maxVal)
             zero = 0
             return scale, zero
-        zero = -1*((minVal + maxVal) / 2)
+        zero = -minVal
 
         minVal += zero
         maxVal += zero
@@ -452,7 +459,7 @@ class IRBuilderZeroSkew(IRBuilder):
         if math.fabs(maxVal) < 0.00000001:
             scale = 1.0
         else:
-            scale = maxVal/maxVar
+            scale = maxVal/(2*maxVar)
 
         return scale, int(zero/scale)
 
@@ -489,7 +496,7 @@ class IRBuilderZeroSkew(IRBuilder):
             minVal, maxVal)
 
         # The range for model parameters is specified in the input code, which enables us to directly compute their scale.
-        scale, zero = self.getScaleAndZero(minVal, maxVal)
+        scale, zero = self.getScaleAndZero(minVal, maxVal, decl=True, varName = self.declVarName)
         intv = (int(minVal/scale) + zero, int(maxVal/scale) + zero)
 
         prog = IR.Prog([])
@@ -1755,8 +1762,8 @@ class IRBuilderZeroSkew(IRBuilder):
 
         getLogger().debug("TanH fixed point scale in Zero Skew: " + str(scale_out))
 
-        clamp_min, clamp_max = self.getClampValues(bitwidth_in)
-        return M1, N1, M2, N2, min(abs(clamp_max), abs(clamp_min))
+        clamp_radius = int(1.0 / scale_in + zero_in)
+        return M1, N1, M2, N2, clamp_radius
         
     def getSigmoidShrAndN(self, scale_in, zero_in, scale_out, zero_out, intv_in, bitwidth_in, bitwidth_temp = None):
         # if intv_in == (0,0):
@@ -1774,8 +1781,8 @@ class IRBuilderZeroSkew(IRBuilder):
         M2, N2 = self.getQuantizedMultiplierLTO(1.0/scale_out, bitwidth_temp, bitwidth_in)
         N2 -= 23 if (bitwidth_temp == 32) else 46
         
-        clamp_min, clamp_max = self.getClampValues(bitwidth_in)
-        return M1, N1, M2, N2, min(abs(clamp_max), abs(clamp_min))
+        clamp_radius = int(1.0 / scale_in + zero_in)
+        return M1, N1, M2, N2, clamp_radius
 
 
     def visitSigmoid(self, node: AST.Func):
@@ -2081,4 +2088,4 @@ class IRBuilderZeroSkew(IRBuilder):
         return scale, zero, intv
     
     def getClampValues(self, bitwidth_out):
-        return (-1*config.maxVar8Bit, config.maxVar8Bit) if bitwidth_out == 8 else (-1*config.maxVar16Bit, config.maxVar16Bit)
+        return (0, 2*config.maxVar8Bit) if bitwidth_out == 8 else (0, 2*config.maxVar16Bit)

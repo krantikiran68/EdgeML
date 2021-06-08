@@ -42,7 +42,6 @@ enum ProblemType
 bool profilingEnabled = false;
 int switchCount;
 
-
 // Split the CSV row into multiple values.
 vector<string> readCSVLine(string line) {
 	vector<string> tokens;
@@ -118,14 +117,14 @@ void populateFloatVector(float** features_float, vector<string> features) {
 // and running it through all the generated codes.
 // Number of threads generated equals the number of datapoints in the given dataset.
 void launchThread(int features_size, MYINT** features_int, MYINT*** features_intV, float** features_float, int counter, float* float_res, int* res, int** resV, Encoding encoding) {
-	if(encoding == Fixed)
+	if (encoding == Fixed)
 		seedotFixed(features_int, res);
 	else if (encoding == Posit)
 		seedotPosit(features_float, res);
 	seedotFloat(features_float, float_res);
 
 	for (int i = 0; i < switchCount; i++) {
-		if(encoding == Fixed)
+		if (encoding == Fixed)
 			seedotFixedSwitch(i, features_intV[i], resV[i]);
 		else if (encoding == Posit)
 			seedotPositSwitch(i, features_float, resV[i]);
@@ -210,7 +209,7 @@ int main(int argc, char* argv[]) {
 	ofstream output(outputFile);
 	ofstream stats(statsFile);
 
-	if(encoding == Posit)
+	if (encoding == Posit)
 	{
 		switchCount = positSwitches;
 	}

@@ -13,8 +13,6 @@ import tempfile
 import traceback
 from tqdm import tqdm
 import numpy as np
-import csv
-from itertools import chain, combinations
 
 from seedot.compiler.converter.converter import Converter
 
@@ -168,7 +166,6 @@ class Main:
             else:
                 outputLogFile = os.path.join(logDir, "log-fixed-" + str(abs(sf)) + ".txt")
 
-
         if target == config.Target.arduino:
             outdir = os.path.join(config.outdir, str(config.wordLength), self.algo, self.dataset)
             os.makedirs(outdir, exist_ok=True)
@@ -267,31 +264,6 @@ class Main:
         os.chdir(curDir)
         return execMap
 
-    def create_demoted_subsets(self, demoteBatch):
-        s = [i[0][0] for i in demoteBatch]
-        r = dict((i[0][0], i[1]) for i in demoteBatch)
-        l = list(chain.from_iterable(combinations(s, r) for r in range(len(s) + 1)))
-        maxUsage = 0
-        for var in s:
-            maxUsage += self.varSizes[var] * config.wordLength // 8
-        totalUsage = [maxUsage] * len(l)
-        for i, _ in enumerate(totalUsage):
-            for var in l[i]:
-                totalUsage[i] -= self.varSizes[var] * config.wordLength // 16
-        l = [x for _, x in sorted(zip(totalUsage, l))]
-        totalUsage = sorted(totalUsage)
-        nonModelMemoryUsage = [0] * len(l)
-        for i, _ in enumerate(nonModelMemoryUsage):
-            for var in s:
-                if var.startswith('tmp') or var == 'X':
-                    if var in l[i]:
-                        nonModelMemoryUsage[i] += self.varSizes[var] * config.wordLength // 16
-                    else:
-                        nonModelMemoryUsage[i] += self.varSizes[var] * config.wordLength // 8
-        self.totalUse = totalUsage
-        self.RAMUse = nonModelMemoryUsage
-        return l, r
-
     # Compile and run the generated code once for a given scaling factor.
     # The arguments are explain in the description of self.compile().
     # The function is named partial compile as in one C++ output file multiple inference codes are generated.
@@ -324,7 +296,6 @@ class Main:
         # During the third exploration phase, when multiple codes are generated at once, codeIdToScaleFactorMap
         # is populated with the codeID to the code description (bitwidth assignments of different variables).
         # After executing the code, print out the accuracy of the code against the code ID.
-            
         if codeIdToScaleFactorMap is not None:
             for codeId, sf in codeIdToScaleFactorMap.items():
                 if encoding == config.Encoding.posit and sf == None:
@@ -390,94 +361,7 @@ class Main:
 
         fixedPointCounter = 0
         while True:
-            # STAGE I exploration.
-            print("Stage I Exploration: Determining scale for input \'X\'...")
-            fixedPointCounter += 1
-            if config.fixedPointVbwIteration:
-                Util.getLogger().debug("Will compile until conversion to fixed point. Iteration %d"%fixedPointCounter)
-            highestValidScale = start
-            firstCompileSuccess = False
-            # Bar longer than actually required
-            stage_1_bar = tqdm(total=(2 * abs(start - end) + 2), mininterval=0, miniters=1, leave=True)
-            while firstCompileSuccess == False:
-                if highestValidScale == end:
-                    Util.getLogger().error("Compilation not possible for any scale factor of variable \'X\'. Aborting code!")
-                    return False
-
-                # Refactor and remove this try/catch block in the future.
-                try:
-                    firstCompileSuccess = self.partialCompile(self.encoding, config.Target.x86, highestValidScale, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
-                except:
-                    firstCompileSuccess = False
-
-                if firstCompileSuccess:
-                    stage_1_bar.update(highestValidScale - end + 1)
-                    break
-                highestValidScale -= 1
-                stage_1_bar.update(1)
-            
-            lowestValidScale = end + 1
-            firstCompileSuccess = False
-            while firstCompileSuccess == False:
-                try:
-                    firstCompileSuccess = self.partialCompile(self.encoding, config.Target.x86, lowestValidScale, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
-                except:
-                    firstCompileSuccess = False
-                if firstCompileSuccess:
-                    stage_1_bar.update(start - lowestValidScale + 2)
-                    break
-                lowestValidScale += 1
-                stage_1_bar.update(1)
-            stage_1_bar.close()
-
-            # Ignored.
-            self.partialCompile(self.encoding, config.Target.x86, lowestValidScale, True, None, -1, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
-
-            print("Stage II Exploration: Determining scale for all non-\'X\' variables...")
-            # The iterator logic is as follows:
-            # Search begins when the first valid scaling factor is found (runOnce returns True).
-            # Search ends when the execution fails on a particular scaling factor (runOnce returns False).
-            # This is the window where valid scaling factors exist and we
-            # select the one with the best accuracy.
-            numCodes = highestValidScale - lowestValidScale + 1
-            codeId = 0
-            codeIdToScaleFactorMap = {}
-            for i in tqdm(range(highestValidScale, lowestValidScale - 1, -1)):
-                if config.ddsEnabled:
-                    Util.getLogger().debug("Testing with DDS and scale of X as " + str(i) + "\n")
-                else:
-                    Util.getLogger().debug("Testing with max scale factor of " + str(i) + "\n")
-
-                codeId += 1
-                try:
-                    compiled = self.partialCompile(
-                        self.encoding, config.Target.x86, i, False, codeId, -1 if codeId != numCodes else codeId, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
-                except: # If some code in the middle fails to compile.
-                    codeId -=1
-                    continue
-                if compiled == False:
-                    return False
-                codeIdToScaleFactorMap[codeId] = i
-
-            print("Stage II Code Run Started...")
-            res, exit = self.runAll(self.encoding, config.DatasetType.training, codeIdToScaleFactorMap)
-            print("Stage II Code Run Completed!\n")
-            if exit == True or res == False:
-                return False
-
-            Util.getLogger().info("\nSearch completed\n")
-            Util.getLogger().info("----------------------------------------------\n\n")
-            Util.getLogger().info("Best performing scaling factors with accuracy, disagreement, reduced disagreement:")
-
-            self.sf = self.getBestScale()
-            if self.accuracy[self.sf][0] != lastStageAcc:
-                lastStageAcc = self.accuracy[self.sf][0]
-            elif config.fixedPointVbwIteration:
-                Util.getLogger().info("No difference in iteration %d Stage 2 and iteration %d Stage 1. Stopping search\n"%(fixedPointCounter-1, fixedPointCounter))
-                break
-
             if config.vbwEnabled:
-                # return
                 # Stage III exploration.
                 print("Stage III Exploration: Demoting variables one at a time...")
 
@@ -492,7 +376,7 @@ class Main:
                 # demoted Scale = self.allScales[var] + 8 - offset
 
                 attemptToDemote = [var for var in self.variableToBitwidthMap if (var[-3:] != "val" and var not in self.demotedVarsList)]
-                numCodes = config.offsetsPerDemotedVariable * len(attemptToDemote) + ((9 - config.offsetsPerDemotedVariable) if 'X' in attemptToDemote else 0)
+                numCodes = len(attemptToDemote)
                 # 9 offsets tried for X while 'offsetsPerDemotedVariable' tried for other variables.
 
                 # We approximately club batchSize number of codes in one generated C++ code, so that one generated code does
@@ -501,7 +385,7 @@ class Main:
                 redBatchSize = np.max((batchSize, 16)) / config.offsetsPerDemotedVariable
 
                 totalSize = len(attemptToDemote)
-                numBatches = 1 #int(np.ceil(totalSize / redBatchSize))
+                numBatches = int(np.ceil(totalSize / redBatchSize))
 
                 self.varDemoteDetails = []
                 for i in tqdm(range(numBatches)):
@@ -510,8 +394,7 @@ class Main:
                     firstVarIndex = (totalSize * i) // numBatches
                     lastVarIndex = (totalSize * (i + 1)) // numBatches
                     demoteBatch = [attemptToDemote[i] for i in range(firstVarIndex, lastVarIndex)]
-                    numCodes = config.offsetsPerDemotedVariable * len(demoteBatch) + ((9 - config.offsetsPerDemotedVariable) if 'X' in demoteBatch else 0)
-                    # 9 offsets tried for X while 'config.offsetsPerDemotedVariable' tried for other variables.
+                    numCodes = len(demoteBatch)
 
                     self.partialCompile(self.encoding, config.Target.x86, self.sf, True, None, -1 if len(demoteBatch) > 0 else 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
                     codeId = 0
@@ -531,17 +414,15 @@ class Main:
                             demotedVarsOffsets[key] = self.demotedVarsOffsets[key]
 
                         contentToCodeIdMap[tuple(demotedVarsList)] = {}
-                        # We try out multiple offsets for each variable to find best scale assignment for each variable.
-                        for demOffset in (range(0, -config.offsetsPerDemotedVariable, -1) if demoteVar != 'X' else range(0, -9, -1)):
-                            codeId += 1
-                            for k in demotedVarsList:
-                                if k not in self.demotedVarsList:
-                                    demotedVarsOffsets[k] = demOffset
-                            contentToCodeIdMap[tuple(demotedVarsList)][demOffset] = codeId
-                            compiled = self.partialCompile(self.encoding, config.Target.x86, self.sf, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demotedVarsList), dict(demotedVarsOffsets))
-                            if compiled == False:
-                                Util.getLogger().error("Variable bitwidth exploration resulted in a compilation error\n")
-                                return False
+                        codeId += 1
+                        for k in demotedVarsList:
+                            if k not in self.demotedVarsList:
+                                demotedVarsOffsets[k] = 0
+                        contentToCodeIdMap[tuple(demotedVarsList)][0] = codeId
+                        compiled = self.partialCompile(self.encoding, config.Target.x86, self.sf, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demotedVarsList), dict(demotedVarsOffsets))
+                        if compiled == False:
+                            Util.getLogger().error("Variable bitwidth exploration resulted in a compilation error\n")
+                            return False
 
                     res, exit = self.runAll(self.encoding, config.DatasetType.training, None, contentToCodeIdMap)
                 
@@ -550,7 +431,7 @@ class Main:
                 # Again, we compute only a limited number of inference codes per generated C++ so as to not bloat up the memory usage of the compiler.
                 redBatchSize *= config.offsetsPerDemotedVariable
                 totalSize = len(self.varDemoteDetails)
-                numBatches = 1 #int(np.ceil(totalSize / redBatchSize))
+                numBatches = int(np.ceil(totalSize / redBatchSize))
 
                 sortedVars1 = []
                 sortedVars2 = []
@@ -584,31 +465,24 @@ class Main:
                     firstVarIndex = (totalSize * i) // numBatches
                     lastVarIndex = (totalSize * (i+1)) // numBatches
                     demoteBatch = [sortedVars[i] for i in range(firstVarIndex, lastVarIndex)]
-                    demoteSubset, offsets = self.create_demoted_subsets(demoteBatch)
-                    newbitwidths = dict(self.variableToBitwidthMap)
-                    for var in demoteSubset[0]:
-                        newbitwidths[var] = config.wordLength // 2
 
-                    self.partialCompile(self.encoding, config.Target.x86, self.sf, True, None, -1 if len(attemptToDemote) > 0 else 0, newbitwidths, list(demoteSubset[0]), dict(offsets))
+                    self.partialCompile(self.encoding, config.Target.x86, self.sf, True, None, -1 if len(attemptToDemote) > 0 else 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
                     contentToCodeIdMap = {}
                     codeId = 0
-
-                    numCodes = len(demoteSubset)
-                    for demoteVars in demoteSubset:
+                    numCodes = len(demoteBatch)
+                    for (demoteVars, offset) in demoteBatch:
                         newbitwidths = dict(self.variableToBitwidthMap)
                         for var in demoteVars:
-                            newbitwidths[var] = config.wordLength // 2
-                            demotedVarsOffsets[var] = offsets[var]
+                            if var not in self.demotedVarsList:
+                                newbitwidths[var] = config.wordLength // 2
+                                demotedVarsOffsets[var] = offset
+                            if var not in demotedVarsList:
+                                demotedVarsList.append(var)
                         codeId += 1
-                        if codeId % 1000 == 0:
-                            print(codeId)
-                        contentToCodeIdMap[tuple(demoteVars)] = {}
-                        if len(demoteVars) > 0:
-                            contentToCodeIdMap[tuple(demoteVars)][offsets[demoteVars[-1]]] = codeId
-                        else:
-                            contentToCodeIdMap[tuple(demoteVars)][0] = codeId
-                        demotedVarsListToOffsets[tuple(demoteVars)] = dict(demotedVarsOffsets)
-                        compiled = self.partialCompile(self.encoding, config.Target.x86, self.sf, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demoteVars), dict(demotedVarsOffsets))
+                        contentToCodeIdMap[tuple(demotedVarsList)] = {}
+                        contentToCodeIdMap[tuple(demotedVarsList)][offset] = codeId
+                        demotedVarsListToOffsets[tuple(demotedVarsList)] = dict(demotedVarsOffsets)
+                        compiled = self.partialCompile(self.encoding, config.Target.x86, self.sf, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demotedVarsList), dict(demotedVarsOffsets))
                         if compiled == False:
                             Util.getLogger().error("Variable bitwidth exploration resulted in another compilation error\n")
                             return False
@@ -624,16 +498,13 @@ class Main:
                 acceptedAcc = lastStageAcc
                 for ((demotedVars, _), metrics) in self.varDemoteDetails:
                     acc = metrics[0]
-                    if self.problemType == config.ProblemType.classification and (self.flAccuracy - acc) < config.permittedClassificationAccuracyLoss:
-                        okToDemote = demotedVars
-                        acceptedAcc = acc
+                    if self.problemType == config.ProblemType.classification and (self.flAccuracy - acc) > config.permittedClassificationAccuracyLoss:
                         break
                     elif self.problemType == config.ProblemType.regression and acc > config.permittedRegressionNumericalLossMargin:
                         break
                     else:
-                        if acc > acceptedAcc:
-                            okToDemote = demotedVars
-                            acceptedAcc = acc
+                        okToDemote = demotedVars
+                        acceptedAcc = acc
 
                 print('Demoted Variables: ' + str(okToDemote))
                 self.demotedVarsList = [i for i in okToDemote] + [i for i in self.demotedVarsList]
@@ -648,11 +519,6 @@ class Main:
             if not config.vbwEnabled or not config.fixedPointVbwIteration:
                 break
 
-        with open('log.csv', 'w') as out_file:
-            writer = csv.writer(out_file)
-            writer.writerow(("Demoted Variables", "Accuracy", "Model Variable Memory Usage", "Non Model Variable Memory Usage", "Total Usage"))
-            for ((demotedVars, _), metrics), ramUse, totalUse in zip(self.varDemoteDetails, self.RAMUse, self.totalUse):
-                writer.writerow((demotedVars, metrics[0], totalUse - ramUse, ramUse, totalUse))
         return True
 
     # Reverse sort the accuracies, print the top 5 accuracies and return the
@@ -694,7 +560,8 @@ class Main:
         if res == False:
             return False
 
-        Util.getLogger().info("Best scaling factor = %d" % (self.sf))
+        if self.encoding != config.Encoding.posit:
+            Util.getLogger().info("Best scaling factor = %d" % (self.sf))
         return True
 
     # After exploration is completed, this function is invoked to show the performance of the final quantised code on a testing dataset,

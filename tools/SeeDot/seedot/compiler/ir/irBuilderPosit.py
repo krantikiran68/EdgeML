@@ -1111,25 +1111,6 @@ class IRBuilderPosit(IRBuilder):
         # We perform a scale adjustment in this case for correctness.
         # TODO: Introduce a post-processing pass to merge consecutive scale adjustments hence generated.
         adjust = []
-        if self.ddsEnabled:
-            if scale_raw != scale_out:
-                diff = 2 ** abs(scale_raw - scale_out)
-                if scale_raw > scale_out:
-                    adjust = [IR.FuncCall("AdjustScaleShl" + (("<posit%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
-                                expr_out: "A",
-                                IR.Int(I): "I",
-                                IR.Int(J): "J",
-                                IR.Int(diff): "scale"
-                            })]
-                else:
-                    adjust = [IR.FuncCall("AdjustScaleShr" + (("<posit%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
-                                expr_out: "A",
-                                IR.Int(I): "I",
-                                IR.Int(J): "J",
-                                IR.Int(diff): "scale"
-                            })]
-        else:
-            scale_out = scale_raw
 
         intv_out = self.getIntvervalForMul(intv_in_A, shr_A, intv_in_B, shr_B)
 
@@ -1739,38 +1720,6 @@ class IRBuilderPosit(IRBuilder):
         # We perform a scale adjustment in this case for correctness.
         # TODO: Introduce a post-processing pass to merge consecutive scale adjustments hence generated.
         adjust = []
-        if forFixed():
-            if scale_out_unadjusted != scale_out:
-                if scale_out_unadjusted > scale_out:
-                    diff_scale = 2 ** (scale_out_unadjusted - scale_out)
-                    adjust = [IR.FuncCall("AdjustScaleShl" + (("<posit%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
-                                            expr_out: "A",
-                                            IR.Int(N): "I",
-                                            IR.Int(H): "J",
-                                            IR.Int(W): "K",
-                                            IR.Int(C): "L",
-                                            IR.Int(diff_scale): "scale"
-                                        } if type_out.dim == 4 else {
-                                            expr_out: "A",
-                                            IR.Int(H): "I",
-                                            IR.Int(W): "J",
-                                            IR.Int(diff_scale): "scale"
-                                        })]
-                elif scale_out_unadjusted < scale_out:
-                    diff_scale = 2 ** (scale_out - scale_out_unadjusted)
-                    adjust = [IR.FuncCall("AdjustScaleShr" + (("<posit%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
-                                         expr_out: "A",
-                                            IR.Int(N): "I",
-                                            IR.Int(H): "J",
-                                            IR.Int(W): "K",
-                                            IR.Int(C): "L",
-                                            IR.Int(diff_scale): "scale"
-                                        } if type_out.dim == 4 else {
-                                            expr_out: "A",
-                                            IR.Int(H): "I",
-                                            IR.Int(W): "J",
-                                            IR.Int(diff_scale): "scale"
-                                        })]
 
         prog_cir = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall] )
 
@@ -1973,48 +1922,8 @@ class IRBuilderPosit(IRBuilder):
             # TODO: Introduce a post-processing pass to merge consecutive scale adjustments hence generated.
             if type_out.dim == 2:
                 adjust = []
-                if forFixed():
-                    if scale_out_unadjusted != scale_out:
-                        if scale_out_unadjusted > scale_out:
-                            diff_scale = 2 ** (scale_out_unadjusted - scale_out)
-                            adjust = [IR.FuncCall("AdjustScaleShl" + (("<posit%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
-                                                expr_out: "A",
-                                                IR.Int(I): "I",
-                                                IR.Int(J): "J",
-                                                IR.Int(diff_scale): "scale"
-                                                })]
-                        elif scale_out_unadjusted < scale_out:
-                            diff_scale = 2 ** (scale_out - scale_out_unadjusted)
-                            adjust = [IR.FuncCall("AdjustScaleShr" + (("<posit%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
-                                                expr_out: "A",
-                                                IR.Int(I): "I",
-                                                IR.Int(J): "J",
-                                                IR.Int(diff_scale): "scale"
-                                                })]
             elif type_out.dim == 4:
                 adjust = []
-                if forFixed():
-                    if scale_out_unadjusted != scale_out:
-                        if scale_out_unadjusted > scale_out:
-                            diff_scale = 2 ** (scale_out_unadjusted - scale_out)
-                            adjust = [IR.FuncCall("AdjustScaleShl" + (("<posit%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
-                                                expr_out: "A",
-                                                IR.Int(N): "N",
-                                                IR.Int(H): "H",
-                                                IR.Int(W): "W",
-                                                IR.Int(C): "C",
-                                                IR.Int(diff_scale): "scale"
-                                                })]
-                        elif scale_out_unadjusted < scale_out:
-                            diff_scale = 2 ** (scale_out - scale_out_unadjusted)
-                            adjust = [IR.FuncCall("AdjustScaleShr" + (("<posit%d_t>"%bitwidth_out) if self.vbwEnabled else ""), {
-                                                expr_out: "A",
-                                                IR.Int(N): "N",
-                                                IR.Int(H): "H",
-                                                IR.Int(W): "W",
-                                                IR.Int(C): "C",
-                                                IR.Int(diff_scale): "scale"
-                                                })]
             else:
                 assert False, "Illegal number of dimensions"
 
@@ -2300,24 +2209,6 @@ class IRBuilderPosit(IRBuilder):
         # Refer to OOPSLA '20 paper Section 5.4 which explains the computation of input and output scales for TanH and Sigmoid and Exp.
         # The input scales are adjusted to the theoretically known value for different bit-widths.
         adjust = []
-        if scale_in_raw != scale_in:
-            diff_scale = abs(scale_in_raw - scale_in)
-            if scale_in_raw > scale_in:
-                saturate = (2 ** (-scale_in_adjusted - diff_scale))
-                adjust = [IR.FuncCall("AdjustScaleShlSaturate<posit%d_t>" %(bitwidth_in_raw), {
-                                            expr_in : "A",
-                                            IR.Int(I): "I",
-                                            IR.Int(J): "J",
-                                            IR.Int(2 ** diff_scale): "scale",
-                                            IR.Int(saturate): "saturate"
-                })]
-            else:
-                adjust = [IR.FuncCall("AdjustScaleShr<posit%d_t>" %(bitwidth_in_raw), {
-                                            expr_in : "A",
-                                            IR.Int(I): "I",
-                                            IR.Int(J): "J",
-                                            IR.Int(2 ** diff_scale): "scale"
-                })]
 
         comm = IR.Comment('exp(' + expr_in.idf + ')', self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
@@ -2793,24 +2684,6 @@ class IRBuilderPosit(IRBuilder):
         # Refer to OOPSLA '20 paper Section 5.4 which explains the computation of input and output scales for TanH and Sigmoid.
         # The input scales are adjusted to the theoretically known value for different bit-widths.
         adjust = []
-        if scale_in_raw != scale_in:
-            diff_scale = abs(scale_in_raw - scale_in)
-            if scale_in_raw > scale_in:
-                saturate = (2 ** (-scale_in_adjusted - diff_scale))
-                adjust = [IR.FuncCall("AdjustScaleShlSaturate<posit%d_t>" %(bitwidth_in_raw), {
-                                            expr_in : "A",
-                                            IR.Int(I): "I",
-                                            IR.Int(J): "J",
-                                            IR.Int(2 ** diff_scale): "scale",
-                                            IR.Int(saturate): "saturate"
-                })]
-            else:
-                adjust = [IR.FuncCall("AdjustScaleShr<posit%d_t>" %(bitwidth_in_raw), {
-                                            expr_in : "A",
-                                            IR.Int(I): "I",
-                                            IR.Int(J): "J",
-                                            IR.Int(2 ** diff_scale): "scale"
-                })]
 
         comm = IR.Comment('tanh(' + expr_in.idf + ')', self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
@@ -2973,24 +2846,6 @@ class IRBuilderPosit(IRBuilder):
         # Refer to OOPSLA '20 paper Section 5.4 which explains the computation of input and output scales for TanH and Sigmoid.
         # The input scales are adjusted to the theoretically known value for different bit-widths.
         adjust = []
-        if scale_in_raw != scale_in:
-            diff_scale = abs(scale_in_raw - scale_in)
-            if scale_in_raw > scale_in:
-                saturate = (2 ** (-scale_in_adjusted - diff_scale))
-                adjust = [IR.FuncCall("AdjustScaleShlSaturate<posit%d_t>" %(bitwidth_in_raw), {
-                                            expr_in : "A",
-                                            IR.Int(I): "I",
-                                            IR.Int(J): "J",
-                                            IR.Int(2 ** diff_scale): "scale",
-                                            IR.Int(saturate): "saturate"
-                })]
-            else:
-                adjust = [IR.FuncCall("AdjustScaleShr<posit%d_t>" %(bitwidth_in_raw), {
-                                            expr_in : "A",
-                                            IR.Int(I): "I",
-                                            IR.Int(J): "J",
-                                            IR.Int(2 ** diff_scale): "scale"
-                })]
 
         comm = IR.Comment('sigmoid(' + expr_in.idf + ')', self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
@@ -3455,31 +3310,6 @@ class IRBuilderPosit(IRBuilder):
 
                 # The mutable loop variable needs to have it's scale adjusted so that it remains the same across iterations for correctness.
                 adjust = []
-                if curr_scale != new_scale:
-                    if curr_scale > new_scale:
-                        adjust = [IR.FuncCall("AdjustScaleShl", {
-                                            IR.Var(idf): "A",
-                                            IR.Int(I): "I",
-                                            IR.Int(J): "J",
-                                            IR.Int(diff_scale): "scale"
-                                 })] if not self.vbwEnabled else [IR.FuncCall("AdjustScaleShl<posit%d_t>"%(bitwidth_decl), {
-                                            IR.Var(idf): "A",
-                                            IR.Int(I): "I",
-                                            IR.Int(J): "J",
-                                            IR.Int(diff_scale): "scale"
-                                 })]
-                    elif curr_scale < new_scale:
-                        adjust = [IR.FuncCall("AdjustScaleShr", {
-                                            IR.Var(idf): "A",
-                                            IR.Int(I): "I",
-                                            IR.Int(J): "J",
-                                            IR.Int(diff_scale): "scale"
-                                 })] if not self.vbwEnabled else [IR.FuncCall("AdjustScaleShr<posit%d_t>"%(bitwidth_decl), {
-                                            IR.Var(idf): "A",
-                                            IR.Int(I): "I",
-                                            IR.Int(J): "J",
-                                            IR.Int(diff_scale): "scale"
-                                 })]
 
                 prog_for_mutable = IR.Prog(adjust)
 

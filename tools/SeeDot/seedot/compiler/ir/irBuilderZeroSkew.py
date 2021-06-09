@@ -1478,7 +1478,7 @@ class IRBuilderZeroSkew(IRBuilder):
             if not config.vbwEnabled:   
                 # q3  = (s1/s3)*(q1-z1) + (s2/s3)*(q2-z2)
 
-                left_shift = 16 if (config.wordLength == 8) else 32 # int((bitwidth_temp - bitwidth_in_A) - 1)
+                left_shift = 16 # if (config.wordLength == 8) else 20 # int((bitwidth_temp - bitwidth_in_A) - 1)
                 # Make the input quantized to 32-bits. 
 
                 s1_s3 = scale_in_A

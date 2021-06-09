@@ -199,7 +199,7 @@ void debugPrint(MYINT* A, int I, int J, float scale, int zero, std::string varNa
 // }
 
 template<class InputType>
-inline int32_t MulQuantMultiplier(InputType x, InputType quantized_multiplier, MYITE shift) {
+inline InputType MulQuantMultiplier(InputType x, InputType quantized_multiplier, MYITE shift) {
   int left_shift = shift > 0 ? shift : 0;
   int right_shift = shift > 0 ? 0 : -shift;
   return gemmlowp::RoundingDivideByPOT(gemmlowp::SaturatingRoundingDoublingHighMul(x * (1 << left_shift), quantized_multiplier), right_shift);

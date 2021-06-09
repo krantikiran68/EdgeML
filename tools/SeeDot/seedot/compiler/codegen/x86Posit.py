@@ -489,7 +489,7 @@ class X86Posit(X86):
                 self.out.printf(")")
                 if i + 1 < len(shape):
                     self.out.printf("+")
-        typ_str = typ_str = self.getPositType(self.varsForBitwidth[ir.e.idf] if config.vbwEnabled else config.positBitwidth) 
+        typ_str = self.getPositType(self.varsForBitwidth[ir.to.idf] if config.vbwEnabled else config.positBitwidth) 
         # if config.vbwEnabled:
         #     if hasattr(self, 'varsForBitwidth'):
         #         # Note ir.to and ir.start are constrained to have the same bit-width.
@@ -499,7 +499,7 @@ class X86Posit(X86):
         typ_str = "float" if forFloat() else typ_str
         self.out.printf('memcpy(', indent=True)
         # If a memory optimized mapping is available for a variable, use that else use original variable name.
-        if Config.x86MemoryOptimize and forFixed() and self.numberOfMemoryMaps in self.scratchSubs:
+        if False and Config.x86MemoryOptimize and self.numberOfMemoryMaps in self.scratchSubs:
             for (a, b, c, d) in [(ir.to.idf, ir.toIndex, 0, ir.to.idx), (ir.start.idf, ir.startIndex, 1, ir.start.idx)]:
                 self.out.printf("((scratch + %d + sizeof(%s)*(", self.scratchSubs[self.numberOfMemoryMaps][a], typ_str)
                 toIndexed = IRUtil.addIndex(IR.Var(""), b)

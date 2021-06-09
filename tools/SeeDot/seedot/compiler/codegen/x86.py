@@ -7,6 +7,7 @@ Code to generate the x86 compatible Prediction code.
 
 import numpy as np
 import os
+from functools import reduce
 
 from seedot.compiler.codegen.codegenBase import CodegenBase
 
@@ -48,6 +49,18 @@ class X86(CodegenBase):
 
         self.paramInNativeBitwidth = paramInNativeBitwidth
 
+    def storeFlashSize(self):
+        size_full = 0
+        for var in self.globalVars:
+            bw = config.wordLength
+            size = self.decls[var].shape
+            size_ = 1
+            size_ = reduce(lambda x, y: x*y , size)
+            size_full += size_
+        f = open("flashsize.txt", "w")
+        f.write(str((size_full * bw)//8))
+        f.close()
+
     def printPrefix(self):
         if self.generateAllFiles:
             self.printCincludes()
@@ -55,6 +68,8 @@ class X86(CodegenBase):
             self.printExpTables()
 
         self.printCHeader()
+
+        self.storeFlashSize()
 
         self.computeScratchLocationsFirstFitPriority() # computeScratchLocations computeScratchLocationsFirstFit computeScratchLocationsFirstFitPriority computeScratchLocationsDLX
 

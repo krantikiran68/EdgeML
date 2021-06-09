@@ -22,7 +22,7 @@ class Config:
         # This parameter is used if exp below is set to "table".
         # Please refer to old SeeDot (PLDI'19) paper Section 5.3.1.
         # In the fixed point mode, the top 2 * expBigLength bits are used to compute e^x, the remaining bits are discarded.
-    exp = "new table"  # "table" "math" "new table"
+    exp = "math"  # "table" "math" "new table"
         # This parameter controls the type of exponentiation to be used in the fixed point code.
         # "table": Uses the method used in old SeeDot (PLDI '19).
         # "new table": Uses the method used in new SeeDot (OOPSLA '20).

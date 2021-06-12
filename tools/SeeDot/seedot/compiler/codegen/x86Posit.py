@@ -31,11 +31,7 @@ class X86Posit(X86):
     def storeFlashSize(self):
         size_full = 0
         bw = config.positBitwidth
-        if bw in [9, 10, 12]:
-            bw = 32
         for var in self.globalVars:
-            if var == 'X':
-                continue
             size = self.decls[var].shape
             size_ = 1
             size_ = reduce(lambda x, y: x*y , size)

@@ -3616,7 +3616,7 @@ class IRBuilderPosit(IRBuilder):
         if op == "mul":
             assert bitwidthC is None, "Illegal call to getTempBitwidth()"
             biggerBitWidth = max(bitwidthA, bitwidthB)
-            return biggerBitWidth * 2
+            return biggerBitWidth
         elif op == "add":
             assert bitwidthC is not None, "Illegal call to getTempBitwidth()"
             biggerBitWidth = max(bitwidthA, bitwidthB, bitwidthC)

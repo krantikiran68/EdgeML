@@ -348,7 +348,6 @@ class X86Posit(X86):
 
     def getPositType(self, bw):
         getLogger().debug("Always returning based on the value of config.positBitiwidth and not the variable value")
-        bw = config.positBitwidth
         if bw == 8:
             return "posit8_t"
         if bw == 16:
@@ -359,7 +358,6 @@ class X86Posit(X86):
     
     def getConversionFunction(self, bw):
         getLogger().debug("Always returning based on the value of config.positBitiwidth and not the variable value")
-        bw = config.positBitwidth
         if bw == 8:
             return "convertDoubleToP8"
         if bw == 16:
@@ -422,7 +420,7 @@ class X86Posit(X86):
                 else:
                     float_val = self.fixedVarToFloat(var, num)
                     conversion_func = self.getConversionFunction(config.positBitwidth)
-                    bitwidth_str_PX2 = ", %d"%(config.positBitwidth) if self.getPositType(config.positBitwidth == "posit_2_t") else ""
+                    bitwidth_str_PX2 = ", %d"%(config.positBitwidth) if self.getPositType(config.positBitwidth) == "posit_2_t" else ""
                     self.out.printf('%s = %s(%f%s);\n', var, conversion_func, float_val, bitwidth_str_PX2, indent=True)
                     
     def fixedVarToFloat(self, var, num):

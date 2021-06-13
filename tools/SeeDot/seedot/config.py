@@ -10,7 +10,7 @@ It also contains the various classes for CLI arguments.
 wordLength = 8
 availableBitwidths = [8, 16, 32]
 
-positBitwidth = 14
+positBitwidth = 8
 positBitwidths = [8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,32]
 
 # Range of max scale factor used for exploration.

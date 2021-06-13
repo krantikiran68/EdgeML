@@ -100,7 +100,7 @@ class X86Posit(X86):
         for var in self.globalVars:
             if var + "idx" in self.globalVars and var + "val" in self.globalVars:
                 continue
-            bw = self.varsForBitwidth[var]
+            bw = self.varsForBitwidth[var] if config.vbwEnabled else config.positBitwidth
             
             typ_str = self.getPositType(bw)
             bitwidth_PX2_suffix = self.getPX2Suffix(bw)

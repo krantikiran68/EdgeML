@@ -126,7 +126,7 @@ class X86ZeroSkew(X86):
         self.out.increaseIndent()
 
     def printModelParamsWithBitwidth(self):
-        if config.vbwEnabled and forZeroSkew():
+        if config.vbwEnabled:
             for var in self.globalVars:
                 if var + "idx" in self.globalVars and var + "val" in self.globalVars:
                     continue

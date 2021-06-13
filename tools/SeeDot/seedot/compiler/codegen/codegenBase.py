@@ -81,7 +81,7 @@ class CodegenBase:
 
     def printVar(self, ir, isPointer=False):
         # If floating point mode is used or VBW mode is off, then the variable is printed normally (see else branch).
-        if config.vbwEnabled and forFixed():
+        if config.vbwEnabled and (forFixed() or forZeroSkew()):
             # varsForBitwidth variable must be populated during VBW mode.
             if hasattr(self, "varsForBitwidth"):
                 # If target code memory optimization is enabled then variables would be renamed to explicit addresses (scratch + N) else they use names like tmpN.
@@ -301,7 +301,7 @@ class CodegenBase:
     def printMemset(self, ir):
         self.out.printf('memset(', indent=True)
         # If a memory optimized mapping is available for a variable, use that else use original variable name.
-        if Config.x86MemoryOptimize and forFixed() and forX86() and self.numberOfMemoryMaps in self.scratchSubs:
+        if Config.x86MemoryOptimize and (forFixed() or forZeroSkew()) and forX86() and self.numberOfMemoryMaps in self.scratchSubs:
             self.out.printf("(scratch + %d)", self.scratchSubs[self.numberOfMemoryMaps][ir.e.idf])
         else:
             self.print(ir.e)
@@ -335,7 +335,7 @@ class CodegenBase:
         typ_str = "float" if forFloat() else typ_str
         self.out.printf('memcpy(', indent=True)
         # If a memory optimized mapping is available for a variable, use that else use original variable name.
-        if Config.x86MemoryOptimize and forFixed() and self.numberOfMemoryMaps in self.scratchSubs:
+        if Config.x86MemoryOptimize and (forFixed() or forZeroSkew()) and self.numberOfMemoryMaps in self.scratchSubs:
             for (a, b, c, d) in [(ir.to.idf, ir.toIndex, 0, ir.to.idx), (ir.start.idf, ir.startIndex, 1, ir.start.idx)]:
                 self.out.printf("((scratch + %d + sizeof(%s)*(", self.scratchSubs[self.numberOfMemoryMaps][a], typ_str)
                 toIndexed = IRUtil.addIndex(IR.Var(""), b)

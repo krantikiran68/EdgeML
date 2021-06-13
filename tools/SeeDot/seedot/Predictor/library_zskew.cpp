@@ -224,7 +224,7 @@ void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, float scale_in, ACINT zeroA, ACI
 				continue;
 			} else {
 				const int32_t x_rescaled = MulQuantMultiplier<ACINT>(x, shrA, nA);
-				using FixedPoint4 = gemmlowp::FixedPoint<int32_t, 4>;
+				using FixedPoint4 = gemmlowp::FixedPoint<int32_t, 13>;
 				using FixedPoint0 = gemmlowp::FixedPoint<int32_t, 0>;
 				const FixedPoint4 x_f4 = FixedPoint4::FromRaw(x_rescaled);// The scale of the number her is 28
 				const FixedPoint0 y_f0 = gemmlowp::tanh(x_f4);
@@ -234,19 +234,6 @@ void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, float scale_in, ACINT zeroA, ACI
 
 			y = MulQuantMultiplier<ACINT>(y, shrB, nB);
 
-			// if (x < int32_t(-1.0 / scale_in))
-			// {
-			// 	y = int32_t(-1.0 / scale_out);
-			// }
-			// else if(x > int32_t(1.0 / scale_in))
-			// {
-			// 	y = int32_t (1.0 / scale_out);
-			// }
-			// else
-			// {
-			// 	y = int32_t(x * (scale_in/scale_out));
-			// }
-
 			B[i * J + j] = Saturate<ACINT, MYINT>(y + zeroB, std::numeric_limits<MYINT>::min(), std::numeric_limits<MYINT>::max());
 		}
 	}
@@ -254,7 +241,7 @@ void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, float scale_in, ACINT zeroA, ACI
 }
 
 // B = Sigmoid(A)
-void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT div, ACINT sig_limit, float scale_in,  ACINT zeroA, ACINT shrA, MYITE nA, float scale_out, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius) {
+void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, float scale_in,  ACINT zeroA, ACINT shrA, MYITE nA, float scale_out, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			ACINT x = A[i * J + j];
@@ -269,7 +256,7 @@ void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT div, ACINT sig_limit, f
 				continue;
 			} else {
 				const int32_t x_rescaled = MulQuantMultiplier<ACINT>(x, shrA, nA);
-				using FixedPoint4 = gemmlowp::FixedPoint<int32_t, 4>;
+				using FixedPoint4 = gemmlowp::FixedPoint<int32_t, 13>;
 				using FixedPoint0 = gemmlowp::FixedPoint<int32_t, 0>;
 				const FixedPoint4 x_f4 = FixedPoint4::FromRaw(x_rescaled);
 				const FixedPoint0 y_f0 = gemmlowp::logistic(x_f4);
@@ -279,20 +266,6 @@ void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT div, ACINT sig_limit, f
 
 			y = MulQuantMultiplier<ACINT>(y, shrB, nB);
 
-			// x = (x + sig_limit)/div;
-
-			// if (x < int32_t(-1.0 / scale_in))
-			// {
-			// 	y = 0;
-			// }
-			// else if (x > int32_t(1.0 / scale_in)){
-			// 	y = int32_t(1.0 / scale_out);
-			// }
-			// else 
-			// {
-			// 	y = int32_t(x * (scale_in/scale_out));
-			// }
-			
 
 			B[i * J + j] = Saturate<ACINT, MYINT>(y + zeroB, std::numeric_limits<MYINT>::min(), std::numeric_limits<MYINT>::max());
 		}

@@ -822,6 +822,9 @@ class CodegenBase:
             if not forM3():
                 self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
             self.out.printf("/* %s */"%(str(self.scratchSubs)))
+            f = open("writeZSkewScratchSize", "w")
+            f.write(str(totalScratchSize + 1))
+            f.close()
             return totalScratchSize + 1
 
     # This method uses the DLX library to attempt to compute an optimum memory assignment.

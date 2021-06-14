@@ -298,8 +298,6 @@ class MainZeroSkew(Main):
                 self.varDemoteDetails.sort(key=getMetricValue, reverse=True)
         return True, False
 
-    # Removed performSearch function
-
     # Reverse sort the accuracies, print the top 5 accuracies and return the
     # best scaling factor.
     def getBestScale(self):
@@ -680,4 +678,7 @@ class MainZeroSkew(Main):
                     acceptedAcc = acc
 
             self.demotedVarsList = [i for i in okToDemote] + [i for i in self.demotedVarsList]
+            f = open("demotedVars", "w")
+            f.write(str(self.demotedVarsList))
+            f.close()
         return True

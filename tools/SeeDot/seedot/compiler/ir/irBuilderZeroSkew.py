@@ -116,7 +116,8 @@ class IRBuilderZeroSkew(IRBuilder):
         bitwidth_in_B, scale_in_B, zero_in_B = self.getBitwidthScaleZeros(expr_in_B.idf)
         # Read output scales and bitwidths. In data-driven scaling, the output scale is directly profiled from floating-point runtime.
         # In static scaling used by old SeeDot (PLDI '19), output scale and bit-width is set to None is statically computed later.
-        
+        if expr_out.idf == 'a':
+            print("Hre!")
         bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf)
         bitwidth_temp = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul", bitwidth_out)
     
@@ -1445,7 +1446,7 @@ class IRBuilderZeroSkew(IRBuilder):
         if op_fn == operator.add or op_fn == operator.sub:
             # q3  = (s1/s3)*(q1-z1) + (s2/s3)*(q2-z2)
 
-            left_shift = 16 # if (config.wordLength == 8) else 20 # int((bitwidth_temp - bitwidth_in_A) - 1)
+            left_shift =  int(bitwidth_temp/2) # int((bitwidth_temp - bitwidth_in_A) - 1)
             # Make the input quantized to 32-bits. 
 
             s1_s3 = scale_in_A
@@ -1457,6 +1458,12 @@ class IRBuilderZeroSkew(IRBuilder):
             n1 -= ((31 if (bitwidth_temp == 32) else 63))
             n2 -= ((31 if (bitwidth_temp == 32) else 63))
             n3 -= ((31 if (bitwidth_temp == 32) else 63)- left_shift)
+
+            if bitwidth_temp == 32:
+                assert (n1 <= 31) and (n2 <= 31) and (n3 <= 31), "Right shift value too high"
+            
+            if bitwidth_temp == 64:
+                assert (n1 <= 63) and (n2 <= 63) and (n3 <= 63), "Right shift value too high"
 
             return (left_shift, m1, n1, m2, n2, m3, n3)
         else:

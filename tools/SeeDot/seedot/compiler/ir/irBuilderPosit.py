@@ -865,7 +865,7 @@ class IRBuilderPosit(IRBuilder):
             c += 'C'
         else:
             c += 'N'
-        c = ''
+        c = '' if config.vbwEnabled else c
         expr_in_A.inputVar = False
         expr_in_B.inputVar = False
         expr_out.inputVar = False
@@ -1786,7 +1786,7 @@ class IRBuilderPosit(IRBuilder):
                     c += 'C'
                 else:
                     c += 'N'
-            c = ''
+            c = '' if config.vbwEnabled else c
             # If one of the inputs is a scalar, the operator will broadcast that input.
             if type_A.dim == 0:
                 funcName += 'BroadCastA'
@@ -3616,7 +3616,7 @@ class IRBuilderPosit(IRBuilder):
         if op == "mul":
             assert bitwidthC is None, "Illegal call to getTempBitwidth()"
             biggerBitWidth = max(bitwidthA, bitwidthB)
-            return biggerBitWidth * 2
+            return biggerBitWidth
         elif op == "add":
             assert bitwidthC is not None, "Illegal call to getTempBitwidth()"
             biggerBitWidth = max(bitwidthA, bitwidthB, bitwidthC)

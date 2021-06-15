@@ -31,11 +31,7 @@ class X86Posit(X86):
     def storeFlashSize(self):
         size_full = 0
         bw = config.positBitwidth
-        if bw in [9, 10, 12]:
-            bw = 32
         for var in self.globalVars:
-            if var == 'X':
-                continue
             size = self.decls[var].shape
             size_ = 1
             size_ = reduce(lambda x, y: x*y , size)
@@ -104,7 +100,7 @@ class X86Posit(X86):
         for var in self.globalVars:
             if var + "idx" in self.globalVars and var + "val" in self.globalVars:
                 continue
-            bw = self.varsForBitwidth[var]
+            bw = self.varsForBitwidth[var] if config.vbwEnabled else config.positBitwidth
             
             typ_str = self.getPositType(bw)
             bitwidth_PX2_suffix = self.getPX2Suffix(bw)
@@ -489,7 +485,7 @@ class X86Posit(X86):
                 self.out.printf(")")
                 if i + 1 < len(shape):
                     self.out.printf("+")
-        typ_str = typ_str = self.getPositType(self.varsForBitwidth[ir.e.idf] if config.vbwEnabled else config.positBitwidth) 
+        typ_str = self.getPositType(self.varsForBitwidth[ir.to.idf] if config.vbwEnabled else config.positBitwidth) 
         # if config.vbwEnabled:
         #     if hasattr(self, 'varsForBitwidth'):
         #         # Note ir.to and ir.start are constrained to have the same bit-width.
@@ -499,7 +495,7 @@ class X86Posit(X86):
         typ_str = "float" if forFloat() else typ_str
         self.out.printf('memcpy(', indent=True)
         # If a memory optimized mapping is available for a variable, use that else use original variable name.
-        if Config.x86MemoryOptimize and forFixed() and self.numberOfMemoryMaps in self.scratchSubs:
+        if False and Config.x86MemoryOptimize and self.numberOfMemoryMaps in self.scratchSubs:
             for (a, b, c, d) in [(ir.to.idf, ir.toIndex, 0, ir.to.idx), (ir.start.idf, ir.startIndex, 1, ir.start.idx)]:
                 self.out.printf("((scratch + %d + sizeof(%s)*(", self.scratchSubs[self.numberOfMemoryMaps][a], typ_str)
                 toIndexed = IRUtil.addIndex(IR.Var(""), b)

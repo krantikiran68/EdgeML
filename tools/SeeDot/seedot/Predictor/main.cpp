@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <list>
 #include <cstring>
 #include <cmath>
 #include <cstdlib>
@@ -248,7 +249,7 @@ int main(int argc, char* argv[]) {
 	vector<int32_t**> vector_int_resV;
 	vector<int32_t*> labelsInt;
 	vector<float*> labelsFloat;
-	vector<thread> threads;
+	list<thread> threads;
 
 	MYINT*** features_intV_copy;
 
@@ -373,7 +374,13 @@ int main(int argc, char* argv[]) {
 					}
 				}
 				// Launching one thread which processes one datapoint.
-				threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back(), encoding));
+				if (threads.size() < 64) {
+					threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back(), encoding));
+				} else {
+					threads.front().join();
+					threads.pop_front();
+					threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back(), encoding));
+				}
 			} else if (encoding == Float) {
 				float_res = new float[numOutputs];
 				seedotFloat(features_float, float_res);
@@ -396,8 +403,8 @@ int main(int argc, char* argv[]) {
 		counter++;
 	}
 
-	for (int i = 0; i < threads.size(); i++) {
-		threads[i].join();
+	for (list<thread>::iterator it = threads.begin(); it != threads.end(); it++) {
+		it->join();
 	}
 
 	float disagreements = 0.0, reduced_disagreements = 0.0;

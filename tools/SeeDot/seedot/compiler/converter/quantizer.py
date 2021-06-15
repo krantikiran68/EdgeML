@@ -146,10 +146,13 @@ class Quantizer:
                     writeListAsArray(val, param.name + 'val', self.headerFile, None, bw)
                     writeListAsArray(idx, param.name + 'idx', self.headerFile, None, self.varsForBitwidth[param.name + 'idx'])
                 else:
-                    if hasattr(self, 'varsForBitwidth') and param.name + 'val' in self.varsForBitwidth:
-                        writeListAsArray(val, param.name + 'val', self.headerFile, None, self.varsForBitwidth[param.name + 'val'])
+                    if (getEncoding() == config.Encoding.posit):
+                        writeListAsArray(val, param.name + 'val' + ('_temp' if (not config.vbwEnabled) else ''), self.headerFile)
                     else:
-                        writeListAsArray(val, param.name + 'val', self.headerFile)
+                        if hasattr(self, 'varsForBitwidth') and param.name + 'val' in self.varsForBitwidth:
+                            writeListAsArray(val, param.name + 'val', self.headerFile, None, self.varsForBitwidth[param.name + 'val'])
+                        else:
+                            writeListAsArray(val, param.name + 'val', self.headerFile)
                     if hasattr(self, 'varsForBitwidth') and param.name + 'idx' in self.varsForBitwidth:
                         writeListAsArray(idx, param.name + 'idx', self.headerFile, None, self.varsForBitwidth[param.name + 'idx'])
                     else:

@@ -678,7 +678,15 @@ class MainZeroSkew(Main):
                     acceptedAcc = acc
 
             self.demotedVarsList = [i for i in okToDemote] + [i for i in self.demotedVarsList]
-            f = open("demotedVars", "w")
-            f.write(str(self.demotedVarsList))
-            f.close()
+            print('Demoted Variables: ' + str(self.demotedVarsList))
+            flash_size = 0
+            for var in self.variableToBitwidthMap.keys():
+                if var.startswith('tmp'):
+                    continue
+                else:
+                    if var in self.demotedVarsList:
+                        flash_size += self.varSizes[var] * config.wordLength // 16
+                    else:
+                        flash_size += self.varSizes[var] * config.wordLength // 8
+            print('Flash Size: ' + str(flash_size))
         return True

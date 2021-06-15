@@ -17,7 +17,6 @@ import seedot.compiler.type as Type
 from seedot.util import *
 from seedot.writer import Writer
 from bokeh.plotting import figure, output_file, show
-from functools import reduce
 
 import time
 
@@ -51,20 +50,6 @@ class X86ZeroSkew(X86):
 
         self.paramInNativeBitwidth = paramInNativeBitwidth
 
-    def storeFlashSize(self):
-        size_full = 0
-        for var in self.globalVars:
-            if var == 'X':
-                continue
-            bw = self.varsForBitwidth[var] if config.vbwEnabled else config.wordLength
-            size = self.decls[var].shape
-            size_ = 1
-            size_ = reduce(lambda x, y: x*y , size) 
-            size_full += size_ * bw
-        f = open("flashsize.txt", "w")
-        f.write(str((size_full)//8))
-        f.close()
-
     def printPrefix(self):
         if self.generateAllFiles:
             self.printCincludes()
@@ -72,7 +57,7 @@ class X86ZeroSkew(X86):
             self.printExpTables()
 
         self.printCHeader()
-        self.storeFlashSize()
+
         self.computeScratchLocationsFirstFitPriority() # computeScratchLocations computeScratchLocationsFirstFit computeScratchLocationsFirstFitPriority computeScratchLocationsDLX
 
         self.printModelParamsWithBitwidth()

@@ -1019,7 +1019,7 @@ class IRBuilderPosit(IRBuilder):
             shr_A: "shrA",
             shr_B: "shrB",
             height_shr: "shrC"
-        }) if not self.vbwEnabled else IR.FuncCall("%s<posit%d_t, posit%d_t, posit%d_t, posit%d_t, posit%d_t>"%(funcName, bitwidth_in_A, bitwidth_in_Aid, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
+        }) if not self.vbwEnabled else IR.FuncCall("%s<posit%d_t, int%d_t, posit%d_t, posit%d_t, posit%d_t>"%(funcName, bitwidth_in_A, bitwidth_in_Aid, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
             in_A_idx: "Aidx",
             in_A_val: "Aval",
             expr_in_B: "B",

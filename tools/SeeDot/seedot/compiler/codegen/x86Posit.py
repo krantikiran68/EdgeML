@@ -372,7 +372,6 @@ class X86Posit(X86):
             self.out.printf("}\n", indent=True)
 
     def getPositType(self, bw):
-        getLogger().debug("Always returning based on the value of config.positBitiwidth and not the variable value")
         if bw == 8:
             return "posit8_t"
         if bw == 16:
@@ -382,7 +381,6 @@ class X86Posit(X86):
         return "posit_2_t"
     
     def getConversionFunction(self, bw):
-        getLogger().debug("Always returning based on the value of config.positBitiwidth and not the variable value")
         if bw == 8:
             return "convertDoubleToP8"
         if bw == 16:
@@ -456,7 +454,6 @@ class X86Posit(X86):
         return float_val
     
     def getPX2Suffix(self, bw):
-        getLogger().debug("Always returning based on the value of config.positBitiwidth and not the variable value")
         # bw = config.positBitwidth
         if bw == 8:
             return ""

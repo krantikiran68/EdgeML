@@ -560,7 +560,7 @@ void Exp(TypeA* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, TypeB* B, int demot
 }
 
 template<class TypeA, class TypeAidx, class TypeB, class TypeTemp, class TypeC>
-void SparseMatMulX(const MYINT* Aidx, const posit16_t* Aval, posit16_t** B, posit16_t* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, int demote) {
+void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, int demote) {
 	MYITE ite_idx = 0, ite_val = 0;
 	for (MYITE k = 0; k < K; k++) {
 		TypeTemp b;

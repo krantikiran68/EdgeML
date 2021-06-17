@@ -581,7 +581,7 @@ class IRBuilderPosit(IRBuilder):
             "reverse" + '(' + expr_in.idf + ',' + str(node.axis) + ')', self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
 
-        funcCall = IR.FuncCall('Reverse' + str(len(node.type.shape)), args) if not self.vbwEnabled else IR.FuncCall('Reverse' + str(len(node.type.shape)) + '<int' + str(bitwidth_in) + '_t>', args)
+        funcCall = IR.FuncCall('Reverse' + str(len(node.type.shape)), args) if not self.vbwEnabled else IR.FuncCall('Reverse' + str(len(node.type.shape)) + '<posit' + str(bitwidth_in) + '_t>', args)
 
         prog_funcCall = IR.Prog([comment, funcCall])
 
@@ -842,7 +842,7 @@ class IRBuilderPosit(IRBuilder):
 
         [I, J] = type_in_A.shape
         [J, K] = type_in_B.shape
-        type_treeSum = Type.Tensor([J])
+        type_treeSum = Type.Tensor([])
 
         intv_in_A, intv_in_B = self.varIntervals[expr_in_A.idf], self.varIntervals[expr_in_B.idf]
 
@@ -870,17 +870,16 @@ class IRBuilderPosit(IRBuilder):
         expr_out.inputVar = False
         expr_treeSum.inputVar = False
 
-        if forFixed():
-            self.varsForBitwidth[expr_treeSum.idf] = bitwidth_temp
 
         comment = IR.Comment(expr_in_A.idf + ' * ' + expr_in_B.idf, self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
 
         # Bit-width for temporary variables.
         bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
-        if self.vbwEnabled:
-            self.varsForBitwidth[expr_treeSum.idf] = bitwidth_mul
-
+        
+        self.varsForBitwidth[expr_treeSum.idf] = bitwidth_mul
+        # The temp array in Posits shoudn't be counted in the scratch
+        self.notScratch.append(expr_treeSum.idf)
         # If one variable is already used as a sparse matrix, prevent further use as a dense matrix.
         assert expr_in_A.idf + "idx" not in self.sparseMatrixSizes.keys(), "Cannot use same matrix %s for both sparse and dense multiplication" % expr_in_A.idf
 
@@ -888,7 +887,7 @@ class IRBuilderPosit(IRBuilder):
             expr_in_A: "A",
             expr_in_B: "B",
             expr_out: "C",
-            expr_treeSum: "T",
+            # expr_treeSum: "T",
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(K): "K",
@@ -900,7 +899,7 @@ class IRBuilderPosit(IRBuilder):
             expr_in_A: "A",
             expr_in_B: "B",
             expr_out: "C",
-            expr_treeSum: "T",
+            # expr_treeSum: "T",
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(K): "K",
@@ -2904,12 +2903,7 @@ class IRBuilderPosit(IRBuilder):
         expr_out_idx = IRUtil.addIndex(expr_out, iters_out)
 
         # Adjusting scale in the input and output code.
-        if scale_in > scale_out:
-            cmd2 = IR.Assn(expr_out_idx, IRUtil.shl(expr_in_idx, scale_in - scale_out))
-        elif scale_in < scale_out:
-            cmd2 = IR.Assn(expr_out_idx, IRUtil.shr(expr_in_idx, scale_out - scale_in))
-        else:
-            cmd2 = IR.Assn(expr_out_idx, expr_in_idx)
+        cmd2 = IR.Assn(expr_out_idx, expr_in_idx)
 
         # Compared to right splice iters_out is the index for LHS.
         loop = IRUtil.loop(loopShape, loopIters, loopAssns + [
@@ -2947,11 +2941,21 @@ class IRBuilderPosit(IRBuilder):
             prog_splice = IR.Prog([comment, IR.Memcpy(expr_out, expr_in, np.prod(loopShape), vars_in, [IR.Int(0) for i in range(len(vars_in))])])
         else:
             assert True
+        
+        convertFuncCall = IR.FuncCall("ConvertPosit" + "<posit%d_t, posit%d_t>"%(bw_in, bw_out), {
+            expr_in: "expr_in",
+            expr_out: "expr_out",
+            IR.Int(node.sizes[0]): "I",
+            IR.Int(node.sizes[1]):"J"
+        })
 
         prog_out = IR.Prog([])
         for prog in progs_in:
             prog_out = IRUtil.concatPrograms(prog_out, prog)
-        prog_out = IRUtil.concatPrograms(prog_out, prog_splice)
+        if (not config.vbwEnabled) or (bw_in == bw_out):
+            prog_out = IRUtil.concatPrograms(prog_out, prog_splice) 
+        else:
+            prog_out = IRUtil.concatPrograms(prog_out, IR.Prog([convertFuncCall])) 
 
         # Update declarations.
         for var in iters_out:
@@ -3071,16 +3075,15 @@ class IRBuilderPosit(IRBuilder):
         self.mutableVars.append(idf)
 
         # Update the scale and interval of the mutable variable only during fixed-point code generation.
-        if forFixed():
-            scale, intv = self.readProfileForMutableVars(idf)
-            bitwidth, _ = self.getBitwidthAndScale(idf) # (init 0 default scale currently stored in varScales which has to be overwritten).
-            if bitwidth != config.wordLength:
-                idfs = idf
-                while idfs in self.substitutions.keys():
-                    idfs = self.substitutions[idfs]
-                scale += config.wordLength // 2 + self.demotedVarsOffsets[idfs]
-            self.varScales[idf] = scale
-            self.varIntervals[idf] = intv
+        scale, intv = self.readProfileForMutableVars(idf)
+        bitwidth, _ = self.getBitwidthAndScale(idf) # (init 0 default scale currently stored in varScales which has to be overwritten).
+        if bitwidth != config.wordLength:
+            idfs = idf
+            while idfs in self.substitutions.keys():
+                idfs = self.substitutions[idfs]
+            scale += config.wordLength // 2 + self.demotedVarsOffsets[idfs]
+        self.varScales[idf] = scale
+        self.varIntervals[idf] = intv
 
         prevVarDecls = dict(self.varDeclarations)
 

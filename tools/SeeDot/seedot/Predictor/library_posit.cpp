@@ -166,7 +166,7 @@ void MatSubBroadCastB(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, M
 }
 
 // C = A * B
-void MatMulNN(posit8_t* A, posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulNN(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	quire8_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -214,7 +214,7 @@ void MatMulNN(posit8_t* A, posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT I, MYI
 }
 
 // C = A * B
-void MatMulCN(const posit8_t* A, posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulCN(const posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	quire8_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -262,7 +262,7 @@ void MatMulCN(const posit8_t* A, posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT 
 }
 
 // C = A * B
-void MatMulNC(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulNC(posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	quire8_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -310,7 +310,7 @@ void MatMulNC(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT 
 }
 
 // C = A * B
-void MatMulCC(const posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulCC(const posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	quire8_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -1141,7 +1141,7 @@ void MatSubBroadCastB(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J
 }
 
 // C = A * B
-void MatMulNN(posit16_t* A, posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulNN(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	quire16_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -1189,7 +1189,7 @@ void MatMulNN(posit16_t* A, posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT I,
 }
 
 // C = A * B
-void MatMulCN(const posit16_t* A, posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulCN(const posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	quire16_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -1237,7 +1237,7 @@ void MatMulCN(const posit16_t* A, posit16_t* B, posit16_t* C, posit16_t* tmp, MY
 }
 
 // C = A * B
-void MatMulNC(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulNC(posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	quire16_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -1285,7 +1285,7 @@ void MatMulNC(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MY
 }
 
 // C = A * B
-void MatMulCC(const posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulCC(const posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	quire16_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -2118,7 +2118,7 @@ void MatSubBroadCastB(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J
 }
 
 // C = A * B
-void MatMulNN(posit32_t* A, posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulNN(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	quire32_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -2166,7 +2166,7 @@ void MatMulNN(posit32_t* A, posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT I,
 }
 
 // C = A * B
-void MatMulCN(const posit32_t* A, posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulCN(const posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	quire32_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -2214,7 +2214,7 @@ void MatMulCN(const posit32_t* A, posit32_t* B, posit32_t* C, posit32_t* tmp, MY
 }
 
 // C = A * B
-void MatMulNC(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulNC(posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	quire32_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -2262,7 +2262,7 @@ void MatMulNC(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MY
 }
 
 // C = A * B
-void MatMulCC(const posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulCC(const posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
 	quire32_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -3095,7 +3095,7 @@ void MatSubBroadCastB(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J
 }
 
 // C = A * B
-void MatMulNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+void MatMulNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
 	quire_2_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -3143,7 +3143,7 @@ void MatMulNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT I,
 }
 
 // C = A * B
-void MatMulCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+void MatMulCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
 	quire_2_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -3191,7 +3191,7 @@ void MatMulCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MY
 }
 
 // C = A * B
-void MatMulNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+void MatMulNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
 	quire_2_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -3239,7 +3239,7 @@ void MatMulNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MY
 }
 
 // C = A * B
-void MatMulCC(const posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+void MatMulCC(const posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
 	quire_2_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {

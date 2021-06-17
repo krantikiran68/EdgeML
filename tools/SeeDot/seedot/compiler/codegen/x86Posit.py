@@ -100,6 +100,8 @@ class X86Posit(X86):
         for var in self.globalVars:
             if var + "idx" in self.globalVars and var + "val" in self.globalVars:
                 continue
+            if var[-3:] == 'idx' and not config.vbwEnabled:
+                continue
             bw = self.varsForBitwidth[var] if config.vbwEnabled else config.positBitwidth
             if var[-3:] == 'idx':
                 typ_str = "int%d_t"%bw

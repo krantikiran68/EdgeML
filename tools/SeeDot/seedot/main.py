@@ -506,17 +506,6 @@ class Main:
                         okToDemote = demotedVars
                         acceptedAcc = acc
 
-                print('Demoted Variables: ' + str(okToDemote))
-                flash_size = 0
-                for var in self.variableToBitwidthMap.keys():
-                    if var.startswith('tmp'):
-                        continue
-                    else:
-                        if var in okToDemote:
-                            flash_size += self.varSizes[var] * config.wordLength // 16
-                        else:
-                            flash_size += self.varSizes[var] * config.wordLength // 8
-                print('Flash Size: ' + str(flash_size))
                 self.demotedVarsList = [i for i in okToDemote] + [i for i in self.demotedVarsList]
                 self.demotedVarsOffsets.update(demotedVarsListToOffsets.get(okToDemote, {}))
 

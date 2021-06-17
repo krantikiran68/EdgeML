@@ -66,6 +66,9 @@ void AdjustScaleShl(posit8_t* A, MYINT I, MYINT J, MYINT scale);
 void Reverse2(posit8_t* A, MYINT axis, MYINT I, MYINT J, posit8_t* B);
 
 void NormaliseL2(posit8_t* A, posit8_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA);
+posit8_t operator-(const posit8_t& a);
+bool operator>(const posit8_t& a, const int& b);
+void MatAddInplace(posit8_t* A, posit8_t* B, MYINT I, MYINT J);
 
 
 void MatAddNN(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
@@ -128,7 +131,9 @@ void AdjustScaleShl(posit16_t* A, MYINT I, MYINT J, MYINT scale);
 void Reverse2(posit16_t* A, MYINT axis, MYINT I, MYINT J, posit16_t* B);
 
 void NormaliseL2(posit16_t* A, posit16_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA);
-
+posit16_t operator-(const posit16_t& a);
+bool operator>(const posit16_t& a, const int& b);
+void MatAddInplace(posit16_t* A, posit16_t* B, MYINT I, MYINT J);
 
 void MatAddNN(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
 void MatAddCN(const posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
@@ -190,6 +195,9 @@ void AdjustScaleShl(posit32_t* A, MYINT I, MYINT J, MYINT scale);
 void Reverse2(posit32_t* A, MYINT axis, MYINT I, MYINT J, posit32_t* B);
 
 void NormaliseL2(posit32_t* A, posit32_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA);
+posit32_t operator-(const posit32_t& a);
+bool operator>(const posit32_t& a, const int& b);
+void MatAddInplace(posit32_t* A, posit32_t* B, MYINT I, MYINT J);
 
 
 
@@ -253,7 +261,7 @@ void AdjustScaleShl(posit_2_t* A, MYINT I, MYINT J, MYINT scale, int bitwidth);
 void Reverse2(posit_2_t* A, MYINT axis, MYINT I, MYINT J, posit_2_t* B, int bitwidth);
 
 void NormaliseL2(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA, int bitwidth);
-
+void MatAddInplace(posit_2_t* A, posit_2_t* B, MYINT I, MYINT J, int bw);
 
 void convertPosit(posit8_t* a, posit8_t *b);
 
@@ -365,7 +373,7 @@ void MatSub(TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, in
 			TypeTemp a;
             convertPosit(&A[i * J + j], &a);
 			TypeTemp b;
-            convertPosit(&B[i * J + j], &b);
+            convertPosit(const_cast<TypeB*>(&B[i * J + j]), &b);
 
 			TypeTemp c = positSub(a, b);
 
@@ -537,4 +545,91 @@ void TanH(TypeA* A, MYINT I, MYINT J, MYINT scale_in, MYINT scale_out, TypeA* B)
 	return;
 }
 
+template<typename TypeA, typename TypeB>
+void Exp(TypeA* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, TypeB* B, int demote) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			TypeA x = A[i * J + j];
 
+			updateRangeOfExp(-1*convertPositToDouble(x));
+
+			convertDoubleToPosit(exp(convertPositToDouble(x)), &B[i * J + j]);
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeAidx, class TypeB, class TypeTemp, class TypeC>
+void SparseMatMulX(const MYINT* Aidx, const posit16_t* Aval, posit16_t** B, posit16_t* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, int demote) {
+	MYITE ite_idx = 0, ite_val = 0;
+	for (MYITE k = 0; k < K; k++) {
+		TypeTemp b;
+		convertPosit(&B[k * 1][0], &b);
+
+		TypeAidx idx = Aidx[ite_idx];
+		while (idx != 0) {
+			TypeTemp a;
+			convertPosit(const_cast<TypeA*>(&Aval[ite_val]), &a);
+
+			TypeTemp c = positMul(a, b);
+			TypeTemp c2;
+			convertPosit(&C[idx - 1], &c2);
+			c = positAdd(c2, c);
+			convertPosit(&c, &C[idx - 1]);
+
+			ite_idx++;
+			ite_val++;
+
+			idx = Aidx[ite_idx];
+		}
+		ite_idx++;
+	}
+
+	return;
+}
+
+// C = A |*| B
+template<class TypeA, class TypeAidx, class TypeB, class TypeTemp, class TypeC>
+void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, int demote) {
+	MYITE ite_idx = 0, ite_val = 0;
+	for (MYITE k = 0; k < K; k++) {
+		TypeTemp b;
+		convertPosit(&B[k], &b);
+
+		TypeAidx idx = Aidx[ite_idx];
+		while (idx != 0) {
+			TypeTemp a;
+			convertPosit(const_cast<TypeA*>(&Aval[ite_val]), &a);
+
+			TypeTemp c = positMul(a, b);
+			TypeTemp c2;
+			c = positAdd(c2, c);
+			convertPosit(TypeTemp(&C[idx - 1]), &c2);
+			convertPosit(&c, &C[idx - 1]);
+
+			ite_idx++;
+			ite_val++;
+
+			idx = Aidx[ite_idx];
+		}
+		ite_idx++;
+	}
+
+	return;
+}
+
+template<typename TypeA, typename TypeB, typename TypeTemp>
+void MatAddInplace(TypeA* A, TypeB* B, MYINT I, MYINT J) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			TypeTemp a, b;
+			convertPosit(&A[i * J + j], &a);
+			convertPosit(&B[i * J + j], &b);
+
+			TypeTemp c = positAdd(a, b);
+
+			convertPosit(&c, &A[i * J + j]);
+		}
+	}
+	return;
+}

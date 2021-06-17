@@ -100,10 +100,11 @@ class X86Posit(X86):
         for var in self.globalVars:
             if var + "idx" in self.globalVars and var + "val" in self.globalVars:
                 continue
-            if var[-3:] == 'idx':
-                continue
             bw = self.varsForBitwidth[var] if config.vbwEnabled else config.positBitwidth
-            typ_str = self.getPositType(bw)
+            if var[-3:] == 'idx':
+                typ_str = "int%d_t"%bw
+            else:
+                typ_str = self.getPositType(bw)
             bitwidth_PX2_suffix = self.getPX2Suffix(bw)
             conversion_func = self.getConversionFunction(bw)
 
@@ -128,7 +129,10 @@ class X86Posit(X86):
                     self.out.increaseIndent()
 
                 indexstr = ''.join("[i" + str(i) + "]" for i in range(len(size)))
-                self.out.printf(var + indexstr + " = " + conversion_func + "(" + var + "_temp" + indexstr + bitwidth_PX2_suffix +  ")" + ";\n", indent = True)
+                if var[-3:] == 'idx':
+                    self.out.printf(var + indexstr + " = " + var + "_temp" + indexstr + ";\n", indent = True)
+                else:
+                    self.out.printf(var + indexstr + " = " + conversion_func + "(" + var + "_temp" + indexstr + bitwidth_PX2_suffix +  ")" + ";\n", indent = True)
 
                 for i in range(len(size)):
                     self.out.decreaseIndent()
@@ -343,8 +347,10 @@ class X86Posit(X86):
                         x = -1
                 else:
                     x = 0
-
-                typeCast = "(%s*)" % self.getPositType(self.varsForBitwidth[arg.idf]) if x > 0 else ""
+                if isinstance(arg, IR.Var) and arg.idf[-3:] == 'idx': 
+                    typeCast = "(int%d_t*)" % self.varsForBitwidth[arg.idf] if x > 0 else ""
+                else:
+                    typeCast = "(%s*)" % self.getPositType(self.varsForBitwidth[arg.idf]) if x > 0 else ""
                 self.out.printf(typeCast)
 
                 if self.currentMemMap not in self.scratchSubs or not (isinstance(arg, IR.Var) and arg.idf in self.scratchSubs[self.currentMemMap]):

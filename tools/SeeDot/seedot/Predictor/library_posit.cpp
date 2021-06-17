@@ -4092,3 +4092,96 @@ quire32_t positFMA(quire32_t q, posit32_t a, posit32_t b)
 {
 	return q32_fdp_add(q, a, b);
 }
+
+posit8_t operator-(const posit8_t& a)
+{
+	posit8_t b;
+	b = convertDoubleToP8(-1*convertP8ToDouble(a));
+	return b;
+}
+
+posit16_t operator-(const posit16_t& a)
+{
+	posit16_t b;
+	b = convertDoubleToP16(-1*convertP16ToDouble(a));
+	return b;
+}
+
+posit32_t operator-(const posit32_t& a)
+{
+	posit32_t b;
+	b = convertDoubleToP32(-1*convertP32ToDouble(a));
+	return b;
+}
+
+
+void MatAddInplace(posit8_t* A, posit8_t* B, MYINT I, MYINT J) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit8_t a = A[i * J + j];
+			posit8_t b = B[i * J + j];
+
+			posit8_t c = p8_add(a, b);
+
+			A[i * J + j] = c;
+		}
+	}
+	return;
+}
+
+void MatAddInplace(posit16_t* A, posit16_t* B, MYINT I, MYINT J) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit16_t a = A[i * J + j];
+			posit16_t b = B[i * J + j];
+
+			posit16_t c = p16_add(a, b);
+
+			A[i * J + j] = c;
+		}
+	}
+	return;
+}
+
+void MatAddInplace(posit32_t* A, posit32_t* B, MYINT I, MYINT J) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit32_t a = A[i * J + j];
+			posit32_t b = B[i * J + j];
+
+			posit32_t c = p32_add(a, b);
+
+			A[i * J + j] = c;
+		}
+	}
+	return;
+}
+
+void MatAddInplace(posit_2_t* A, posit_2_t* B, MYINT I, MYINT J, int bitwidth) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			posit_2_t a = A[i * J + j];
+			posit_2_t b = B[i * J + j];
+
+			posit_2_t c = pX2_add(a, b, bitwidth);
+
+			A[i * J + j] = c;
+		}
+	}
+	return;
+}
+
+bool operator>(const posit8_t& a, const int& b)
+{
+	return p8_lt(convertDoubleToP8(double(b)), a);
+}
+
+bool operator>(const posit16_t& a, const int& b)
+{
+	return p16_lt(convertDoubleToP16(double(b)), a);
+}
+
+bool operator>(const posit32_t& a, const int& b)
+{
+	return p32_lt(convertDoubleToP32(double(b)), a);
+}

@@ -637,12 +637,11 @@ class IRBuilderPosit(IRBuilder):
             bitwidth_out, scale_out = self.getBitwidthAndScale(expr_in.idf)
 
             # If the input variable is demoted to lower bit-width, demote the output as well as no extra information can be stored in the extra bits.
-            if forFixed():
-                self.varsForBitwidth[expr_out.idf] = bitwidth_out
-                if bitwidth_out != config.wordLength:
-                    self.demotedVarsList.append(expr_out.idf)
-                    self.demotedVarsOffsets[expr_out.idf] = self.demotedVarsOffsets[expr_in.idf]
-
+            self.varsForBitwidth[expr_out.idf] = bitwidth_out
+            if bitwidth_out != config.wordLength:
+                self.demotedVarsList.append(expr_out.idf)
+                self.demotedVarsOffsets[expr_out.idf] = self.demotedVarsOffsets[expr_in.idf]
+            
             (m, M) = self.varIntervals[expr_in.idf]
             intv_out = (-M, -m)
 
@@ -3019,16 +3018,18 @@ class IRBuilderPosit(IRBuilder):
 
         # Adjusting scale of input and output in the fixed-point code.
         cmd1 = IR.Memset(expr_out, type_out.size())
-        if self.ddsEnabled:
-            if scale_raw > scale_out:
-                cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shr(IRUtil.shl(expr_in_idx, scale_raw - scale_out), height_shr)))
-            elif scale_raw < scale_out:
-                cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shr(IRUtil.shr(expr_in_idx, scale_out - scale_raw), height_shr)))
-            else:
-                cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shr(expr_in_idx, height_shr)))
-        else:
-            cmd2 = IR.Assn(expr_out_idx, IRUtil.add(expr_out_idx, IRUtil.shr(expr_in_idx, height_shr)))
-        treeSum = IRUtil.loop(type_out.shape, iters, [cmd2])
+        matAddComment = IR.Comment("For loop replaced by MatAdd", self.counter_inst)
+        cmd2 = IR.FuncCall("MatAddInplace", {
+                    expr_out: "A",
+                    expr_in: "B",
+                    IR.Int(type_out.shape[0]): "I",
+                    IR.Int(type_out.shape[1]): "J",
+                }) if not self.vbwEnabled else IR.FuncCall("MatAddInplace" + ("<posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_out, bitwidth_in, self.getTempBitwidth(bitwidth_out, bitwidth_in, "add", bitwidth_out))), {
+                    expr_out: "A",
+                    expr_in: "B",
+                    IR.Int(type_out.shape[0]): "I",
+                    IR.Int(type_out.shape[1]): "J",
+                })
 
         assert type_out.dim == 2, "Only 2 dim Summation supported for now due to laziness of programmer"
         if forFloat():
@@ -3045,7 +3046,7 @@ class IRBuilderPosit(IRBuilder):
         prog_sum = [cmd1,
                     IR.Assn(var, IR.Int(start)),
                     IR.For(var_iter, 0, IRUtil.lt(var_iter, IR.Int(end - start)),
-                           prog_in.cmd_l + treeSum + (profile if forFloat() and self.ddsEnabled else []) + [IR.Assn(var, IRUtil.inc(var))])
+                           prog_in.cmd_l + [matAddComment, cmd2] + (profile if forFloat() and self.ddsEnabled else []) + [IR.Assn(var, IRUtil.inc(var))])
                     ]
 
         self.updateLiveRange([expr_in, expr_out])

@@ -7,10 +7,10 @@ It also contains the various classes for CLI arguments.
 '''
 
 # Target word length. Currently set to match the word length of Arduino (2 bytes).
-wordLength = 8# int(open("positBw.txt").read())
+wordLength = 16# int(open("positBw.txt").read())
 availableBitwidths = [8, 16, 32]
 
-positBitwidth = wordLength
+positBitwidth = 8
 positBitwidths = [8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,32]
 
 # Range of max scale factor used for exploration.

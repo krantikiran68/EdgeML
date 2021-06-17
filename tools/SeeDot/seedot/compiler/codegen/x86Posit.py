@@ -539,7 +539,7 @@ class X86Posit(X86):
                 bw = 16
             else:
                 bw = 32
-        return (size*bw)//8
+        return (size * bw) // 8
         
 
     def computeScratchLocationsFirstFitPriority(self):

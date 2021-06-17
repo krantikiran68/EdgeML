@@ -527,12 +527,13 @@ class X86Posit(X86):
         self.out.printf(', sizeof(%s) * %d);\n' % (typ_str, ir.length))
     
     def bitSizeToPositSize(self, size, bw):
-        # if config.positBitwidth == 8:
-        #     bw = 8
-        # elif config.positBitwidth == 16:
-        #     bw = 16
-        # else:
-        #     bw = 32
+        if not config.vbwEnabled:
+            if config.positBitwidth == 8:
+                bw = 8
+            elif config.positBitwidth == 16:
+                bw = 16
+            else:
+                bw = 32
         return (size*bw)//8
         
 

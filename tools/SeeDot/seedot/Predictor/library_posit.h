@@ -301,7 +301,6 @@ posit8_t positSqrt(posit8_t a);
 posit16_t positSqrt(posit16_t a);
 posit32_t positSqrt(posit32_t a);
 
-
 bool positLT(posit8_t a, posit8_t b);
 bool positLT(posit16_t a, posit16_t b);
 bool positLT(posit32_t a, posit32_t b);
@@ -384,13 +383,13 @@ void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 // TODO: shrB is int32_t because in 8-bit/16-bit code, shrB is usually very high and int8_t/int16_t will overflow.
-void MatSub(TypeA* A, const TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, int32_t shrB, MYINT shrC, MYINT demote) {
+void MatSub(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, int32_t shrB, MYINT shrC, MYINT demote) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a;
             convertPosit(&A[i * J + j], &a);
 			TypeTemp b;
-            convertPosit(const_cast<TypeB*>(&B[i * J + j]), &b);
+            convertPosit((&B[i * J + j]), &b);
 
 			TypeTemp c = positSub(a, b);
 
@@ -577,7 +576,7 @@ void Exp(TypeA* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, TypeB* B, int demot
 }
 
 template<class TypeA, class TypeAidx, class TypeB, class TypeTemp, class TypeC>
-void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, int demote) {
+void SparseMatMulX(const TypeAidx* Aidx, TypeA* Aval, TypeB** B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, int demote) {
 	MYITE ite_idx = 0, ite_val = 0;
 	for (MYITE k = 0; k < K; k++) {
 		TypeTemp b;
@@ -586,7 +585,7 @@ void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C,
 		TypeAidx idx = Aidx[ite_idx];
 		while (idx != 0) {
 			TypeTemp a;
-			convertPosit(const_cast<TypeA*>(&Aval[ite_val]), &a);
+			convertPosit((&Aval[ite_val]), &a);
 
 			TypeTemp c = positMul(a, b);
 			TypeTemp c2;
@@ -607,7 +606,7 @@ void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C,
 
 // C = A |*| B
 template<class TypeA, class TypeAidx, class TypeB, class TypeTemp, class TypeC>
-void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, int demote) {
+void SparseMatMul(const TypeAidx* Aidx, TypeA* Aval, TypeB* B, TypeC* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, int demote) {
 	MYITE ite_idx = 0, ite_val = 0;
 	for (MYITE k = 0; k < K; k++) {
 		TypeTemp b;
@@ -616,7 +615,7 @@ void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, i
 		TypeAidx idx = Aidx[ite_idx];
 		while (idx != 0) {
 			TypeTemp a;
-			convertPosit(const_cast<TypeA*>(&Aval[ite_val]), &a);
+			convertPosit((&Aval[ite_val]), &a);
 
 			TypeTemp c = positMul(a, b);
 			TypeTemp c2;
@@ -678,7 +677,7 @@ void ConvertPosit(TypeA* A, TypeB* B, MYITE I, MYITE J)
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class QuireType, class TypeC>
-void Convolution(TypeA* A, const TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G) {
+void Convolution(TypeA* A, TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G) {
 	MYITE HOffsetL = HDL*(HF/2) - HPADL;
 	MYITE WOffsetL = WDL*(WF/2) - WPADL;
 	MYITE HOffsetR = HDL*(HF/2) - HPADR;
@@ -706,7 +705,7 @@ void Convolution(TypeA* A, const TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, 
 										convertPosit(&A[n * H * W * CIN + (h + HDL * hf) * W * CIN + (w + WDL * wf) * CIN + (ci + g * CINF)], &a);
 									}
 
-									convertPosit(const_cast<TypeB*>(&B[g * HF * WF * CINF * COUTF + (hf + HF / 2) * WF * CINF * COUTF + (wf + WF / 2) * CINF * COUTF + ci * COUTF + co]), &b);
+									convertPosit((&B[g * HF * WF * CINF * COUTF + (hf + HF / 2) * WF * CINF * COUTF + (wf + WF / 2) * CINF * COUTF + ci * COUTF + co]), &b);
 
 									quire = positFMA(quire, a, b);
 									counter++;
@@ -723,7 +722,7 @@ void Convolution(TypeA* A, const TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, 
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class QuireType, class TypeC>
-void Conv(TypeA* A, const TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO) {
+void Conv(TypeA* A, TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO) {
 	MYITE padH = (HF - 1) / 2;
 	MYITE padW = (WF - 1) / 2;
 
@@ -749,7 +748,7 @@ void Conv(TypeA* A, const TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, MYINT C
 									convertPosit(&A[n * H * W * CI + ((h + hf) - padH) * W * CI + ((w + wf) - padW) * CI + ci], &a);
 								}
 
-								convertPosit(const_cast<TypeB*>(&B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co]), &b);
+								convertPosit((&B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co]), &b);
 
 								quire = positFMA(quire, a, b);
 								counter++;
@@ -784,18 +783,18 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 					qU = clearQuire(qU);
 					for (MYITE l = 0; l < Cin; l++) {
 						TypeU a, f1;
-						converPosit(&A[n * H * W * Cin + i * W * Cin + j * Cin + l], &a);
+						convertPosit(&A[n * H * W * Cin + i * W * Cin + j * Cin + l], &a);
 						convertPosit(&F1[l * Ct + k], &f1);
 						qU = positFMA(qU, a, f1);
 					}
 
 					TypeU u_tmp = convertQuireToPosit(qU);
 					TypeUB1W u0_tmp, bn1b, bn1w;
-					convertPosit(&u_tmp, u0_tmp);
+					convertPosit(&u_tmp, &u0_tmp);
 					convertPosit(&BN1B[k], &bn1b);
 					convertPosit(&BN1W[k], &bn1w);
 					TypeUB1W x;
-					x = (positAdd(u0_tmp, bn1b)), bn1w);
+					x = positMul(positAdd(u0_tmp, bn1b), bn1w);
 					
 					TypeUB1W zero, six;
 					convertDoubleToPosit(0.0, &zero);
@@ -815,13 +814,13 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 				for (MYITE j = 0; j < W; j++) {
 					for (MYITE k = 0; k < Ct; k++) {
 						MYITE iRed = (i + margin + hout * HSTR) % HF, iFull = i + margin + hout * HSTR;
-						TypeX zero;
-						convertDoubleToPosit(0.0, &zero);
-						X[iRed * W * Ct + j * Ct + k] = zero;
+						TypeX zero_x;
+						convertDoubleToPosit(0.0, &zero_x);
+						X[iRed * W * Ct + j * Ct + k] = zero_x;
 						qU = clearQuire(qU);
 						for (MYITE l = 0; l < Cin; l++) {
 							TypeA a_a;
-							convertDoubleToPosit(0.0, &a);
+							convertDoubleToPosit(0.0, &a_a);
 							a_a = iFull < H ? A[n * H * W * Cin + iFull * W * Cin + j * Cin + l] : a_a;
 							TypeU a_u, f1_u;
 							convertPosit(&a_a, &a_u);
@@ -831,11 +830,11 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 						
 						TypeU u_tmp = convertQuireToPosit(qU);
 						TypeUB1W u0_tmp, bn1b, bn1w;
-						convertPosit(&u_tmp, u0_tmp);
+						convertPosit(&u_tmp, &u0_tmp);
 						convertPosit(&BN1B[k], &bn1b);
 						convertPosit(&BN1W[k], &bn1w);
 						TypeUB1W x;
-						x = (positAdd(u0_tmp, bn1b)), bn1w);
+						x = positMul(positAdd(u0_tmp, bn1b), bn1w);
 						
 						TypeUB1W zero, six;
 						convertDoubleToPosit(0.0, &zero);
@@ -861,8 +860,8 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 							TypeF2 b_f2 = F2[g * HF * WF + (hf + HF / 2) * WF + (wf + WF / 2)];
 							TypeU x_u, b_u;
 							convertPosit(&x_x, &x_u);
-							convertPosit(&b_f2, &b_u)
-							qU = positFMA(qU, x_u, b_u):
+							convertPosit(&b_f2, &b_u);
+							qU = positFMA(qU, x_u, b_u);
 							counter++;
 						}
 					}
@@ -893,8 +892,8 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 					TypeU u_u = convertQuireToPosit(qU);
 					TypeUB3W u_ub3w, bn3b_ub3w, bn3w_ub3w;
 					convertPosit(&u_u, &u_ub3w);
-					convertPosit(&BN3B[g], &bn3b_ub3w);
-					convertPosit(&BN3W[g], &bn3w_ub3w);
+					convertPosit(&BN3B[i], &bn3b_ub3w);
+					convertPosit(&BN3W[i], &bn3w_ub3w);
 
 					TypeUB3W c_ub3w = positMul(positAdd(u_ub3w, bn3b_ub3w), bn3w_ub3w);
 					convertPosit(&c_ub3w, &C[n * Hout * Wout * Cout + hout * Wout * Cout + wout * Cout + i]);
@@ -907,7 +906,7 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 // A = A <+> B
 // A[N][H][W][C], B[C]
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void AddOrSubCir4D(TypeA* A, const TypeB* B, TypeC* X, MYINT N, MYINT H, MYINT W, MYINT C, bool add) {
+void AddOrSubCir4D(TypeA* A, TypeB* B, TypeC* X, MYINT N, MYINT H, MYINT W, MYINT C, bool add) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -932,7 +931,7 @@ void AddOrSubCir4D(TypeA* A, const TypeB* B, TypeC* X, MYINT N, MYINT H, MYINT W
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void AddOrSubCir2D(TypeA* A, const TypeB* B, TypeC* X, MYINT H, MYINT W, bool add) {
+void AddOrSubCir2D(TypeA* A, TypeB* B, TypeC* X, MYINT H, MYINT W, bool add) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			TypeTemp a, b;
@@ -975,19 +974,20 @@ void Relu4D(TypeA* A, MYINT N, MYINT H, MYINT W, MYINT C) {
 }
 
 template<class TypeA, class TypeB>
-void Relu6(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, int six) {
+void Relu6(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C) {
+	TypeA zero, six_a;
+	convertDoubleToPosit(6.0, &six_a);
+	convertDoubleToPosit(0.0, &zero);
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
 				for (MYITE c = 0; c < C; c++) {
-					TypeA zero, six_a;
-					convertDoubleToPosit(six, &six_a);
 					TypeA a = A[n * H * W * C + h * W * C + w * C + c];
 					if (positLT(a, zero)) {
 						a = zero;
 					}
-					if (positLT(six, a)) {
-						a = six;
+					if (positLT(six_a, a)) {
+						a = six_a;
 					}
 					convertPosit(&a, &B[n * H * W * C + h * W * C + w * C + c]);
 				}
@@ -1075,3 +1075,22 @@ void NormaliseL2(TypeA* A, TypeA* B, MYINT N, MYINT H, MYINT W, MYINT C) {
 	return;
 }
 
+template<class TypeA, class TypeB, class TypeTemp, class TypeX>
+void MatAdd4(TypeA* A, TypeB* B, TypeX* X, MYINT N, MYINT H, MYINT W, MYINT C) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					TypeTemp a,b;
+					convertPosit(&A[n * H * W * C + h * W * C + w * C + c], &a);
+					convertPosit(&B[n * H * W * C + h * W * C + w * C + c], &b);
+
+					TypeTemp x = positAdd(a, b);
+
+					convertPosit(&x, &X[n * H * W * C + h * W * C + w * C + c]);
+				}
+			}
+		}
+	}
+	return;
+}

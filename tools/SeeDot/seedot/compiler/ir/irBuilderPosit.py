@@ -468,7 +468,6 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(padding[1]): "HPADR",
             IR.Int(padding[2]): "WPADL",
             IR.Int(padding[3]): "WPADR",
-            IR.Int(demote): "demote"
         })
 
         self.counter_inst += 1
@@ -1572,14 +1571,6 @@ class IRBuilderPosit(IRBuilder):
         if scale_out is None:
             scale_out = scale_out_unadjusted
 
-        demoteLog = shr_out - 8 if shr_out >= 8 else 0
-        shr_out = min(shr_out, 8)
-        irdemote = self.formatShr(demoteLog)
-
-        shr_A = self.formatShr(shr_A)
-        shr_B = self.formatShr(shr_B)
-        shr_out = self.formatShr(shr_out)
-
         expr_in_A.inputVar = False
         expr_in_B.inputVar = False
         expr_out.inputVar = False
@@ -1599,9 +1590,6 @@ class IRBuilderPosit(IRBuilder):
                 IR.Int(H): "H",
                 IR.Int(W): "W",
                 IR.Int(C): "C",
-                shr_A: "shrA",
-                shr_B: "shrB",
-                shr_out: "shrC",
                 IR.Bool(add): "add"
             }) if not self.vbwEnabled else IR.FuncCall("AddOrSubCir4D" + ("<posit%d_t, posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_in_A, bitwidth_in_B, self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add", bitwidth_out), bitwidth_out)), {
                 expr_in_A: "A",
@@ -1611,11 +1599,7 @@ class IRBuilderPosit(IRBuilder):
                 IR.Int(H): "H",
                 IR.Int(W): "W",
                 IR.Int(C): "C",
-                shr_A: "shrA",
-                shr_B: "shrB",
-                shr_out: "shrC",
-                IR.Bool(add): "add",
-                irdemote: "demote"
+                IR.Bool(add): "add"
             })
             profile = IR.FuncCall("Profile4", {
                 expr_out: "Var",
@@ -1633,9 +1617,6 @@ class IRBuilderPosit(IRBuilder):
                 expr_out: "X",
                 IR.Int(H): "H",
                 IR.Int(W): "W",
-                shr_A: "shrA",
-                shr_B: "shrB",
-                shr_out: "shrC",
                 IR.Bool(add): "add"
             }) if not self.vbwEnabled else IR.FuncCall("AddOrSubCir2D" + ("<posit%d_t, posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_in_A, bitwidth_in_B, self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add", bitwidth_out), bitwidth_out)), {
                 expr_in_A: "A",
@@ -1643,11 +1624,7 @@ class IRBuilderPosit(IRBuilder):
                 expr_out: "X",
                 IR.Int(H): "H",
                 IR.Int(W): "W",
-                shr_A: "shrA",
-                shr_B: "shrB",
-                shr_out: "shrC",
-                IR.Bool(add): "add",
-                irdemote: "demote"
+                IR.Bool(add): "add"
             })
             profile = IR.FuncCall("Profile2", {
                 expr_out: "Var",
@@ -1818,10 +1795,7 @@ class IRBuilderPosit(IRBuilder):
                     IR.Int(N): "N",
                     IR.Int(H): "H",
                     IR.Int(W): "W",
-                    IR.Int(C): "C",
-                    shr_A: "shrA",
-                    shr_B: "shrB",
-                    shr_out: "shrC",
+                    IR.Int(C): "C"
                 }) if not self.vbwEnabled else IR.FuncCall(funcName + "4" + ("<posit%d_t, posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_in_A, bitwidth_in_B, self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add", bitwidth_out), bitwidth_out)), {
                     expr_in_A: "A",
                     expr_in_B: "B",
@@ -1829,11 +1803,7 @@ class IRBuilderPosit(IRBuilder):
                     IR.Int(N): "N",
                     IR.Int(H): "H",
                     IR.Int(W): "W",
-                    IR.Int(C): "C",
-                    shr_A: "shrA",
-                    shr_B: "shrB",
-                    shr_out: "shrC",
-                    irdemote: "demote"
+                    IR.Int(C): "C"
                 })
 
             self.counter_inst += 1
@@ -1968,18 +1938,14 @@ class IRBuilderPosit(IRBuilder):
                 IR.Int(N): "N",
                 IR.Int(H): "H",
                 IR.Int(W): "W",
-                IR.Int(C): "C",
-                IR.Int(scale_in): "scaleA",
-                IR.Int(bw_in/2): "shrA"
+                IR.Int(C): "C"
             }) if not self.vbwEnabled else IR.FuncCall("NormaliseL2<posit%d_t>"%(bw_in), {
                 expr_in: "A",
                 expr_out: "B",
                 IR.Int(N): "N",
                 IR.Int(H): "H",
                 IR.Int(W): "W",
-                IR.Int(C): "C",
-                IR.Int(scale_in): "scaleA",
-                IR.Int(bw_in/2): "shrA"
+                IR.Int(C): "C"
             })
         else:
             assert False, "inverseL2Norm only supports 4D tensors."
@@ -2061,8 +2027,7 @@ class IRBuilderPosit(IRBuilder):
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
         # Scaling hyperparameters in the fixed-point code.
-        divide = 2 ** (scale_out - scale_in)
-        cap = 6 * (2 ** -scale_in)
+        # cap = 6 * (2 ** -scale_in)
 
         expr_in.inputVar = False
 
@@ -2078,8 +2043,7 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(H): "H",
             IR.Int(W): "W",
             IR.Int(C): "C",
-            IR.Int(cap): "six",
-            IR.Int(divide): "div"
+            # IR.Int(cap): "six"
         }) if not self.vbwEnabled else IR.FuncCall("Relu6<posit%d_t, posit%d_t>" % (bitwidth_in, bitwidth_out), {
             expr_in: "A",
             expr_out: "B",
@@ -2087,8 +2051,7 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(H): "H",
             IR.Int(W): "W",
             IR.Int(C): "C",
-            IR.Int(cap): "six",
-            IR.Int(divide): "div"
+            # IR.Int(cap): "six"
         })
 
         self.counter_inst += 1

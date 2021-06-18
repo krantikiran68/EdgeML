@@ -247,7 +247,7 @@ class X86Posit(X86):
     def printSuffix(self, expr: IR.Expr):
         self.out.printf('\n')
 
-        if config.vbwEnabled and forFixed():
+        if config.vbwEnabled:
             bw = self.varsForBitwidth['X']
             typ_str = "int%d_t" % bw
             size = self.decls['X'].shape
@@ -288,7 +288,7 @@ class X86Posit(X86):
             resIndex = resIndex[:-1]
             expr_1 = IRUtil.addIndex(expr, iters)
             cmds = IRUtil.loop(type.shape, iters, [
-                IR.Assn(IRUtil.addIndex(IR.Var('res'), [IR.Var(resIndex)]), IRUtil.addIndex(expr, iters))
+                IR.Assn(IRUtil.addIndex(IR.Var('res'), [IR.Var(resIndex)]), IRUtil.addStrPrefixAndSuffix("int32_t(convertPositToDouble(", IRUtil.addIndex(expr, iters), "))", self.varsForBitwidth[expr.idf]))
             ])
             self.print(IR.Prog(cmds))
         else:

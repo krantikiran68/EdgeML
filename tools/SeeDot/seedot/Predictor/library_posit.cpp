@@ -4185,3 +4185,58 @@ bool operator>(const posit32_t& a, const int& b)
 {
 	return p32_lt(convertDoubleToP32(double(b)), a);
 }
+
+
+bool positLT(posit8_t a, posit8_t b)
+{
+	return p8_lt(a, b);
+}
+
+bool positLT(posit16_t a, posit16_t b)
+{
+	return p16_lt(a, b);
+}
+
+bool positLT(posit32_t a, posit32_t b)
+{
+	return p32_lt(a, b);
+}
+
+bool positEQ(posit8_t a, posit8_t b)
+{
+	return p8_eq(a, b);
+}
+
+bool positEQ(posit16_t a, posit16_t b)
+{
+	return p16_eq(a, b);
+}
+
+bool positEQ(posit32_t a, posit32_t b)
+{
+	return p32_eq(a, b);
+}
+
+posit8_t positDiv(posit8_t a, posit8_t b){
+	return p8_div(a, b);
+}
+
+posit16_t positDiv(posit16_t a, posit16_t b){
+	return p16_div(a, b);
+}
+
+posit32_t positDiv(posit32_t a, posit32_t b){
+	return p32_div(a, b);
+}
+
+posit8_t positSqrt(posit8_t a) {
+	return p8_sqrt(a);
+}
+
+posit16_t positSqrt(posit16_t a) {
+	return p16_sqrt(a);
+}
+
+posit32_t positSqrt(posit32_t a) {
+	return p32_sqrt(a);
+}

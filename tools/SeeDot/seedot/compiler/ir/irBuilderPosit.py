@@ -1231,98 +1231,79 @@ class IRBuilderPosit(IRBuilder):
         shl = [0 for i in range(9)]
 
         # Compute intermediate scales and scaling factors for all operations which are included in MBConv.
-        if not forFloat():
-            # Stage 1 Step 1: Multiplication
-            bitwidth_u1 = bitwidth_in_A + bitwidth_in_F1 - 1
-            bitwidth_u1_code = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_F1, "mul")
-            scale_u1 = scale_in_A + scale_in_F1
+    
+        # Stage 1 Step 1: Multiplication
+        bitwidth_u1 = bitwidth_in_A + bitwidth_in_F1 - 1
+        bitwidth_u1_code = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_F1, "mul")
+        scale_u1 = scale_in_A + scale_in_F1
 
-            # Stage 1 Step 2: Tree Sum
-            d1 = int(np.ceil(np.log2(Cin)))
-            scale_u1 = scale_u1 + d1
+        # Stage 1 Step 2: Tree Sum
+        d1 = int(np.ceil(np.log2(Cin)))
+        scale_u1 = scale_u1 + d1
 
-            # Stage 1 Step 3: Batch Normalisation and ReLU6
-            bitwidth_add1 = np.max((bitwidth_in_A, bitwidth_in_F1))
-            bitwidth_reduction = config.wordLength - bitwidth_add1
-            _, scale_add1 = self.getBitwidthAndScale(expr_out.idf + "t1") + bitwidth_reduction 
-            shr[0] = (scale_add1 - scale_u1)
-            shr[1] = (scale_add1 - scale_in_B1)
-            bitwidth_mul1 = bitwidth_add1 + bitwidth_in_W1 - 1
-            bitwidth_mul1_code = self.getTempBitwidth(bitwidth_add1, bitwidth_in_W1, "mul")
-            scale_mul1 = scale_add1 + scale_in_W1
-            six1 = 6 * (2 ** -scale_mul1)
-            bitwidth_x = np.max((bitwidth_add1, bitwidth_in_W1))
-            scale_x = -bitwidth_x + 1 + int(np.floor(np.log2(6)) + 1)
-            scale_shift = scale_x - scale_mul1
-            shr[2] = scale_shift
+        # Stage 1 Step 3: Batch Normalisation and ReLU6
+        bitwidth_add1 = np.max((bitwidth_in_A, bitwidth_in_F1))
+        bitwidth_reduction = config.wordLength - bitwidth_add1
+        _, scale_add1 = self.getBitwidthAndScale(expr_out.idf + "t1") + bitwidth_reduction 
+        shr[0] = (scale_add1 - scale_u1)
+        shr[1] = (scale_add1 - scale_in_B1)
+        bitwidth_mul1 = bitwidth_add1 + bitwidth_in_W1 - 1
+        bitwidth_mul1_code = self.getTempBitwidth(bitwidth_add1, bitwidth_in_W1, "mul")
+        scale_mul1 = scale_add1 + scale_in_W1
+        six1 = 6
+        bitwidth_x = np.max((bitwidth_add1, bitwidth_in_W1))
+        scale_x = -bitwidth_x + 1 + int(np.floor(np.log2(6)) + 1)
+        scale_shift = scale_x - scale_mul1
+        shr[2] = scale_shift
 
-            # Stage 2 Step 4: Multiplication
-            bitwidth_u2 = bitwidth_x + bitwidth_in_F2 - 1
-            bitwidth_u2_code = self.getTempBitwidth(bitwidth_x, bitwidth_in_F2, "mul")
-            scale_u2 = scale_x + scale_in_F2
+        # Stage 2 Step 4: Multiplication
+        bitwidth_u2 = bitwidth_x + bitwidth_in_F2 - 1
+        bitwidth_u2_code = self.getTempBitwidth(bitwidth_x, bitwidth_in_F2, "mul")
+        scale_u2 = scale_x + scale_in_F2
 
-            # Stage 2 Step 5: Tree Sum
-            d2 = int(np.ceil(np.log2(Hf * Wf)))
-            scale_u2 = scale_u2 + d2
+        # Stage 2 Step 5: Tree Sum
+        d2 = int(np.ceil(np.log2(Hf * Wf)))
+        scale_u2 = scale_u2 + d2
 
-            # Stage 2 Step 6: Batch Normalisation and ReLU6
-            bitwidth_add2 = np.max((bitwidth_x, bitwidth_in_F2))
-            bitwidth_reduction = config.wordLength - bitwidth_add2
-            _, scale_add2 = self.getBitwidthAndScale(expr_out.idf + "t3") + bitwidth_reduction 
-            shr[3] = (scale_add2 - scale_u2)
-            shr[4] = (scale_add2 - scale_in_B2)
-            bitwidth_mul2 = bitwidth_add2 + bitwidth_in_W2 - 1
-            bitwidth_mul2_code = self.getTempBitwidth(bitwidth_add2, bitwidth_in_W2, "mul")
-            scale_mul2 = scale_add2 + scale_in_W2
-            six2 = 6 * (2 ** -scale_mul2)
-            bitwidth_t = np.max((bitwidth_add2, bitwidth_in_W2))
-            scale_t = -bitwidth_t + 1 + int(np.floor(np.log2(6)) + 1)
-            scale_shift = scale_t - scale_mul2
-            shr[5] = scale_shift
+        # Stage 2 Step 6: Batch Normalisation and ReLU6
+        bitwidth_add2 = np.max((bitwidth_x, bitwidth_in_F2))
+        bitwidth_reduction = config.wordLength - bitwidth_add2
+        _, scale_add2 = self.getBitwidthAndScale(expr_out.idf + "t3") + bitwidth_reduction 
+        shr[3] = (scale_add2 - scale_u2)
+        shr[4] = (scale_add2 - scale_in_B2)
+        bitwidth_mul2 = bitwidth_add2 + bitwidth_in_W2 - 1
+        bitwidth_mul2_code = self.getTempBitwidth(bitwidth_add2, bitwidth_in_W2, "mul")
+        scale_mul2 = scale_add2 + scale_in_W2
+        six2 = 6 
+        bitwidth_t = np.max((bitwidth_add2, bitwidth_in_W2))
+        scale_t = -bitwidth_t + 1 + int(np.floor(np.log2(6)) + 1)
+        scale_shift = scale_t - scale_mul2
+        shr[5] = scale_shift
 
-            # Stage 3 Step 7: Multiplication
-            bitwidth_u3 = bitwidth_t + bitwidth_in_F3 - 1
-            bitwidth_u3_code = self.getTempBitwidth(bitwidth_t, bitwidth_in_F3, "mul")
-            scale_u3 = scale_t + scale_in_F3
+        # Stage 3 Step 7: Multiplication
+        bitwidth_u3 = bitwidth_t + bitwidth_in_F3 - 1
+        bitwidth_u3_code = self.getTempBitwidth(bitwidth_t, bitwidth_in_F3, "mul")
+        scale_u3 = scale_t + scale_in_F3
 
-            # Stage 3 Step 8: Tree Sum
-            d3 = int(np.ceil(np.log2(Ct)))
-            scale_u3 = scale_u3 + d3
+        # Stage 3 Step 8: Tree Sum
+        d3 = int(np.ceil(np.log2(Ct)))
+        scale_u3 = scale_u3 + d3
 
-            # Stage 3 Step 9: Batch Normalisation
-            bitwidth_add3 = np.max((bitwidth_t, bitwidth_in_F3))
-            bitwidth_reduction = config.wordLength - bitwidth_add3
-            _, scale_add3 = self.getBitwidthAndScale(expr_out.idf + "t5") + bitwidth_reduction 
-            shr[6] = (scale_add3 - scale_u3)
-            shr[7] = (scale_add3 - scale_in_B3)
-            bitwidth_mul3 = bitwidth_add3 + bitwidth_in_W3 - 1
-            bitwidth_mul3_code = self.getTempBitwidth(bitwidth_add3, bitwidth_in_W3, "mul")
-            scale_mul3 = scale_add3 + scale_in_W3
-            scale_reduction = scale_out - scale_mul3
-            shr[8] = scale_reduction
+        # Stage 3 Step 9: Batch Normalisation
+        bitwidth_add3 = np.max((bitwidth_t, bitwidth_in_F3))
+        bitwidth_reduction = config.wordLength - bitwidth_add3
+        _, scale_add3 = self.getBitwidthAndScale(expr_out.idf + "t5") + bitwidth_reduction 
+        shr[6] = (scale_add3 - scale_u3)
+        shr[7] = (scale_add3 - scale_in_B3)
+        bitwidth_mul3 = bitwidth_add3 + bitwidth_in_W3 - 1
+        bitwidth_mul3_code = self.getTempBitwidth(bitwidth_add3, bitwidth_in_W3, "mul")
+        scale_mul3 = scale_add3 + scale_in_W3
+        scale_reduction = scale_out - scale_mul3
+        shr[8] = scale_reduction
 
-            for i in range(9):
-                shl[i] = -shr[i]
-        else:
-            d1 = int(np.ceil(np.log2(Cin)))
-            d2 = int(np.ceil(np.log2(Hf * Wf)))
-            d3 = int(np.ceil(np.log2(Ct)))
-            # In floating-point mode, none of the following values matter. Setting them to dummy values.
-            for i in range(9):
-                shr[i] = 1
-                shl[i] = 1
-            bitwidth_u = bitwidth_t = bitwidth_x = config.wordLength
-            bitwidth_u1_code = bitwidth_u2_code = bitwidth_u3_code = config.wordLength
-            six1 = six2 = 6.0
-            scale_x = scale_t = 0
 
-        for i in range(9):
-            if shr[i] >= 0:
-                shr[i] = self.formatShr(shr[i], saturate=False)
-                shl[i] = self.formatShr(0)
-            else:
-                shr[i] = self.formatShr(0)
-                shl[i] = self.formatShr(shl[i], saturate=False)
+        # The intermediate tmp accumulator in posits is excluded from scratch computation
+        self.notScratch.append(expr_treeSum.idf)
 
         expr_in_A.inputVar = False
         expr_in_F1.inputVar = False
@@ -1364,7 +1345,6 @@ class IRBuilderPosit(IRBuilder):
             expr_out: "C",
             expr_bufX: "X",
             expr_bufT: "T",
-            expr_treeSum: "U",
             IR.Int(N): "N",
             IR.Int(H): "H",
             IR.Int(W): "W",
@@ -1380,34 +1360,16 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(node.padding[2]): "WPADL",
             IR.Int(node.padding[3]): "WPADR",
             IR.Int(node.stride[0]): "HSTR",
-            IR.Int(node.stride[1]): "WSTR",
-            IR.Int(d1): "D1",
-            IR.Int(d2): "D2",
-            IR.Int(d3): "D3",
-            IR.Int(six1): "SIX_1",
-            IR.Int(six2): "SIX_2",
+            IR.Int(node.stride[1]): "WSTR"
         }
 
-        for i in range(9):
-            argMap[shr[i]] = "shr%d" % (i+1)
-
-        for i in range(9):
-            argMap[shl[i]] = "shl%d" % (i+1)
-
-        # These are used to optimise the m3 codegen to club multiple scale modification operators into one for faster code.
-        self.biasShifts[expr_in_B1.idf] = int(np.log2(shr[1].n)) - int(np.log2(shl[1].n))
-        self.biasShifts[expr_in_B2.idf] = int(np.log2(shr[4].n)) - int(np.log2(shl[4].n))
-        self.biasShifts[expr_in_B3.idf] = int(np.log2(shr[7].n)) - int(np.log2(shl[7].n))
-
-        if forFloat():
-            argMap[IR.String(expr_out)] = "name"
 
         # Generating the argument map which is used in the codegen.
         localVarMap = {expr_treeSum.idf: type_treeSum, expr_bufX.idf: type_bufX, expr_bufT.idf: type_bufT}
         if forFloat():
             funcCall = IR.FuncCall("MBConv", argMap) 
         else:
-            templateArgs = ("<int%s_t" + (", int%s_t" * 16) + ">") % (bitwidth_in_A, bitwidth_in_F1, bitwidth_in_W1, bitwidth_in_B1, bitwidth_in_F2, bitwidth_in_W2, bitwidth_in_B2, bitwidth_in_F3, bitwidth_in_W3, bitwidth_in_B3, bitwidth_out, bitwidth_x, bitwidth_t, bitwidth_u, bitwidth_mul1_code, bitwidth_mul2_code, bitwidth_mul3_code)
+            templateArgs = ("<posit%s_t" + (", posit%s_t" * 13) + ", quire%s_t" + (", posit%s_t" * 3) + ">") % (bitwidth_in_A, bitwidth_in_F1, bitwidth_in_W1, bitwidth_in_B1, bitwidth_in_F2, bitwidth_in_W2, bitwidth_in_B2, bitwidth_in_F3, bitwidth_in_W3, bitwidth_in_B3, bitwidth_out, bitwidth_x, bitwidth_t, bitwidth_u, bitwidth_u, bitwidth_mul1_code, bitwidth_mul2_code, bitwidth_mul3_code)
             funcCall = IR.FuncCall("MBConv" + templateArgs, argMap)
 
         self.counter_inst += 1
@@ -1485,16 +1447,12 @@ class IRBuilderPosit(IRBuilder):
         # Compute scaling hyperparameters given input and output scales. If static scaling of old SeeDot is used, also compute the output scale and bit-width.
         shr_A, shr_B, H1, H2, demote, scale_out = self.getShrTreeSumAndDemoteParamsForMul(bitwidth_in_A, scale_in_A, bitwidth_in_B, scale_in_B, bitwidth_temp, scale_temp, bitwidth_out, scale_out, Hf * Wf * CinF)
 
-        shr_A = self.formatShr(shr_A)
-        shr_B = self.formatShr(shr_B)
-
         expr_in_A.inputVar = False
         expr_in_B.inputVar = False
         expr_out.inputVar = False
         expr_treeSum.inputVar = False
 
-        if forFixed():
-            self.varsForBitwidth[expr_treeSum.idf] = bitwidth_temp
+        self.varsForBitwidth[expr_treeSum.idf] = bitwidth_temp
 
         comment = IR.Comment('conv(%s, %s)' %(expr_in_A.idf,expr_in_B.idf), self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
@@ -1503,12 +1461,12 @@ class IRBuilderPosit(IRBuilder):
         bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
         if self.vbwEnabled:
             self.varsForBitwidth[expr_treeSum.idf] = bitwidth_mul
-
+            # The temp variable won't be considered for scratch
+            self.notScratch.append(expr_treeSum.idf)
         argMap = {
             expr_in_A: "A",
             expr_in_B: "B",
             expr_out: "C",
-            expr_treeSum: "tmp",
             IR.Int(N): "N",
             IR.Int(H): "H",
             IR.Int(W): "W",
@@ -1527,19 +1485,14 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(node.stride[1]): "WSTR",
             IR.Int(node.dilation[0]): "HDL",
             IR.Int(node.dilation[1]): "WDL",
-            IR.Int(G): "G",
-            shr_A: "shrA",
-            shr_B: "shrB",
-            IR.Int(H1): "H1",
-            IR.Int(H2): "H2"
+            IR.Int(G): "G"
         }
-        if self.vbwEnabled:
-            argMap[IR.Int(demote)] = "demote"
+
 
         if not self.vbwEnabled:
             funcCall = IR.FuncCall("Convolution", argMap)
         else:
-            funcCall = IR.FuncCall("Convolution" + ("<posit%d_t, posit%d_t, posit%d_t, posit%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out)), argMap) #, {expr_treeSum.idf: type_treeSum})
+            funcCall = IR.FuncCall("Convolution" + ("<posit%d_t, posit%d_t, posit%d_t, quire%d_t, posit%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_mul, bitwidth_out)), argMap) #, {expr_treeSum.idf: type_treeSum})
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out, expr_treeSum])

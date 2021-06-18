@@ -293,6 +293,23 @@ posit8_t positMul(posit8_t a, posit8_t b);
 posit16_t positMul(posit16_t a, posit16_t b);
 posit32_t positMul(posit32_t a, posit32_t b);
 
+posit8_t positDiv(posit8_t a, posit8_t b);
+posit16_t positDiv(posit16_t a, posit16_t b);
+posit32_t positDiv(posit32_t a, posit32_t b);
+
+posit8_t positSqrt(posit8_t a);
+posit16_t positSqrt(posit16_t a);
+posit32_t positSqrt(posit32_t a);
+
+
+bool positLT(posit8_t a, posit8_t b);
+bool positLT(posit16_t a, posit16_t b);
+bool positLT(posit32_t a, posit32_t b);
+
+bool positEQ(posit8_t a, posit8_t b);
+bool positEQ(posit16_t a, posit16_t b);
+bool positEQ(posit32_t a, posit32_t b);
+
 double convertPositToDouble(posit8_t a);
 double convertPositToDouble(posit16_t a);
 double convertPositToDouble(posit32_t a);
@@ -659,3 +676,402 @@ void ConvertPosit(TypeA* A, TypeB* B, MYITE I, MYITE J)
 		}
 	}
 }
+
+template<class TypeA, class TypeB, class TypeTemp, class QuireType, class TypeC>
+void Convolution(TypeA* A, const TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G) {
+	MYITE HOffsetL = HDL*(HF/2) - HPADL;
+	MYITE WOffsetL = WDL*(WF/2) - WPADL;
+	MYITE HOffsetR = HDL*(HF/2) - HPADR;
+	MYITE WOffsetR = WDL*(WF/2) - WPADR;
+
+	TypeTemp zero;
+	convertDoubleToPosit(0.0, &zero);
+	QuireType quire;
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = HOffsetL, hout = 0; h < H - HOffsetR; h += HSTR, hout++) {
+			for (MYITE w = WOffsetL, wout = 0; w < W - WOffsetR; w += WSTR, wout++) {
+				for (MYITE g = 0; g < G; g++) {
+					for (MYITE co = 0; co < COUTF; co++) {
+						quire = clearQuire(quire);
+						MYITE counter = 0;
+						for (MYITE hf = -(HF / 2); hf <= HF / 2; hf++) {
+							for (MYITE wf = -(WF / 2); wf <= WF / 2; wf++) {
+								for (MYITE ci = 0; ci < CINF; ci++) {
+									TypeTemp a, b;
+									if(((h + HDL * hf) < 0) || ((h + HDL * hf) >= H) || ((w + WDL * wf) < 0) || ((w + WDL * wf) >= W))
+									{
+										a = zero;
+									}
+									else{
+										convertPosit(&A[n * H * W * CIN + (h + HDL * hf) * W * CIN + (w + WDL * wf) * CIN + (ci + g * CINF)], &a);
+									}
+
+									convertPosit(const_cast<TypeB*>(&B[g * HF * WF * CINF * COUTF + (hf + HF / 2) * WF * CINF * COUTF + (wf + WF / 2) * CINF * COUTF + ci * COUTF + co]), &b);
+
+									quire = positFMA(quire, a, b);
+									counter++;
+								}
+							}
+						}	
+						TypeTemp c_tmp = convertQuireToPosit(quire);
+						convertPosit(&c_tmp, &C[n * HOUT * WOUT * (COUTF * G) + hout * WOUT * (COUTF * G) + wout * (COUTF * G) + (co + g * COUTF)]);
+					}
+				}
+			}
+		}
+	}
+}
+
+template<class TypeA, class TypeB, class TypeTemp, class QuireType, class TypeC>
+void Conv(TypeA* A, const TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO) {
+	MYITE padH = (HF - 1) / 2;
+	MYITE padW = (WF - 1) / 2;
+
+	TypeTemp zero;
+	convertDoubleToPosit(0.0, &zero);
+	QuireType quire;
+
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE co = 0; co < CO; co++) {
+					quire = clearQuire(quire);
+					MYITE counter = 0;
+					for (MYITE hf = 0; hf < HF; hf++) {
+						for (MYITE wf = 0; wf < WF; wf++) {
+							for (MYITE ci = 0; ci < CI; ci++) {
+								TypeTemp a,b;
+								if((((h + hf) < padH) || ((h + hf) >= (H + padH))) || (((w + wf) < padW) || ((w + wf) >= (W + padW))))
+								{
+									a = zero;
+								}
+								else{
+									convertPosit(&A[n * H * W * CI + ((h + hf) - padH) * W * CI + ((w + wf) - padW) * CI + ci], &a);
+								}
+
+								convertPosit(const_cast<TypeB*>(&B[hf * WF * CI * CO + wf * CI * CO + ci * CO + co]), &b);
+
+								quire = positFMA(quire, a, b);
+								counter++;
+							}
+						}
+					}
+
+					TypeTemp c_tmp = convertQuireToPosit(quire);
+					convertPosit(&c_tmp, &C[n * H * W * CO + h * W * CO + w * CO + co]);
+				}
+			}
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeF1, class TypeB1W, class TypeB1B, class TypeF2, class TypeB2W, class TypeB2B, class TypeF3, class TypeB3W, class TypeB3B, class TypeC, class TypeX, class TypeT, class TypeU, class QuireU, class TypeUB1W, class TypeUB2W, class TypeUB3W>
+void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, TypeB2W* BN2W, TypeB2B* BN2B, TypeF3* F3, TypeB3W* BN3W, TypeB3B* BN3B, TypeC* C, TypeX* X, TypeT* T, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR) {
+	MYITE HOffsetL = (HF / 2) - HPADL;
+	MYITE WOffsetL = (WF / 2) - WPADL;
+	MYITE HOffsetR = (HF / 2) - HPADR;
+	MYITE WOffsetR = (WF / 2) - WPADR;
+
+	QuireU qU;
+
+	for (MYITE n = 0; n < N; n++) {
+		MYITE margin = HOffsetL + (HF / 2 + 1) - HSTR > 0 ? HOffsetL + (HF / 2 + 1) - HSTR : 0;
+		MYITE nstart = HOffsetL - (HF / 2) < 0 ? 0 : HOffsetL - (HF / 2);
+		for (MYITE i = nstart; i < margin; i++) {
+			for (MYITE j = 0; j < W; j++) {
+				for (MYITE k = 0; k < Ct; k++) {
+					qU = clearQuire(qU);
+					for (MYITE l = 0; l < Cin; l++) {
+						TypeU a, f1;
+						converPosit(&A[n * H * W * Cin + i * W * Cin + j * Cin + l], &a);
+						convertPosit(&F1[l * Ct + k], &f1);
+						qU = positFMA(qU, a, f1);
+					}
+
+					TypeU u_tmp = convertQuireToPosit(qU);
+					TypeUB1W u0_tmp, bn1b, bn1w;
+					convertPosit(&u_tmp, u0_tmp);
+					convertPosit(&BN1B[k], &bn1b);
+					convertPosit(&BN1W[k], &bn1w);
+					TypeUB1W x;
+					x = (positAdd(u0_tmp, bn1b)), bn1w);
+					
+					TypeUB1W zero, six;
+					convertDoubleToPosit(0.0, &zero);
+					convertDoubleToPosit(6.0, &six);
+
+					x = positLT(x, zero) ? zero : x;
+					x = positLT(six, x) ? six: x;
+
+					convertPosit(&x, &X[i * W * Ct + j * Ct + k]);
+				}
+			}
+		}
+
+		for (MYITE h = HOffsetL, hout = 0; h < H - HOffsetR; hout++, h += HSTR) {
+
+			for (MYITE i = 0; i < HSTR; i++) {
+				for (MYITE j = 0; j < W; j++) {
+					for (MYITE k = 0; k < Ct; k++) {
+						MYITE iRed = (i + margin + hout * HSTR) % HF, iFull = i + margin + hout * HSTR;
+						TypeX zero;
+						convertDoubleToPosit(0.0, &zero);
+						X[iRed * W * Ct + j * Ct + k] = zero;
+						qU = clearQuire(qU);
+						for (MYITE l = 0; l < Cin; l++) {
+							TypeA a_a;
+							convertDoubleToPosit(0.0, &a);
+							a_a = iFull < H ? A[n * H * W * Cin + iFull * W * Cin + j * Cin + l] : a_a;
+							TypeU a_u, f1_u;
+							convertPosit(&a_a, &a_u);
+							convertPosit(&F1[l * Ct + k], &f1_u);
+							qU = positFMA(qU, a_u, f1_u);
+						}
+						
+						TypeU u_tmp = convertQuireToPosit(qU);
+						TypeUB1W u0_tmp, bn1b, bn1w;
+						convertPosit(&u_tmp, u0_tmp);
+						convertPosit(&BN1B[k], &bn1b);
+						convertPosit(&BN1W[k], &bn1w);
+						TypeUB1W x;
+						x = (positAdd(u0_tmp, bn1b)), bn1w);
+						
+						TypeUB1W zero, six;
+						convertDoubleToPosit(0.0, &zero);
+						convertDoubleToPosit(6.0, &six);
+
+						x = positLT(x, zero) ? zero : x;
+						x = positLT(six, x) ? six: x;
+
+						convertPosit(&x, &X[iRed * W * Ct + j * Ct + k]);
+					}
+				}
+			}
+
+			for (MYITE w = WOffsetL, wout = 0; w < W - WOffsetR; w += WSTR, wout++) {
+				for (MYITE g = 0; g < Ct; g++) {
+					MYITE counter = 0;
+					qU = clearQuire(qU);
+					for (MYITE hf = -(HF / 2); hf <= (HF / 2); hf++) {
+						for (MYITE wf = -(WF / 2); wf <= (WF / 2); wf++) {
+							TypeX zero_x;
+							convertDoubleToPosit(0.0, &zero_x);
+							TypeX x_x = (((h + hf) < 0) || ((h + hf) >= H) || ((w + wf) < 0) || ((w + wf) >= W)) ? zero_x : X[((h + hf) % HF) * W * Ct + (w + wf) * Ct + g];
+							TypeF2 b_f2 = F2[g * HF * WF + (hf + HF / 2) * WF + (wf + WF / 2)];
+							TypeU x_u, b_u;
+							convertPosit(&x_x, &x_u);
+							convertPosit(&b_f2, &b_u)
+							qU = positFMA(qU, x_u, b_u):
+							counter++;
+						}
+					}
+					TypeU u_u = convertQuireToPosit(qU);
+					TypeUB2W u_ub2w, bn2b_ub2w, bn2w_ub2w;
+					convertPosit(&u_u, &u_ub2w);
+					convertPosit(&BN2B[g], &bn2b_ub2w);
+					convertPosit(&BN2W[g], &bn2w_ub2w);
+
+					TypeUB2W x_ub2w = positMul(positAdd(u_ub2w, bn2b_ub2w), bn2w_ub2w), zero_ub2w, six_ub2w;
+					convertDoubleToPosit(0.0, &zero_ub2w);
+					convertDoubleToPosit(6.0, &six_ub2w);
+					x_ub2w = positLT(x_ub2w, zero_ub2w) ? zero_ub2w : x_ub2w;
+					x_ub2w = positLT(six_ub2w, x_ub2w) ? six_ub2w: x_ub2w;
+					
+					convertPosit(&x_ub2w, &T[g]);
+				}
+
+				for (MYITE i = 0; i < Cout; i++) {
+					qU = clearQuire(qU);
+					for (MYITE g = 0; g < Ct; g++) {
+						TypeU t_u, f3_u;
+						convertPosit(&T[g], &t_u);
+						convertPosit(&F3[g*Cout + i], &f3_u);
+						qU = positFMA(qU, t_u, f3_u);
+					}
+
+					TypeU u_u = convertQuireToPosit(qU);
+					TypeUB3W u_ub3w, bn3b_ub3w, bn3w_ub3w;
+					convertPosit(&u_u, &u_ub3w);
+					convertPosit(&BN3B[g], &bn3b_ub3w);
+					convertPosit(&BN3W[g], &bn3w_ub3w);
+
+					TypeUB3W c_ub3w = positMul(positAdd(u_ub3w, bn3b_ub3w), bn3w_ub3w);
+					convertPosit(&c_ub3w, &C[n * Hout * Wout * Cout + hout * Wout * Cout + wout * Cout + i]);
+				}
+			}
+		}
+	}
+}
+
+// A = A <+> B
+// A[N][H][W][C], B[C]
+template<class TypeA, class TypeB, class TypeTemp, class TypeC>
+void AddOrSubCir4D(TypeA* A, const TypeB* B, TypeC* X, MYINT N, MYINT H, MYINT W, MYINT C, bool add) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					TypeTemp a, b;
+					convertPosit(&A[n * H * W * C + h * W * C + w * C + c], &a);
+					convertPosit(&B[c], &b);
+
+					TypeTemp res;
+					if (add) {
+						res = positAdd(a, b);
+					} else {
+						res = positSub(a, b);
+					}
+
+					convertPosit(&res, &X[n * H * W * C + h * W * C + w * C + c]);
+				}
+			}
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeTemp, class TypeC>
+void AddOrSubCir2D(TypeA* A, const TypeB* B, TypeC* X, MYINT H, MYINT W, bool add) {
+	for (MYITE h = 0; h < H; h++) {
+		for (MYITE w = 0; w < W; w++) {
+			TypeTemp a, b;
+			convertPosit(&A[h * W + w], &a);
+			convertPosit(&B[w], &b);
+
+			TypeTemp res;
+			if (add) {
+				res = positAdd(a, b);
+			} else {
+				res = positSub(a, b);
+			}
+
+			convertPosit(&res, &X[h * W + w]);
+		}
+	}
+	return;
+}
+
+template<class TypeA>
+void Relu4D(TypeA* A, MYINT N, MYINT H, MYINT W, MYINT C) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					TypeA a = A[n * H * W * C + h * W * C + w * C + c];
+					TypeA zero;
+					convertDoubleToPosit(0.0, &zero);
+
+					if (positLT(a, zero)) {
+						a = zero;
+					}
+
+					A[n * H * W * C + h * W * C + w * C + c] = a;
+				}
+			}
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB>
+void Relu6(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, int six) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					TypeA zero, six_a;
+					convertDoubleToPosit(six, &six_a);
+					TypeA a = A[n * H * W * C + h * W * C + w * C + c];
+					if (positLT(a, zero)) {
+						a = zero;
+					}
+					if (positLT(six, a)) {
+						a = six;
+					}
+					convertPosit(&a, &B[n * H * W * C + h * W * C + w * C + c]);
+				}
+			}
+		}
+	}
+	return;
+}
+
+template<class TypeA>
+void Relu2D(TypeA* A, MYINT H, MYINT W) {
+	for (MYITE h = 0; h < H; h++) {
+		for (MYITE w = 0; w < W; w++) {
+			TypeA a = A[h * W + w];
+			TypeA zero;
+			convertDoubleToPosit(0.0, &zero);
+			
+			if (positLT(a, zero)) {
+				a = zero;
+			}
+
+			A[h * W + w] = a;
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB>
+void Maxpool(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR) {
+	MYITE HO = H / strideH;
+	MYITE WO = W / strideW;
+
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE ho = 0; ho < HO; ho++) {
+			for (MYITE wo = 0; wo < WO; wo++) {
+				for (MYITE c = 0; c < C; c++) {
+
+					TypeA max = A[n * H * W * C + (strideH * ho) * W * C + (strideW * wo) * C + c];
+					for (MYITE hs = 0; hs < FH; hs++) {
+						for (MYITE ws = 0; ws < FW; ws++) {
+							TypeA a = A[n * H * W * C + ((strideH * ho) + hs) * W * C + ((strideW * wo) + ws) * C + c];
+							if (positLT(max, a)) {
+								max = a;
+							}
+						}
+					}
+					convertPosit(&max, &B[n * HO * WO * C + ho * WO * C + wo * C + c]);
+				}
+			}
+		}
+	}
+	return;
+}
+
+template<class TypeA>
+void NormaliseL2(TypeA* A, TypeA* B, MYINT N, MYINT H, MYINT W, MYINT C) {
+	TypeA zero, one;
+	convertDoubleToPosit(0, &zero);
+	convertDoubleToPosit(1, &one);
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+
+				// Calculate the sum square.
+				TypeA sumSquare = zero;
+				for (MYITE c = 0; c < C; c++) {
+					TypeA tmp = A[n * H * W * C + h * W * C + w * C + c];
+					sumSquare = positAdd(sumSquare, positMul(tmp, tmp));
+				}
+
+				// Calculate the inverse square root of sumSquare.
+				if (positEQ(sumSquare,  zero)) {
+					convertDoubleToPosit(1e-5, &sumSquare);
+				}
+
+				TypeA inverseNorm = positDiv(one, positSqrt(sumSquare));
+
+				// Multiply all elements by the 1 / sqrt(sumSquare).
+				for (MYITE c = 0; c < C; c++) {
+					B[n * H * W * C + h * W * C + w * C + c]  = positMul(A[n * H * W * C + h * W * C + w * C + c], inverseNorm);
+				}
+			}
+		}
+	}
+	return;
+}
+

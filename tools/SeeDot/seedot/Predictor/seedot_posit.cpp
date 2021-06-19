@@ -11,12 +11,12 @@
 
 using namespace std;
 using namespace seedot_posit;
-void seedotPosit(float **X_temp, int32_t* res) {
+void seedotPosit(float **X_temp, float* res) {
 }
 
 const int positSwitches = 0;
 
-void seedotPositSwitch(int i, float** X_temp, int32_t* res) {
+void seedotPositSwitch(int i, float** X_temp, float* res) {
   switch(i) {
     default: res[0] = -1;
              return;

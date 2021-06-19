@@ -117,18 +117,18 @@ void populateFloatVector(float** features_float, vector<string> features) {
 // Each thread, which invokes the following method, is responsible for taking in one datapoint
 // and running it through all the generated codes.
 // Number of threads generated equals the number of datapoints in the given dataset.
-void launchThread(int features_size, MYINT** features_int, MYINT*** features_intV, float** features_float, int counter, float* float_res, int* res, int** resV, Encoding encoding) {
+void launchThread(int features_size, MYINT** features_int, MYINT*** features_intV, float** features_float, int counter, float* float_res, int* res, float* res_posit, int** resV, float** positResV, Encoding encoding) {
 	if (encoding == Fixed)
 		seedotFixed(features_int, res);
 	else if (encoding == Posit)
-		seedotPosit(features_float, res);
+		seedotPosit(features_float, res_posit);
 	seedotFloat(features_float, float_res);
 
 	for (int i = 0; i < switchCount; i++) {
 		if (encoding == Fixed)
 			seedotFixedSwitch(i, features_intV[i], resV[i]);
 		else if (encoding == Posit)
-			seedotPositSwitch(i, features_float, resV[i]);
+			seedotPositSwitch(i, features_float, positResV[i]);
 	}
 
 	for (int i = 0; i < features_size; i++) {
@@ -230,7 +230,9 @@ int main(int argc, char* argv[]) {
 	// Following variables are used for storing the results of the inference.
 	vector<float*> vector_float_res;
 	vector<int32_t*> vector_int_res;
+	vector<float*> vector_posit_res;
 	vector<int32_t**> vector_int_resV;
+	vector<float**> vector_posit_resV;
 	vector<int32_t*> labelsInt;
 	vector<float*> labelsFloat;
 	list<thread> threads;
@@ -310,16 +312,19 @@ int main(int argc, char* argv[]) {
 			//debug();
 			vector_float_res.push_back(float_res);
 			vector_int_res.push_back(fixed_res);
+			vector_posit_res.push_back(float_res);
 			if (problem == Classification) {
 				labelsInt.push_back(labelInt);
 			} else if (problem == Regression) {
 				labelsFloat.push_back(labelFloat);
 			}
 			vector_int_resV.push_back(NULL);
+			vector_posit_resV.push_back(NULL);
 		} else {
 			// There are several codes generated which are built simultaneously.
 			if ((encoding == Fixed) || (encoding == Posit)) {
 				vector_float_res.push_back(new float[numOutputs]);
+				vector_posit_res.push_back(new float[numOutputs]);
 				vector_int_res.push_back(new int32_t[numOutputs]);
 				// Populating labels for each generated code.
 				if (problem == Classification) {
@@ -328,11 +333,14 @@ int main(int argc, char* argv[]) {
 					labelsFloat.push_back(labelFloat);
 				}
 				int** switchRes = new int* [switchCount];
+				float** positSwitchRes = new float* [switchCount];
 				// Instantiating vectors for storing inference results for each generated code.
 				for (int i = 0; i < switchCount; i++) {
 					switchRes[i] = new int[numOutputs];
+					positSwitchRes[i] = new float[numOutputs];
 				}
 				vector_int_resV.push_back(switchRes);
+				vector_posit_resV.push_back(positSwitchRes);
 				// Instantiating vectors for storing features, integer and float.
 				MYINT** features_int_copy = new MYINT* [features_size];
 				for (int i = 0; i < features_size; i++) {
@@ -354,23 +362,25 @@ int main(int argc, char* argv[]) {
 				}
 				// Launching one thread which processes one datapoint.
 				if (threads.size() < 64) {
-					threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back(), encoding));
+					threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_posit_res.back(), vector_int_resV.back(), vector_posit_resV.back(), encoding));
 				} else {
 					threads.front().join();
 					threads.pop_front();
-					threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back(), encoding));
+					threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_posit_res.back(), vector_int_resV.back(), vector_posit_resV.back(), encoding));
 				}
 			} else if (encoding == Float) {
 				float_res = new float[numOutputs];
 				seedotFloat(features_float, float_res);
 				vector_float_res.push_back(float_res);
 				vector_int_res.push_back(new int[numOutputs]);
+				vector_posit_res.push_back(new float[numOutputs]);
 				if (problem == Classification) {
 					labelsInt.push_back(labelInt);
 				} else if (problem == Regression) {
 					labelsFloat.push_back(labelFloat);
 				}
 				vector_int_resV.push_back(NULL);
+				vector_posit_resV.push_back(NULL);
 			}
 		}
 
@@ -402,8 +412,10 @@ int main(int argc, char* argv[]) {
 	int correct = 0, total = 0;
 	for (int i = 0; i < counter; i++) {
 		int* fixed_res = vector_int_res[i];
+		float* posit_res = vector_posit_res[i];
 		float* float_res = vector_float_res[i];
 		int** resV = vector_int_resV[i];
+		float ** positResV = vector_posit_resV[i];
 
 		if (problem == Classification) {
 			for (int j = 0; j < numOutputs; j++) {
@@ -411,7 +423,10 @@ int main(int argc, char* argv[]) {
 				if (encoding == Float) {
 					res = float_res[j];
 				} else {
-					res = (float) fixed_res[j];
+					if (encoding == Fixed)
+						res = (float) fixed_res[j];
+					else if (encoding == Posit)
+						res = posit_res[j];
 				}
 
 				if (res != float_res[j]) {
@@ -434,19 +449,40 @@ int main(int argc, char* argv[]) {
 					if (encoding == Float) {
 						throw "Multiple codes not expected in Floating point execution";
 					}
-
-					if (resV[k][j] != float_res[j]) {
-						if (float_res[j] == labelsInt[i][j]) {
-							reduced_disagreementsV[k]++;
+					if (encoding == Fixed)
+					{
+						if (resV[k][j] != float_res[j]) {
+							if (float_res[j] == labelsInt[i][j]) {
+								reduced_disagreementsV[k]++;
+							}
+							disagreementsV[k]++;
 						}
-						disagreementsV[k]++;
+					} else if (encoding == Posit)
+					{
+						if (positResV[k][j] != float_res[j]) {
+							if (float_res[j] == labelsInt[i][j]) {
+								reduced_disagreementsV[k]++;
+							}
+							disagreementsV[k]++;
+						}	
 					}
 
-					if (resV[k][j] == labelsInt[i][j]) {
-						correctV[k]++;
-					} else {
-						if (logProgramOutput) {
-							output << "Sub "<< k <<": Incorrect prediction for input " << total + 1 << " element " << j << ". Predicted " << resV[k][j] << " Expected " << labelsInt[i][j] << endl;
+					if (encoding == Fixed)
+					{
+						if (resV[k][j] == labelsInt[i][j]) {
+							correctV[k]++;
+						} else {
+							if (logProgramOutput) {
+								output << "Sub "<< k <<": Incorrect prediction for input " << total + 1 << " element " << j << ". Predicted " << resV[k][j] << " Expected " << labelsInt[i][j] << endl;
+							}
+						}
+					} else if (encoding == Posit) {
+						if (positResV[k][j] == labelsInt[i][j]) {
+							correctV[k]++;
+						} else {
+							if (logProgramOutput) {
+								output << "Sub "<< k <<": Incorrect prediction for input " << total + 1 << " element " << j << ". Predicted " << resV[k][j] << " Expected " << labelsInt[i][j] << endl;
+							}
 						}
 					}
 					totalV[k]++;
@@ -458,7 +494,10 @@ int main(int argc, char* argv[]) {
 				if (encoding == Float) {
 					res = float_res[j];
 				} else {
-					res = ((float)fixed_res[j]) / ldexp(1.0, -scaleForY);
+					if(encoding == Fixed)
+						res = ((float)fixed_res[j]) / ldexp(1.0, -scaleForY);
+					else if(encoding == Posit)
+						res = posit_res[j];
 				}
 
 				trace << res << " ";
@@ -473,7 +512,13 @@ int main(int argc, char* argv[]) {
 					if (encoding == Float) {
 						throw "Multiple codes not expected in Floating point execution";
 					}
-					float normRes = ((float) resV[k][j]) / ldexp(1.0 , -scalesForY[k]);
+					
+					float normRes;
+					if(encoding == Fixed)
+						normRes = ((float) resV[k][j]) / ldexp(1.0 , -scalesForY[k]);
+					else if (encoding == Posit)
+						normRes = positResV[k][j];
+
 					float error = 100.0 * fabs(normRes - labelsFloat[i][j]);
 					float ferror = 100.0 * fabs(normRes - float_res[j]);
 					errorsV[k].push_back(error);
@@ -485,6 +530,7 @@ int main(int argc, char* argv[]) {
 
 		// Clearing memory.
 		delete[] vector_int_res[i];
+		delete[] vector_posit_res[i];
 		delete[] vector_float_res[i];
 		for (int k = 0; k < switchCount; k++) {
 			delete[] vector_int_resV[i][k];

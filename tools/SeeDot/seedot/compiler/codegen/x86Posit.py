@@ -93,7 +93,7 @@ class X86Posit(X86):
 
     def printCHeader(self):
         
-        self.out.printf('void seedotPosit%s(float **X_temp, int32_t* res) {\n' % (self.idStr if not self.generateAllFiles else ""), indent=True)
+        self.out.printf('void seedotPosit%s(float **X_temp, float* res) {\n' % (self.idStr if not self.generateAllFiles else ""), indent=True)
         self.out.increaseIndent()
 
     def printModelParamsWithBitwidth(self):
@@ -288,7 +288,7 @@ class X86Posit(X86):
             resIndex = resIndex[:-1]
             expr_1 = IRUtil.addIndex(expr, iters)
             cmds = IRUtil.loop(type.shape, iters, [
-                IR.Assn(IRUtil.addIndex(IR.Var('res'), [IR.Var(resIndex)]), IRUtil.addStrPrefixAndSuffix("int32_t(convertPositToDouble(", IRUtil.addIndex(expr, iters), "))", self.varsForBitwidth[expr.idf]))
+                IR.Assn(IRUtil.addIndex(IR.Var('res'), [IR.Var(resIndex)]), IRUtil.addStrPrefixAndSuffix("convertPositToDouble(", IRUtil.addIndex(expr, iters), ")", self.varsForBitwidth[expr.idf]))
             ])
             self.print(IR.Prog(cmds))
         else:
@@ -306,7 +306,7 @@ class X86Posit(X86):
 
         if (int(self.printSwitch) if isInt(self.printSwitch) else -2) > -1:
             self.out.printf("const int positSwitches = %d;\n" % (int(self.printSwitch)), indent = True)
-            self.out.printf('void seedotPositSwitch(int i, float **X_temp, int32_t* res) {\n', indent=True)
+            self.out.printf('void seedotPositSwitch(int i, float **X_temp, float* res) {\n', indent=True)
             self.out.increaseIndent()
             self.out.printf('switch(i) {\n', indent = True)
             self.out.increaseIndent()

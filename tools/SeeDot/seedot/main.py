@@ -13,6 +13,7 @@ import tempfile
 import traceback
 from tqdm import tqdm
 import numpy as np
+import matplotlib.pyplot as plt
 
 from seedot.compiler.converter.converter import Converter
 
@@ -590,16 +591,24 @@ class Main:
                         okToDemote = demotedVars
                         acceptedAcc = acc
 
-                print('Demoted Variables: ' + str(okToDemote))
+                demotedList = []
                 flash_size = 0
                 for var in self.variableToBitwidthMap.keys():
-                    if var.startswith('tmp'):
+                    tmp_var = var
+                    while tmp_var in self.variableSubstitutions.keys():
+                        tmp_var = self.variableSubstitutions[tmp_var]
+                    if tmp_var not in demotedList:
+                        demotedList.append(tmp_var)
+                    else:
+                        print("Repeated Var: " + str(tmp_var))
+                    if tmp_var.startswith('tmp'):
                         continue
                     else:
-                        if var in okToDemote:
-                            flash_size += self.varSizes[var] * config.wordLength // 16
+                        if tmp_var in okToDemote:
+                            flash_size += self.varSizes[tmp_var] * config.wordLength // 16
                         else:
-                            flash_size += self.varSizes[var] * config.wordLength // 8
+                            flash_size += self.varSizes[tmp_var] * config.wordLength // 8
+                print('Demoted Variables: ' + str(demotedList))
                 print('Flash Size: ' + str(flash_size))
                 
                 self.demotedVarsList = [i for i in okToDemote] + [i for i in self.demotedVarsList]
@@ -682,6 +691,17 @@ class Main:
             compiled = self.partialCompile(config.Encoding.fixed, config.Target.x86, self.sf, True, None, 0)
         if compiled == False:
             return False
+
+        plt.savefig(str(self.algo) + " - " + str(self.dataset) + " variable bit-width")
+        x = [x for x in self.allScales.keys()]
+        y = [y for y in self.allScales.values()]
+        bins = np.linspace(-16, 0, 17)
+        plt.hist(y, bins, alpha = 0.5, color = 'b', label = 'Power of 2')
+        plt.legend()
+        plt.xlabel('Scale')
+        plt.ylabel('Frequency')
+        plt.savefig(str(self.algo) + " - " + str(self.dataset) + " variable bit-width")
+        plt.close()
 
         res, exit = self.runAll(config.Encoding.fixed, config.DatasetType.testing, {"default" : self.sf}, printAlso=True)
         if res == False:

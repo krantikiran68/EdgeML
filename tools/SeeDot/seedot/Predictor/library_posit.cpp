@@ -4186,7 +4186,6 @@ bool operator>(const posit32_t& a, const int& b)
 	return p32_lt(convertDoubleToP32(double(b)), a);
 }
 
-
 bool positLT(posit8_t a, posit8_t b)
 {
 	return p8_lt(a, b);

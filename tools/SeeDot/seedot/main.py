@@ -13,6 +13,7 @@ import tempfile
 import traceback
 from tqdm import tqdm
 import numpy as np
+import matplotlib.pyplot as plt
 
 from seedot.compiler.converter.converter import Converter
 
@@ -670,6 +671,17 @@ class Main:
             compiled = self.partialCompile(config.Encoding.fixed, config.Target.x86, self.sf, True, None, 0)
         if compiled == False:
             return False
+
+        plt.title(str(self.algo) + " - " + str(self.dataset) + " uniform " + str(config.wordLength) + "-bit")
+        x = [x for x in self.allScales.keys()]
+        y = [y for y in self.allScales.values()]
+        bins = np.linspace(-16, 0, 17)
+        plt.hist(y, bins, alpha = 0.5, color = 'b', label = 'Power of 2')
+        plt.legend()
+        plt.xlabel('Scale')
+        plt.ylabel('Frequency')
+        plt.savefig(str(self.algo) + " - " + str(self.dataset) + " uniform " + str(config.wordLength) + "-bit")
+        plt.close()
 
         res, exit = self.runAll(config.Encoding.fixed, config.DatasetType.testing, {"default" : self.sf}, printAlso=True)
         if res == False:

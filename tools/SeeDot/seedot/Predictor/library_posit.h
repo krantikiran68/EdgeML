@@ -619,8 +619,8 @@ void SparseMatMul(const TypeAidx* Aidx, TypeA* Aval, TypeB* B, TypeC* C, int16_t
 
 			TypeTemp c = positMul(a, b);
 			TypeTemp c2;
+			convertPosit((&C[idx - 1]), &c2);
 			c = positAdd(c2, c);
-			convertPosit(TypeTemp(&C[idx - 1]), &c2);
 			convertPosit(&c, &C[idx - 1]);
 
 			ite_idx++;

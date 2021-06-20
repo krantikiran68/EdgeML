@@ -8,6 +8,9 @@ Code to generate the x86 compatible Prediction code.
 import numpy as np
 import os
 
+from numpy.core.numeric import _convolve_dispatcher
+from numpy.lib.type_check import typename
+
 from seedot.compiler.codegen.x86 import X86
 
 import seedot.compiler.ir.ir as IR
@@ -331,7 +334,7 @@ class X86Posit(X86):
             self.out.printf("{\n", indent=True)
             self.out.increaseIndent()
             self.printLocalVarDecls(ir)
-            self.out.printf("%s(" % ir.name, indent=True)
+            self.out.printf("%s(" % self.processFuncName(ir.name), indent=True)
             keys = list(ir.argList)
             if config.positBitwidth not in [8, 16, 32]:
                 keys.append(IR.Int(config.positBitwidth))
@@ -372,6 +375,8 @@ class X86Posit(X86):
             self.out.printf("}\n", indent=True)
 
     def getPositType(self, bw):
+        if config.positBitwidth != 16:
+            bw = config.positBitwidth
         if bw == 8:
             return "posit8_t"
         if bw == 16:
@@ -381,6 +386,8 @@ class X86Posit(X86):
         return "posit_2_t"
     
     def getConversionFunction(self, bw):
+        if config.positBitwidth != 16:
+            bw = config.positBitwidth
         if bw == 8:
             return "convertDoubleToP8"
         if bw == 16:
@@ -393,7 +400,7 @@ class X86Posit(X86):
         self.out.printf("{\n", indent=True)
         self.out.increaseIndent()
         self.printLocalVarDecls(ir)
-        self.out.printf("%s(" % ir.name, indent=True)
+        self.out.printf("%s(" % self.processFuncName(ir.name), indent=True)
         keys = list(ir.argList)
         if config.positBitwidth not in [8, 16, 32]:
             keys.append(IR.Int(config.positBitwidth))
@@ -454,7 +461,8 @@ class X86Posit(X86):
         return float_val
     
     def getPX2Suffix(self, bw):
-        # bw = config.positBitwidth
+        if config.positBitwidth != 16:
+            bw = config.positBitwidth
         if bw == 8:
             return ""
         if bw == 16:
@@ -772,3 +780,19 @@ class X86Posit(X86):
             self.out.printf('[')
             self.print(e)
             self.out.printf(']')
+
+    def processFuncName(self, name: str) -> str:
+        if config.vbwEnabled and forPosit():
+            if config.positBitwidth != 16:
+                name_end = name.find('<')
+                funcName = name[0:name_end]
+                typenameArgs = name[name_end+1:name.find('>')].split(',')
+                typenameArgs = [typename.lstrip().rstrip() for typename in typenameArgs]
+                getLogger().debug("Found template args in processFuncName for posits: " \
+                    + str(typenameArgs))
+                typenameArgs = [("posit%d_t"%(config.positBitwidth)\
+                     if typename[:5] == "posit" else "quire%d_t"%(config.positBitwidth)) \
+                    for typename in typenameArgs]
+                name = funcName + "<" + ",".join(typenameArgs) + ">"
+        return name
+                

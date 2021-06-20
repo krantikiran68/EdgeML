@@ -598,7 +598,8 @@ class Main:
                     while tmp_var in self.variableSubstitutions.keys():
                         tmp_var = self.variableSubstitutions[tmp_var]
                     if tmp_var not in demotedList:
-                        demotedList.append(tmp_var)
+                        if tmp_var in okToDemote:
+                            demotedList.append(tmp_var)
                     else:
                         print("Repeated Var: " + str(tmp_var))
                     if tmp_var.startswith('tmp'):
@@ -612,6 +613,7 @@ class Main:
                 print('Flash Size: ' + str(flash_size))
                 
                 self.demotedVarsList = [i for i in okToDemote] + [i for i in self.demotedVarsList]
+                assert(set(self.demotedVarsList) == set(demotedList))
                 self.demotedVarsOffsets.update(demotedVarsListToOffsets.get(okToDemote, {}))
 
                 if acceptedAcc != lastStageAcc:

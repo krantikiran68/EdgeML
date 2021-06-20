@@ -459,3 +459,85 @@ void ArgMax(TypeA* A, MYITE I, MYITE J, float scale_in, ACINT zero_in, int* inde
 	*index = maxIndex;
 	return;
 }
+
+template<class TypeA, class TypeAidx, class TypeB, class TypeAc, class TypeC>
+void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C, int16_t K, ACINT left_shift, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, ACINT N, ACINT shr1, ACINT n1, ACINT shr2, ACINT n2, ACINT shr3, ACINT n3, MYINT clamp_min, MYINT clamp_max) {
+	MYITE ite_idx = 0, ite_val = 0;
+	for (MYITE k = 0; k < K; k++) {
+		TypeAc b = (TypeAc) B[k * 1][0];
+		b += zeroB;
+
+		MYITE idx = Aidx[ite_idx];
+		while (idx != 0) {
+			TypeAc a = (TypeAc) Aval[ite_val];
+			a += zeroA;
+			TypeAc c = (a * b);
+			c = MulQuantMultiplier<TypeAc>(c, M0, N);
+			c *= TypeAc(1LL << left_shift);
+			c = MulQuantMultiplier<TypeAc>(c, shr1, n1);
+
+			TypeAc c2 = C[idx - 1];
+			c2 -= zeroC;
+			c2 *= TypeAc(1LL << left_shift);
+			c2 = MulQuantMultiplier<TypeAc>(c2, shr2, n2);
+			
+
+			c = MulQuantMultiplier<TypeAc>(c + c2, shr3, n3);
+
+			C[idx -1] = Saturate<TypeAc, TypeC>(c + zeroC, clamp_min, clamp_max);
+
+			ite_idx++;
+			ite_val++;
+
+			idx = Aidx[ite_idx];
+		}
+		ite_idx++;
+	}
+	return;
+}
+
+template<class TypeA, class TypeAidx, class TypeB, class TypeAc, class TypeC>
+void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, int16_t K, ACINT left_shift, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, ACINT N, ACINT shr1, ACINT n1, ACINT shr2, ACINT n2, ACINT shr3, ACINT n3, MYINT clamp_min, MYINT clamp_max) {
+	MYITE ite_idx = 0, ite_val = 0;
+	for (MYITE k = 0; k < K; k++) {
+		TypeAc b = (TypeAc) B[k];
+		b += zeroB;
+
+		MYITE idx = Aidx[ite_idx];
+		while (idx != 0) {
+			TypeAc a = (TypeAc) Aval[ite_val];
+			a += zeroA;
+			TypeAc c = (a * b);
+			c = MulQuantMultiplier<TypeAc>(c, M0, N);
+			c *= TypeAc(1LL << left_shift);
+			c = MulQuantMultiplier<TypeAc>(c, shr1, n1);
+
+			TypeAc c2 = C[idx - 1];
+			c2 -= zeroC;
+			c2 *= TypeAc(1LL << left_shift);
+			c2 = MulQuantMultiplier<TypeAc>(c2, shr2, n2);
+			
+
+			c = MulQuantMultiplier<TypeAc>(c + c2, shr3, n3);
+
+			C[idx -1] = Saturate<TypeAc, TypeC>(c + zeroC, clamp_min, clamp_max);
+
+			ite_idx++;
+			ite_val++;
+
+			idx = Aidx[ite_idx];
+		}
+		ite_idx++;
+	}
+	return;
+}
+
+template<typename TypeA, typename TypeAc, typename TypeB>
+TypeB AdjustScaleZero(TypeA A, TypeAc zeroA, TypeAc zeroOut, TypeAc M, TypeAc N, TypeB clamp_min, TypeB clamp_max) {
+	TypeAc a = A;
+	a -= zeroA;
+
+	a = MulQuantMultiplier<TypeAc>(a, M, N);
+
+	return Saturate<TypeAc, TypeB>(a + zeroOut, clamp_min, clamp_max);
+}

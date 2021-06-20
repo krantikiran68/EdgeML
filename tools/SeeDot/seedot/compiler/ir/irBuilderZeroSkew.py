@@ -2075,3 +2075,309 @@ class IRBuilderZeroSkew(IRBuilder):
     
     def getClampValues(self, bitwidth_out):
         return (-1*config.maxVar8Bit, config.maxVar8Bit) if bitwidth_out == 8 else (-1*config.maxVar16Bit, config.maxVar16Bit)
+    
+    def visitBopSparseMul(self, node: AST.Bop1):
+        (prog_in_A, expr_in_A) = self.visit(node.expr1)
+
+        (prog_in_B, expr_in_B) = self.visit(node.expr2)
+
+        [P, Q] = node.expr1.type.shape
+        [Q, R] = node.expr2.type.shape
+
+        assert R == 1, "Sparse matrix multiplication currently only support multiplication with a vector"
+
+        expr_out = self.getTempVar()
+        type_out = node.type
+
+        # Reading input scales.
+        bitwidth_in_A, scale_in_A, zero_in_A = self.getBitwidthScaleZeros(expr_in_A.idf)
+        bitwidth_in_Aid = (config.wordLength // 2) if (expr_in_A.idf + 'idx') in self.demotedVarsList else config.wordLength
+        bitwidth_in_B, scale_in_B, zero_in_B = self.getBitwidthScaleZeros(expr_in_B.idf)
+        # Read output scales and bit-widths. In data-driven scaling, the output scale is directly profiled from floating-point runtime.
+        # In static scaling used by old SeeDot (PLDI '19), output scale and bitwidth is set to None is statically computed later.
+        bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf)
+        bitwidth_temp = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul", bitwidth_out)
+        
+
+        intv_in_A, intv_in_B = self.varIntervals[expr_in_A.idf], self.varIntervals[expr_in_B.idf]
+
+        # Compute scaling hyperparameters given input and output scales. If static scaling of old SeeDot is used, also compute the output scale and bit-width.
+        M0, N = self.getMatMulShrAndN(scale_in_A, scale_in_B, scale_out, zero_in_A, zero_in_B, zero_out, bitwidth_in_A, bitwidth_in_B, bitwidth_temp, bitwidth_out)
+        (left_shift, shrA, nA, shrB, nB, shrC, nC) = self.getScaleAndZeroForAddAndSub(scale_out, zero_out, scale_out, zero_out, scale_out, zero_out, bitwidth_out, bitwidth_out, bitwidth_temp, bitwidth_out, "add")
+        intv_out = (0, 0)
+
+        in_A_idx = IR.Var(expr_in_A.idf +
+                          'idx', expr_in_A.idx, inputVar=True)
+        in_A_val = IR.Var(expr_in_A.idf +
+                          'val', expr_in_A.idx, inputVar=True)
+
+
+        in_A_idx.inputVar = False
+        in_A_val.inputVar = False
+        expr_in_B.inputVar = False
+        expr_out.inputVar = False
+
+        comment = IR.Comment(expr_in_A.idf + ' |*| ' + expr_in_B.idf, self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
+        # The output variable needs to be set to zero as the matrix multiplication implementation assumes this.
+        cmd1 = IR.Memset(expr_out, type_out.size())
+        bitwidth_mul = bitwidth_temp
+
+        # For input variable 'X', the data is streamed on the target device, which necessitates a different function implementation.
+        if expr_in_B.idf == 'X':
+            funcName = "SparseMatMulX"
+        else:
+            funcName = "SparseMatMul"
+        
+        clamp_min, clamp_max = self.getClampValues(bitwidth_out)
+
+        funcCall = IR.FuncCall(funcName, {
+            in_A_idx: "Aidx",
+            in_A_val: "Aval",
+            expr_in_B: "B",
+            expr_out: "C",
+            IR.Int(Q): "K",
+            IR.Int(left_shift): "left_shift",
+            IR.Int(-zero_in_A): "zeroA",
+            IR.Int(-zero_in_B): "zeroB",
+            IR.Int(zero_out): "zeroC",
+            IR.Int(M0): "M0",
+            IR.Int(-N): "N",
+            IR.Int(shrA): "shrA",
+            IR.Int(-nA): "nA",
+            IR.Int(shrB): "shrB",
+            IR.Int(-nB): "nB",
+            IR.Int(shrC): "shrC",
+            IR.Int(-nC): "nC",
+            IR.Int(clamp_min): "clamp_min",
+            IR.Int(clamp_max): "clamp_max"
+        }) if not self.vbwEnabled else IR.FuncCall("%s<int%d_t, int%d_t, int%d_t, int%d_t, int%d_t>"%(funcName, bitwidth_in_A, bitwidth_in_Aid, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
+            in_A_idx: "Aidx",
+            in_A_val: "Aval",
+            expr_in_B: "B",
+            expr_out: "C",
+            IR.Int(Q): "K",
+            IR.Int(left_shift): "left_shift",
+            IR.Int(-zero_in_A): "zeroA",
+            IR.Int(-zero_in_B): "zeroB",
+            IR.Int(zero_out): "zeroC",
+            IR.Int(M0): "M0",
+            IR.Int(-N): "N",
+            IR.Int(shrA): "shrA",
+            IR.Int(-nA): "nA",
+            IR.Int(shrB): "shrB",
+            IR.Int(-nB): "nB",
+            IR.Int(shrC): "shrC",
+            IR.Int(-nC): "nC",
+            IR.Int(clamp_min): "clamp_min",
+            IR.Int(clamp_max): "clamp_max"
+        })
+
+        self.counter_inst += 1
+        self.updateLiveRange([in_A_idx, in_A_val, expr_in_B, expr_out])
+
+        # Profiling the floating-point output for scale computation for the fixed-point code (only used if ddsEnabled is True).
+        
+        if forFloat():
+            self.independentVars.append(expr_out.idf)
+
+        prog_mul = IR.Prog([comment, cmd1, funcCall] if forFloat() and self.ddsEnabled else [comment, cmd1, funcCall])
+
+        prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
+
+        # Update metadata.
+        self.varDeclarations[expr_out.idf] = type_out
+        self.varScales[expr_out.idf] = scale_out
+        self.varIntervals[expr_out.idf] = intv_out
+
+        # Update metadata for sparse matrix.
+        self.varDeclarations.update({in_A_idx.idf: Type.Tensor([self.sparseMatrixSizes[expr_in_A.idf + 'idx']]),
+                                     in_A_val.idf: Type.Tensor([self.sparseMatrixSizes[expr_in_A.idf + 'val']]),
+                                     })
+
+        # Include sparse matrices in global variables.
+        if in_A_idx.idf not in self.globalVars:
+            self.globalVars.append(in_A_idx.idf)
+        if in_A_val.idf not in self.globalVars:
+            self.globalVars.append(in_A_val.idf)
+
+        # Print log.
+        self.log.print(comment.msg)
+        self.log.print("\tInput1: scale = %f, zero = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_in_A.idf],) + (self.varZeros[expr_in_A.idf],) + self.varIntervals[expr_in_A.idf]))
+        self.log.print("\tInput2: scale = %f, zero = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_in_B.idf],) + (self.varZeros[expr_in_A.idf],) + self.varIntervals[expr_in_B.idf]))
+        self.log.print("\tOutput: scale = %f, zero = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_out.idf],) + (self.varZeros[expr_in_A.idf],) + self.varIntervals[expr_out.idf]))
+
+        return (prog_out, expr_out)
+    
+    # out = +- in
+    def visitUop(self, node: AST.Uop):
+        (prog_in, expr_in) = self.visit(node.expr)
+
+        if node.op == SeeDotParser.ADD:
+            return (prog_in, expr_in)
+
+        assert node.op == SeeDotParser.SUB
+
+        type_out = node.type
+        
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
+        # e : Int
+        if Type.isInt(type_out):
+            prog_out = prog_in
+            expr_out = IRUtil.negate(expr_in)
+
+            self.notScratch.append(expr_out.idf)
+
+            # Just to be safe, check that the scaling factor of the integer variable is never tracked
+            assert expr_in.idf not in self.varScales and expr_in.idf not in self.varIntervals
+        # e: Tensor(), or Tensor(..)
+        else:
+            expr_out = self.getTempVar()
+            iters = self.getTempIterators(type_out.dim)
+
+            if type_out.isShapeOne():
+                self.notScratch.append(expr_out.idf)
+            
+            bitwidth_in, scale_in, zero_in = self.getBitwidthScaleZeros(expr_in.idf)
+            bitwidth_out, scale_out, zero_out = bitwidth_in, scale_in, -zero_in
+
+            # If the input variable is demoted to lower bit-width, demote the output as well as no extra information can be stored in the extra bits.
+            if forFixed():
+                self.varsForBitwidth[expr_out.idf] = bitwidth_out
+                if bitwidth_out != config.wordLength:
+                    self.demotedVarsList.append(expr_out.idf)
+                    self.demotedVarsOffsets[expr_out.idf] = self.demotedVarsOffsets[expr_in.idf]
+
+            (m, M) = self.varIntervals[expr_in.idf]
+            intv_out = (-M, -m)
+
+            lhs = IRUtil.addIndex(expr_out, iters)
+            rhs = IRUtil.negate(IRUtil.addIndex(expr_in, iters))
+            loop = IRUtil.loop(type_out.shape, iters, [IR.Assn(lhs, rhs)])
+            prog_uop = IR.Prog(loop)
+
+            prog_out = IRUtil.concatPrograms(prog_in, prog_uop)
+
+            # Update metadata.
+            self.varDeclarations[expr_out.idf] = type_out
+            self.varScales[expr_out.idf] = scale_out
+            self.varZeros[expr_out.idf] = zero_out
+            self.varIntervals[expr_out.idf] = intv_out
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in, expr_out])
+
+        return (prog_out, expr_out)
+    
+    # out = in_cond > 0? in_A: in_B
+    def visitCond(self, node: AST.Cond):
+        (prog_in_cond, expr_in_cond) = self.visit(node.expr)
+
+        (prog_in_A, expr_in_A) = self.visit(node.trueBlock)
+
+        (prog_in_B, expr_in_B) = self.visit(node.falseBlock)
+
+        type_in_cond = node.expr.type
+        type_in_A = node.trueBlock.type
+
+        if Type.isInt(type_in_cond):
+            expr_in_cond_idx = expr_in_cond
+        else:
+            expr_in_cond_idx = IRUtil.addIndex(
+                expr_in_cond, [IRUtil.zero] * type_in_cond.dim)
+
+        # e2, e3 : Int
+        if Type.isInt(type_in_A):
+            # TODO: Update the scale and intv of expr_out based on in_A and in_B.
+            prog_out = IRUtil.concatPrograms(
+                prog_in_cond, prog_in_A, prog_in_B)
+            expr_out = IRUtil.cond_zero(expr_in_cond_idx, expr_in_A, expr_in_B)
+
+            if isinstance(expr_in_A, IR.Var):
+                assert expr_in_A.idf not in self.varScales and expr_in_A.idf not in self.varZeros and expr_in_A.idf not in self.varIntervals
+            if isinstance(expr_in_B, IR.Var):
+                assert expr_in_B.idf not in self.varScales and expr_in_B.idf not in self.varZeros and expr_in_B.idf not in self.varIntervals
+        # e2, e3 : Tensor(), or Tensor(..)
+        else:
+            expr_out = self.getTempVar()
+            iters = self.getTempIterators(type_in_A.dim)
+
+            # Read input scales and bit-widths.
+            bitwidth_in_A, scale_in_A, zero_in_A = self.getBitwidthScaleZeros(expr_in_A.idf)
+            bitwidth_in_B, scale_in_B, zero_in_B = self.getBitwidthScaleZeros(expr_in_B.idf)
+            intv_in_A, intv_in_B = self.varIntervals[expr_in_A.idf], self.varIntervals[expr_in_B.idf]
+
+            bitwidth_out = max(bitwidth_in_A, bitwidth_in_B)
+
+            m_A, M_A = self.getIntervalFromScaleZero(bitwidth_in_A, scale_in_A, zero_in_A)
+            m_B, M_B = self.getIntervalFromScaleZero(bitwidth_in_B, scale_in_B, zero_in_B)
+
+            m_out, M_out = min(m_A, m_B), max(M_A, M_B)
+            scale_out, zero_out = self.getScaleAndZero(m_out, M_out, bw=bitwidth_out)
+
+            scale_out = max(scale_in_A, scale_in_B)
+            
+            # prog_assn
+            expr_in_A_idx = IRUtil.addIndex(expr_in_A, iters)
+            expr_in_B_idx = IRUtil.addIndex(expr_in_B, iters)
+            expr_out_idx = IRUtil.addIndex(expr_out, iters)
+
+            bitwidth_temp = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_A, op="mul")
+            m1, n1 = self.getMatMulShrAndN(scale_in_A, 1.0, scale_out, zero_in_A, 0, 
+                    zero_out, bitwidth_in_A, bitwidth_in_A, bitwidth_temp, bitwidth_out)
+            funcNameA = "AdjustScaleZero(" if not config.vbwEnabled else \
+                        "AdjustScaleZero<int%d_t, int%d_t, int%d_t>("%(bitwidth_in_A, bitwidth_temp, bitwidth_out)
+            
+            bitwidth_temp = self.getTempBitwidth(bitwidth_in_B, bitwidth_in_B, op="mul")
+            m2, n2 = self.getMatMulShrAndN(scale_in_B, 1.0, scale_out, zero_in_B, 0, 
+                    zero_out, bitwidth_in_B, bitwidth_in_B, bitwidth_temp, bitwidth_out)
+            funcNameB = "AdjustScaleZero(" if not config.vbwEnabled else \
+                        "AdjustScaleZero<int%d_t, int%d_t, int%d_t>("%(bitwidth_in_B, bitwidth_temp, bitwidth_out)
+
+            clamp_min, clamp_max = self.getClampValues(bitwidth_out)
+            true_expr = IRUtil.addStrPrefixAndSuffix(funcNameA, expr_in_A_idx, 
+                                    ", %d, %d, %d, %d, %d, %d)"%(zero_in_A, zero_out, \
+                                        m1, -n1, clamp_min, clamp_max), bitwidth_in_A)
+            false_expr = IRUtil.addStrPrefixAndSuffix(funcNameB, expr_in_B_idx, 
+                                    ", %d, %d, %d, %d, %d, %d)"%(zero_in_B, zero_out, \
+                                        m2, -n2, clamp_min, clamp_max), bitwidth_in_B)
+            
+            rhs = IRUtil.cond_zero(expr_in_cond_idx,
+                                   true_expr,
+                                   false_expr)
+            cmdl_assn = IRUtil.loop(type_in_A.shape, iters, [
+                                    IR.Assn(expr_out_idx, rhs)])
+            prog_cond = IR.Prog(cmdl_assn)
+
+            prog_out = IRUtil.concatPrograms(
+                prog_in_cond, prog_in_A, prog_in_B, prog_cond)
+
+            # Update metadata.
+            self.varDeclarations[expr_out.idf] = type_in_A
+            self.varScales[expr_out.idf] = scale_out
+            self.varZeros[expr_out.idf] = zero_out
+            self.varIntervals[expr_out.idf] = [m_out, M_out]
+
+        self.allDepths[self.counter_inst+1] = self.curDepth
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in_A, expr_in_B, expr_in_cond, expr_out])
+
+        return (prog_out, expr_out)
+    
+    def getIntervalFromScaleZero(bitwidth, scale, zero):
+        if bitwidth == 8:
+            max = config.maxVar8Bit
+        elif bitwidth == 16:
+            max = config.maxVar16Bit
+        else:
+            assert False, "Unsupported bitwidth of variable: %d"%(bitwidth)
+        
+        m = scale*(-max - zero)
+        M = scale*(max - zero)
+        return [m, M]
+        

@@ -697,7 +697,7 @@ class Main:
         plt.savefig(str(self.algo) + " - " + str(self.dataset) + " variable bit-width")
         x = [x for x in self.allScales.keys()]
         y = [y for y in self.allScales.values()]
-        bins = np.linspace(-16, 0, 17)
+        bins = np.arange(min(y), max(y) + 1.5) - 0.5
         plt.hist(y, bins, alpha = 0.5, color = 'b', label = 'Power of 2')
         plt.legend()
         plt.xlabel('Scale')

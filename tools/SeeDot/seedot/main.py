@@ -694,7 +694,7 @@ class Main:
         if compiled == False:
             return False
 
-        plt.savefig(str(self.algo) + " - " + str(self.dataset) + " variable bit-width")
+        plt.title(str(self.algo) + " - " + str(self.dataset) + " variable bit-width")
         x = [x for x in self.allScales.keys()]
         y = [y for y in self.allScales.values()]
         bins = np.arange(min(y), max(y) + 1.5) - 0.5

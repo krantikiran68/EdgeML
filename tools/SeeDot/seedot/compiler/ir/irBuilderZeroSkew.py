@@ -1577,7 +1577,7 @@ class IRBuilderZeroSkew(IRBuilder):
         intv_in = self.varIntervals[expr_in.idf]
 
         # If input is demoted to lower bit-width, demote the output to lower bit-width as well.
-        if expr_in.idf in self.demotedVarsList:
+        if bitwidth_in == (config.wordLength // 2):
             self.demotedVarsList.append(expr_out.idf)
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
@@ -1725,7 +1725,7 @@ class IRBuilderZeroSkew(IRBuilder):
         intv_in = self.varIntervals[expr_in.idf]
 
         # If input is demoted to lower bit-width, demote the output variable to lower bit-width as well.
-        if expr_in.idf in self.demotedVarsList:
+        if bitwidth_in == (config.wordLength // 2):
             self.demotedVarsList.append(expr_out.idf)
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
         else:

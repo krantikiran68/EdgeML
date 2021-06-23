@@ -31,6 +31,12 @@ class Predictor:
         self.scaleForY = scaleForY
         self.scalesForY = scalesForY
 
+        self.zerosForX  = {}
+        self.zerosForY  = {}
+
+        self.zeroForX  = 0
+        self.zeroForY  = 0
+
         self.problemType = problemType
         self.numOutputs = numOutputs
 
@@ -45,29 +51,69 @@ class Predictor:
             if config.wordLength == 8:
                 file.write("#define INT8\n")
                 file.write("typedef int8_t MYINT;\n\n")
+                file.write("typedef int32_t ACINT;\n\n")
             elif config.wordLength == 16:
                 file.write("#define INT16\n")
                 file.write("typedef int16_t MYINT;\n\n")
+                file.write("typedef int64_t ACINT;\n\n")
             elif config.wordLength == 32:
                 file.write("#define INT32\n")
                 file.write("typedef int32_t MYINT;\n\n")
+                file.write("typedef __int128 ACINT;\n\n")
 
             file.write("typedef int16_t MYITE;\n")
             file.write("typedef uint16_t MYUINT;\n\n")
 
-            file.write("const int scaleForX = %d;\n\n" % (self.scaleForX))
+            if self.encoding == config.Encoding.zskew:
+                scalesForX_local = {}
+                scalesForY_local = {}
+                for var in self.scalesForX.keys():
+                    scalesForX_local[var], self.zerosForX[var] = self.scalesForX[var]
+                for var in self.scalesForY.keys():
+                    scalesForY_local[var], self.zerosForY[var] = self.scalesForY[var]
+
+                self.scalesForX = scalesForX_local
+                self.scalesForY = scalesForY_local
+
+                self.scaleForX, self.zeroForX = self.scaleForX 
+                self.scaleForY, self.zeroForY = self.scaleForY 
+            
+            file.write("const int scaleForX = %d;\n\n" % (int(self.scaleForX)))
             if len(self.scalesForX) > 0:
                 assert len(self.scalesForX) == max(list(self.scalesForX.keys())), "Malformed array scalesForX"
-                file.write("const int scalesForX[%d] = {%s};\n" % (len(self.scalesForX), ', '.join([str(self.scalesForX[i+1]) for i in range(len(self.scalesForX))])))
+                file.write("const int scalesForX[%d] = {%s};\n" % (len(self.scalesForX), ', '.join([str(int(self.scalesForX[i+1])) for i in range(len(self.scalesForX))])))
             else:
                 file.write("const int scalesForX[1] = {100}; //junk, needed for compilation\n")
 
-            file.write("const int scaleForY = %d;\n\n" % (self.scaleForY))
+            file.write("const int scaleForY = %d;\n\n" % (int(self.scaleForY)))
             if len(self.scalesForY) > 0:
                 assert len(self.scalesForY) == max(list(self.scalesForY.keys())), "Malformed array scalesForY"
-                file.write("const int scalesForY[%d] = {%s};\n" % (len(self.scalesForY), ', '.join([str(self.scalesForY[i+1]) for i in range(len(self.scalesForY))])))
+                file.write("const int scalesForY[%d] = {%s};\n" % (len(self.scalesForY), ', '.join([str(int(self.scalesForY[i+1])) for i in range(len(self.scalesForY))])))
             else:
                 file.write("const int scalesForY[1] = {100}; //junk, needed for compilation\n")
+            
+            file.write("const float scaleXZeroSkew = %f;\n"%(self.scaleForX))
+            file.write("const int zeroPointXZeroSkew = %d;\n"%(self.zeroForX))
+
+            file.write("const float scaleYZeroSkew = %f;\n"%(self.scaleForY))
+            file.write("const int zeroPointYZeroSkew = %d;\n"%(self.zeroForY))
+
+            if len(self.scalesForX) > 0:
+                assert len(self.scalesForX) == max(list(self.scalesForX.keys())), "Malformed array scalesForX"
+                file.write("const float scalesXZeroSkew[%d] = {%s};\n" % (len(self.scalesForX), ', '.join([str(self.scalesForX[i+1]) for i in range(len(self.scalesForX))])))
+                file.write("const int zeroPointsXZeroSkew[%d] = {%s};\n" % (len(self.zerosForX), ', '.join([str(self.zerosForX[i+1]) for i in range(len(self.zerosForX))])))
+            else:
+                file.write("const float scalesXZeroSkew[1] = {0.002}; //junk, needed for compilation\n")
+                file.write("const int zeroPointsXZeroSkew[1] = {72};//junk, needed for compilation\n" )
+
+            if len(self.scalesForY) > 0:
+                assert len(self.scalesForY) == max(list(self.scalesForY.keys())), "Malformed array scalesForY"
+                file.write("const float scalesYZeroSkew[%d] = {%s};\n" % (len(self.scalesForY), ', '.join([str(self.scalesForY[i+1]) for i in range(len(self.scalesForY))])))
+                file.write("const int zeroPointsYZeroSkew[%d] = {%s};\n" % (len(self.zerosForY), ', '.join([str(self.zerosForY[i+1]) for i in range(len(self.zerosForY))])))
+            else:
+                file.write("const float scalesYZeroSkew[1] = {0.002}; //junk, needed for compilation\n")
+                file.write("const int zeroPointsYZeroSkew[1] = {72};//junk, needed for compilation\n" )
+
 
             if Util.debugMode():
                 file.write("const bool debugMode = true;\n")

@@ -4,6 +4,7 @@
 import math
 import numpy as np
 import os
+from numpy.core.numeric import zeros_like
 from sklearn.datasets import load_svmlight_file
 
 import seedot.config as config
@@ -332,7 +333,7 @@ def writeMatAsArray(mat, name: str, fileName: str, shapeStr=None, bw=None):
 
     with open(fileName, 'a') as file:
         if not config.vbwEnabled or "float" in fileName:
-            file.write('static const %s%s %s%s = {\n' % (arduinoStr, dataType, name, shapeStr))
+            file.write('static %s%s %s%s = {\n' % (arduinoStr, dataType, name, shapeStr))
         else:
             file.write('static const %s%s %s%s%s = {\n' % (arduinoStr, dataType, name, "_temp" if (forX86() and bw is None) else "", shapeStr))
 
@@ -441,7 +442,7 @@ def matTranspose(mat):
             transp[j][i] = mat[i][j]
     return transp
 
-def convertToSparse(mat):
+def convertToSparse(mat, zero_skew=False, zero=0):
     '''
     Convert a sparse matrix into two arrays M_val and M_idx.
     M_val contains all the non-zero elements in the matrix.
@@ -454,7 +455,7 @@ def convertToSparse(mat):
 
     for i in range(m):
         for j in range(n):
-            if mat[i][j] != 0:
+            if mat[i][j] != zero:
                 matVal.append(mat[i][j])
                 matIdx.append(int(j + 1))
         matIdx.append(int(0))
@@ -525,7 +526,7 @@ def trimMatrix(X, Y=None):
     return X_trim, Y_trim
 
 def getScaleAndZero(m, M):
-    maxVar = (126) if config.wordLength == 8 else (65534) # 63334 = 2^16 - 1 - 1, 126 = 2^8 -1 -1 
+    maxVar = (config.maxVar8Bit) if config.wordLength == 8 else (config.maxVar16Bit) # 63334 = 2^16 - 1 - 1, 126 = 2^8 -1 -1 
 
     zero = -1*((M + m)/2)
 

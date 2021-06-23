@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 #pragma once
-
+#include <fstream>
 // This file contains declarations for floating point versions of all operators supported by SeeDot.
 // Please refer to library_fixed.h for a description of each operator.
 
@@ -66,3 +66,5 @@ void AdjustScaleShl(float* A, MYINT I, MYINT J, MYINT scale);
 void Reverse2(float* A, MYINT axis, MYINT I, MYINT J, float* B);
 
 void NormaliseL2(float* A, float* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA);
+
+void debugPrint(float *A, MYINT I, MYINT J, std::string varName);

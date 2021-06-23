@@ -15,8 +15,10 @@ import seedot.compiler.ast.ast as AST
 import seedot.compiler.ast.astBuilder as astBuilder
 import seedot.compiler.ast.printAST as printAST
 
+from seedot.compiler.compiler import Compiler
 import seedot.compiler.codegen.arduino as arduino
 import seedot.compiler.codegen.x86 as x86
+import seedot.compiler.codegen.x86ZeroSkew as x86ZeroSkew
 import seedot.compiler.codegen.m3 as m3
 
 import seedot.compiler.ir.irBuilder as irBuilder
@@ -41,41 +43,11 @@ desired target codegen, which outputs the C/C++ code which can be run on the tar
 '''
 
 
-class Compiler:
+class CompilerZeroSkew(Compiler):
 
     def __init__(self, algo, encoding, target, inputFile, outputDir, profileLogFile, maxScale, source, outputLogFile, generateAllFiles=True, id=None, printSwitch=-1, substitutions={}, scaleForX=None, variableToBitwidthMap={}, sparseMatrixSizes={}, demotedVarsList=[], demotedVarsOffsets={}, paramInNativeBitwidth=True):
-        if os.path.isfile(inputFile) == False:
-            print(inputFile)
-            raise Exception("Input file doesn't exist")
-
-        util.setAlgo(algo)
-        util.setEncoding(encoding)
-        util.setTarget(target)
-        self.input = inputFile
-        self.outputDir = outputDir
-        util.setProfileLogFile(profileLogFile)
-        self.outputLogFile = outputLogFile
-        util.setMaxScale(maxScale)
-        self.source = source
-        self.generateAllFiles = generateAllFiles
-        self.id = str(id) if id is not None else ""
-        self.printSwitch = printSwitch
-        self.varSizes = {}
-
-        self.intermediateScales = {}
-        self.substitutions = substitutions
-        self.scaleForX = scaleForX
-        self.scaleForY = 0
-        self.problemType = config.ProblemType.default
-
-        self.variableToBitwidthMap = variableToBitwidthMap
-        self.sparseMatrixSizes = sparseMatrixSizes
-
-        self.demotedVarsList = demotedVarsList
-        self.demotedVarsOffsets = demotedVarsOffsets
-
-        self.paramInNativeBitwidth = paramInNativeBitwidth
-
+        super().__init__(algo, encoding, target, inputFile, outputDir, profileLogFile, maxScale, source, outputLogFile, generateAllFiles, id, printSwitch, substitutions, scaleForX, variableToBitwidthMap, sparseMatrixSizes, demotedVarsList, demotedVarsOffsets, paramInNativeBitwidth)
+        
         self.biasShifts = {}
 
     # Method takes in input file location, calls the tokenizer, parser upon the file to generate a parse tree
@@ -117,13 +89,15 @@ class Compiler:
         res, state = self.compile(ast)
 
         if util.forArduino():
+            assert False, "Not supported for Zero Skew representation"
             assert self.problemType == config.ProblemType.classification, "Arduino codegen only for Classification problems"
             codegen = arduino.Arduino(self.outputDir, *state)
         elif util.forM3():
+            assert False, "Not supported for Zero Skew representation"
             assert self.problemType == config.ProblemType.regression, "M3 codegen only for Regression problems"
             codegen = m3.M3(self.outputDir, *state)
         elif util.forX86():
-            codegen = x86.X86(self.outputDir, self.generateAllFiles, self.printSwitch, self.id, self.paramInNativeBitwidth, *state)
+            codegen = x86ZeroSkew.X86ZeroSkew(self.outputDir, self.generateAllFiles, self.printSwitch, self.id, self.paramInNativeBitwidth, *state)
         else:
             assert False
 
@@ -146,20 +120,19 @@ class Compiler:
 
         self.initializeIntermediateScales()
 
-        compiler = None
-       
-        compiler = irBuilder.IRBuilder(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
-       
+        compiler = irBuilderZeroSkew.IRBuilderZeroSkew(outputLog, self.intermediateScales, self.substitutions, self.scaleForX, self.variableToBitwidthMap, self.sparseMatrixSizes, self.demotedVarsList, self.demotedVarsOffsets)
+
         res = compiler.visit(ast)
 
         util.getLogger().debug(compiler.varScales)
         self.biasShifts = compiler.biasShifts
         self.varScales = dict(compiler.varScales)
+        self.varZeros = dict(compiler.varZeros)
 
         outputLog.close()
 
         # All state variables are used for codegen.
-        state = [compiler.varDeclarations, compiler.varDeclarationsLocal, compiler.varScales, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants, compiler.substitutions, compiler.demotedVarsOffsets, compiler.varsForBitwidth, compiler.varLiveIntervals, compiler.notScratch, compiler.coLocatedVariables]
+        state = [compiler.varDeclarations, compiler.varDeclarationsLocal, compiler.varScales, compiler.varZeros, compiler.varIntervals, compiler.intConstants, compiler.expTables, compiler.globalVars, compiler.internalVars, compiler.floatConstants, compiler.substitutions, compiler.demotedVarsOffsets, compiler.varsForBitwidth, compiler.varLiveIntervals, compiler.notScratch, compiler.coLocatedVariables]
 
         for key in compiler.varDeclarations.keys():
             val = compiler.varDeclarations[key]
@@ -170,12 +143,12 @@ class Compiler:
                 self.varSizes[key] = 1
 
         # Raw live ranges do not capture the scope of the first/last usage of a variable, so they require post-processing.
-        state[12] = self.adjustLiveRanges(state[12], compiler.allDepths)
+        state[13] = self.adjustLiveRanges(state[13], compiler.allDepths)
 
         for i in compiler.globalVars:
             if util.forM3() and i == 'X':
                 continue
-            state[13].append(i)
+            state[14].append(i)
 
         # In floating-point code used for profiling, the set of variables which are profiled using training data are collected.
         if util.getEncoding() == config.Encoding.floatt:
@@ -186,7 +159,9 @@ class Compiler:
 
         # Input and output scales are stored, problem type is identified as regression or classification.
         self.scaleForX = compiler.varScales['X']
-        self.scaleForY = compiler.varScales[res[1].idf] if res[1].idf in compiler.varScales else 0
+        self.zeroForX = compiler.varZeros['X']
+        self.scaleForY = compiler.varScales[res[1].idf] if res[1].idf in compiler.varScales else 1.0
+        self.zeroForY = compiler.varZeros[res[1].idf] if res[1].idf in compiler.varZeros else 0
         self.problemType = config.ProblemType.classification if res[1].idf not in compiler.varScales else config.ProblemType.regression
 
         return res, state
@@ -206,6 +181,7 @@ class Compiler:
     # The code to read scales and zeros for ZSkew representation
     def readDataDrivenScalesAndZeros(self):
         tempScales = {}
+        self.varIntervals = {}
         error = 0.01
         with open('temp/Predictor/dump.profile', 'r') as f:
             for line in f:

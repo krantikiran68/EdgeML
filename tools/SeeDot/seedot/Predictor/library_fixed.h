@@ -4,7 +4,7 @@
 #pragma once
 
 #include "datatypes.h"
-
+#include <cmath>
 /**
  * Notation used:
  * 		By default, 'matrix' is to be interpreted as a matrix in fixed point representation.

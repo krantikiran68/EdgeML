@@ -390,7 +390,7 @@ class X86ZeroSkew(X86):
     def printMemset(self, ir):
         self.out.printf('memset(', indent=True)
         # If a memory optimized mapping is available for a variable, use that else use original variable name.
-        if Config.x86MemoryOptimize and forFixed() and forX86() and self.numberOfMemoryMaps in self.scratchSubs:
+        if Config.x86MemoryOptimize and forX86() and self.numberOfMemoryMaps in self.scratchSubs:
             self.out.printf("(scratch + %d)", self.scratchSubs[self.numberOfMemoryMaps][ir.e.idf])
         else:
             self.print(ir.e)

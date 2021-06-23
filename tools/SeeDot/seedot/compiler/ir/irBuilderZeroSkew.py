@@ -5,6 +5,8 @@ import numpy as np
 import operator
 import math
 
+from numpy.core.fromnumeric import shape
+
 from seedot.compiler.antlr.seedotParser import seedotParser as SeeDotParser
 
 import seedot.compiler.ast.ast as AST
@@ -167,6 +169,9 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(K): "K",
+            IR.Float(scale_in_A): "scale_in_A",
+            IR.Float(scale_in_B): "scale_in_B",
+            IR.Float(scale_out): "scale_out",
             IR.Int(-1*zero_in_A): "zero_A",
             IR.Int(-zero_in_B): "zero_B",
             IR.Int(zero_out): "zero_C",
@@ -181,6 +186,9 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(K): "K",
+            IR.Float(scale_in_A): "scale_in_A",
+            IR.Float(scale_in_B): "scale_in_B",
+            IR.Float(scale_out): "scale_out",
             IR.Int(-1*zero_in_A): "zero_A",
             IR.Int(-zero_in_B): "zero_B",
             IR.Int(zero_out): "zero_C",
@@ -191,20 +199,22 @@ class IRBuilderZeroSkew(IRBuilder):
             # IR.Int(demote): "demote"
         })
 
-        debugPrint = IR.FuncCall("debugPrint", {
-            expr_out: "expr",
-            IR.Int(I): "I",
-            IR.Int(K): "J",
-            IR.Float(scale_out): "scale",
-            IR.Int(zero_out): "zero",
-            IR.String(expr_out): "varName"
-        })
+        debugPrint = []
+        if config.zeroSkewDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(I): "I",
+                IR.Int(K): "J",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
+                IR.String(expr_out): "varName"
+            }))
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
 
         
-        prog_mul = IR.Prog([comment, funcCall] + ([debugPrint] if config.zeroSkewDebug else []))
+        prog_mul = IR.Prog([comment, funcCall] + (debugPrint if config.zeroSkewDebug else []))
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -507,7 +517,8 @@ class IRBuilderZeroSkew(IRBuilder):
             for order in range(len(node.shape)):
                 loopShape.append(node.shape[order])
                 loopIters.append(iters_in[order])
-                loop = IRUtil.loop(loopShape, loopIters, [
+            getLogger().debug("Changed loop assignment in visitInit")
+            loop = IRUtil.loop(loopShape, loopIters, [
                 IR.Assn(IRUtil.addIndex(expr, iters_in), 
                 self.getNumInZeroSkew(node.value, scale, zero))
             ])
@@ -553,10 +564,9 @@ class IRBuilderZeroSkew(IRBuilder):
         self.allDepths[self.counter_inst+1] = self.curDepth
 
         # If the input variable is demoted to lower bit-width, demote the output as well as no extra information can be stored in the extra bits.
-        if forFixed():
-            self.varsForBitwidth[expr_out.idf] = bw_out
-            if bw_out != config.wordLength:
-                self.demotedVarsList.append(expr_out.idf)
+        self.varsForBitwidth[expr_out.idf] = bw_out
+        if bw_out != config.wordLength:
+            self.demotedVarsList.append(expr_out.idf)
 
         funcCall = IR.FuncCall("Transpose", {
             expr_in: "A",
@@ -968,6 +978,9 @@ class IRBuilderZeroSkew(IRBuilder):
             expr_out: "C",
             IR.Int(I): "I",
             IR.Int(J): "J",
+            IR.Float(scale_in_A): "scale_in_A",
+            IR.Float(scale_in_B): "scale_in_B",
+            IR.Float(scale_out): "scale_out",
             IR.Int(-1*zero_in_A): "zero_A",
             IR.Int(-zero_in_B): "zero_B",
             IR.Int(zero_out): "zero_C",
@@ -981,6 +994,9 @@ class IRBuilderZeroSkew(IRBuilder):
             expr_out: "C",
             IR.Int(I): "I",
             IR.Int(J): "J",
+            IR.Float(scale_in_A): "scale_in_A",
+            IR.Float(scale_in_B): "scale_in_B",
+            IR.Float(scale_out): "scale_out",
             IR.Int(-1*zero_in_A): "zero_A",
             IR.Int(-zero_in_B): "zero_B",
             IR.Int(zero_out): "zero_C",
@@ -1042,6 +1058,9 @@ class IRBuilderZeroSkew(IRBuilder):
         elif op == "tanh":
             assert bitwidthA is not None
             return 32 if (bitwidthA == 8) else 64
+        elif op == "exp":
+            assert bitwidthA is not None and bitwidthC is not None
+            return 32 if (max(bitwidthA, bitwidthC) == 8) else 64
         elif op == None:
             getLogger().debug("Non add-sub specified for temp bitwidth")
             return (32 if config.wordLength == 8 else 64)
@@ -1272,6 +1291,9 @@ class IRBuilderZeroSkew(IRBuilder):
                     expr_out: "C",
                     IR.Int(I): "I",
                     IR.Int(J): "J",
+                    IR.Float(scale_in_A): "scale_in_A",
+                    IR.Float(scale_in_B): "scale_in_B",
+                    IR.Float(scale_out): "scale_out",
                     IR.Int(left_shift): "left_shift",
                     IR.Int(-zero_in_A): "zero_in_A",
                     IR.Int(shrA): "shrA",
@@ -1290,6 +1312,9 @@ class IRBuilderZeroSkew(IRBuilder):
                     expr_out: "C",
                     IR.Int(I): "I",
                     IR.Int(J): "J",
+                    IR.Float(scale_in_A): "scale_in_A",
+                    IR.Float(scale_in_B): "scale_in_B",
+                    IR.Float(scale_out): "scale_out",
                     IR.Int(left_shift): "left_shift",
                     IR.Int(-zero_in_A): "zero_in_A",
                     IR.Int(shrA): "shrA",
@@ -1484,95 +1509,6 @@ class IRBuilderZeroSkew(IRBuilder):
         m0 = np.ldexp(m, -scale)
         return m0, -scale
     
-    def visitMathExp(self, node: AST.Func):
-        # Used in the old SeeDot (PLDI '19) version.
-        # Tunable parameter.
-        MIN = 0.1
-
-        (prog_in, expr_in) = self.visit(node.expr)
-
-        type_in = node.expr.type
-
-        # Reading input scale and bit-width.
-        bitwidth_in, scale_in, zero_in = self.getBitwidthScaleZeros(expr_in.idf)
-
-        '''
-        1.  y = ((int) (exp(((float)e) / shr1) * shr2))
-        '''
-
-        maxExp = np.exp(MIN)
-
-        expr_out = self.getTempVar()
-
-        # Reading / Computing output bit-width.
-        if self.ddsEnabled:
-            bitwidth_out, _, _ = self.getBitwidthScaleZeros(expr_out.idf)
-        else:
-            bitwidth_out = config.wordLength // 2 if expr_out.idf in self.demotedVarsList else config.wordLength
-        # Computing output scale.
-        scale_out, zero_out = self.getScaleAndZero(maxExp, maxExp, bw=(config.wordLength // 2 if expr_out.idf in self.demotedVarsList else config.wordLength)) 
-
-        intv_out = self.getInterval(maxExp, maxExp, scale_out, zero_out)
-
-        [I, J] = type_in.shape
-
-        
-        cmd0 = IR.Comment('exp(' + expr_in.idf + ')', self.counter_inst+1)
-        self.allDepths[self.counter_inst+1] = self.curDepth
-
-        funcCall = IR.FuncCall("Exp", {
-            expr_in: "A",
-            IR.Int(I): "I",
-            IR.Int(J): "J",
-            IR.Float(scale_in): "scale_in",
-            IR.Int(zero_in): "zero_in",
-            IR.Float(scale_out): "scale_out",
-            IR.Int(zero_out): "zero_out",
-            expr_out: "B"
-        }) if not self.vbwEnabled else IR.FuncCall("Exp<int%d_t, int%d_t>"%(bitwidth_in, bitwidth_out), {
-            expr_in: "A",
-            IR.Int(I): "I",
-            IR.Int(J): "J",
-            IR.Float(scale_in): "scale_in",
-            IR.Int(zero_in): "zero_in",
-            IR.Float(scale_out): "scale_out",
-            IR.Int(zero_out): "zero_out",
-            expr_out: "B",
-            IR.Int(1): "demote"
-        })
-
-        self.counter_inst += 1
-        self.updateLiveRange([expr_in, expr_out])
-
-        # This method is used in the profiling floating point stage to check whether the input values are beyond a threshold.
-        # Input values beyond a threshold are always mapped to zero in fixed-point code, hence these datapoints hold little use in the fixed-point mode.
-        # rangeCheck = IR.FuncCall("checkRange2", {
-        #     expr_in: "A",
-        #     IR.Int(I): "I",
-        #     IR.Int(J): "J"
-        # })  if self.functionReducedProfiling and forFloat() else IR.Comment("Recommend switching on Function Reduced Profiling for sound output")
-
-        # profile = IR.FuncCall("Profile2", {
-        #     expr_out: "Var",
-        #     IR.Int(I): "I",
-        #     IR.Int(J): "J",
-        #     IR.String(expr_out): "VarName"
-        # })
-        # if forFloat():
-        #     self.independentVars.append(expr_out.idf)
-
-        prog_exp = IR.Prog([cmd0, funcCall])
-
-        prog_out = IRUtil.concatPrograms(prog_in, prog_exp)
-
-        # Update metadata.
-        self.varDeclarations[expr_out.idf] = type_in
-        self.varScales[expr_out.idf] = scale_out
-        self.varZeros[expr_out.idf] = zero_out
-        self.varIntervals[expr_out.idf] = intv_out
-
-        return (prog_out, expr_out)
-
     def getAlphaCount(self, max, shl):
         assert False, "No impelemntation of AlphaCount for ZeroSkew"
     
@@ -1993,9 +1929,102 @@ class IRBuilderZeroSkew(IRBuilder):
         return IR.IntBop(IR.IntBop(e, IR.Op.Op['*'], IR.Float(mul)), IR.Op.Op['+'], IR.Int(add))
 
     
-     # out = $x[start:end] in
+    # out = $x[start:end] in
     def visitSum(self, node: AST.Sum):
-        assert False, "Not implemented for Zero Skew Representation"
+        '''
+        expr_out
+        i = 0
+        for (j = 0; j < n; j++)
+          expr_in = prog_in
+          expr_out = expr_out + expr_in
+          i++
+
+        1.  for i in [0, C]:
+        2.    expr_out[i] = expr_out[i] + shr(expr_in[i])
+        '''
+
+        var_idf = node.name
+        self.varDeclarations[var_idf] = Type.Int()
+        self.internalVars.append(var_idf)
+
+        start, end = node.start, node.end
+        comment = IR.Comment("sum(i = [%d, %d])" % (start, end), self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+        self.counter_inst += 1
+        self.curDepth += 1
+
+        (prog_in, expr_in) = self.visit(node.expr)
+
+        self.curDepth -= 1
+
+        expr_out = self.getTempVar()
+        type_out = node.type
+
+        var = IR.Var(var_idf)
+        var_iter = self.getTempIterator()
+        iters = self.getTempIterators(type_out.dim)
+
+        # Read input scale and bitwidth.
+        bitwidth_in, scale_in, zero_in = self.getBitwidthScaleZeros(expr_in.idf)
+        # Read output scale and bitwidth if known from profiling.
+        bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf)
+        
+        intv_in = self.varIntervals[expr_in.idf]
+
+        bitwidth_temp = self.getTempBitwidth(bitwidth_in, bitwidth_out, "add", bitwidth_out)
+        # Read / Compute the output scale and associated hyperparameters.
+        (left_shift, shrA, nA, shrB, nB, shrC, nC) = self.getScaleAndZeroForAddAndSub(scale_in, zero_in, scale_out, zero_out, scale_out, zero_out, bitwidth_in, bitwidth_out, bitwidth_temp, bitwidth_out, operator.add)
+        intv_out = (0,0) 
+
+
+        expr_in_idx = IRUtil.addIndex(expr_in, iters)
+        expr_out_idx = IRUtil.addIndex(expr_out, iters)
+        add_func = "AddInPlace" if not config.vbwEnabled else "AddInPlace<int%d_t, int%d_t, int%d_t>"%(bitwidth_in, bitwidth_temp, bitwidth_out)
+        # Adjusting scale of input and output in the fixed-point code.
+        cmd1 = self.memsetZeroSkew(expr_out, type_out.shape, scale_out, zero_out)
+        clamp_min, clamp_max = self.getClampValues(bitwidth_out)
+        
+        cmd2 = IR.FuncCall(add_func, {
+            expr_in:"expr_in",
+            expr_out:"expr_out",
+            IR.Int(type_out.shape[0]):"I",
+            IR.Int(type_out.shape[1]): "J",
+            IR.Float(scale_in): "scale_in",
+            IR.Float(scale_out): "scale_out",
+            IR.Int(zero_in): "zero_in",
+            IR.Int(zero_out): "zero_out",
+            IR.Int(left_shift): "left_shift",
+            IR.Int(shrA): "shrA",
+            IR.Int(-nA): "nA",
+            IR.Int(shrB): "shrB",
+            IR.Int(-nB): "nB",
+            IR.Int(shrC): "shrC",
+            IR.Int(-nC): "nC",
+            IR.Int(clamp_min): "clamp_min",
+            IR.Int(clamp_max): "clamp_max"
+        })
+        treeSum = IRUtil.loop(type_out.shape, iters, [cmd2])
+
+        assert type_out.dim == 2, "Only 2 dim Summation supported for now due to laziness of programmer"
+
+        # Final program to sum output of each iteration.
+        prog_sum = cmd1 + [
+                    IR.Assn(var, IR.Int(start)),
+                    IR.For(var_iter, 0, IRUtil.lt(var_iter, IR.Int(end - start)),
+                           prog_in.cmd_l + [cmd2]  + [IR.Assn(var, IRUtil.inc(var))])
+                    ]
+
+        self.updateLiveRange([expr_in, expr_out])
+
+        prog_out = IR.Prog([comment] + prog_sum)
+
+        # Update metadata.
+        self.varDeclarations[expr_out.idf] = type_out
+        self.varScales[expr_out.idf] = scale_out
+        self.varZeros[expr_out.idf] = zero_out
+        self.varIntervals[expr_out.idf] = intv_out
+
+        return (prog_out, expr_out)
     
         # out = loop(x[start:end]) (expr) in
     def visitLoop(self, node: AST.Loop):
@@ -2103,7 +2132,7 @@ class IRBuilderZeroSkew(IRBuilder):
 
         # Compute scaling hyperparameters given input and output scales. If static scaling of old SeeDot is used, also compute the output scale and bit-width.
         M0, N = self.getMatMulShrAndN(scale_in_A, scale_in_B, scale_out, zero_in_A, zero_in_B, zero_out, bitwidth_in_A, bitwidth_in_B, bitwidth_temp, bitwidth_out)
-        (left_shift, shrA, nA, shrB, nB, shrC, nC) = self.getScaleAndZeroForAddAndSub(scale_out, zero_out, scale_out, zero_out, scale_out, zero_out, bitwidth_out, bitwidth_out, bitwidth_temp, bitwidth_out, "add")
+        (left_shift, shrA, nA, shrB, nB, shrC, nC) = self.getScaleAndZeroForAddAndSub(scale_out, zero_out, scale_out, zero_out, scale_out, zero_out, bitwidth_out, bitwidth_out, bitwidth_temp, bitwidth_out, operator.add)
         intv_out = (0, 0)
 
         in_A_idx = IR.Var(expr_in_A.idf +
@@ -2121,7 +2150,7 @@ class IRBuilderZeroSkew(IRBuilder):
         self.allDepths[self.counter_inst+1] = self.curDepth
 
         # The output variable needs to be set to zero as the matrix multiplication implementation assumes this.
-        cmd1 = IR.Memset(expr_out, type_out.size())
+        cmd1 = self.memsetZeroSkew(expr_out, type_out.shape, scale_out, zero_out)
         bitwidth_mul = bitwidth_temp
 
         # For input variable 'X', the data is streamed on the target device, which necessitates a different function implementation.
@@ -2138,6 +2167,9 @@ class IRBuilderZeroSkew(IRBuilder):
             expr_in_B: "B",
             expr_out: "C",
             IR.Int(Q): "K",
+            IR.Float(scale_in_A): "scaleA",
+            IR.Float(scale_in_B): "scaleB",
+            IR.Float(scale_out): "scale_out",
             IR.Int(left_shift): "left_shift",
             IR.Int(-zero_in_A): "zeroA",
             IR.Int(-zero_in_B): "zeroB",
@@ -2158,6 +2190,9 @@ class IRBuilderZeroSkew(IRBuilder):
             expr_in_B: "B",
             expr_out: "C",
             IR.Int(Q): "K",
+            IR.Float(scale_in_A): "scaleA",
+            IR.Float(scale_in_B): "scaleB",
+            IR.Float(scale_out): "scale_out",
             IR.Int(left_shift): "left_shift",
             IR.Int(-zero_in_A): "zeroA",
             IR.Int(-zero_in_B): "zeroB",
@@ -2174,6 +2209,17 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(clamp_max): "clamp_max"
         })
 
+        debugPrint = []
+        if config.zeroSkewDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(P): "I",
+                IR.Int(R): "J",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
+                IR.String(expr_out): "varName"
+            }))
+
         self.counter_inst += 1
         self.updateLiveRange([in_A_idx, in_A_val, expr_in_B, expr_out])
 
@@ -2182,13 +2228,14 @@ class IRBuilderZeroSkew(IRBuilder):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mul = IR.Prog([comment, cmd1, funcCall] if forFloat() and self.ddsEnabled else [comment, cmd1, funcCall])
+        prog_mul = IR.Prog([comment] + cmd1 + [funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
         # Update metadata.
         self.varDeclarations[expr_out.idf] = type_out
         self.varScales[expr_out.idf] = scale_out
+        self.varZeros[expr_out.idf] = zero_out
         self.varIntervals[expr_out.idf] = intv_out
 
         # Update metadata for sparse matrix.
@@ -2247,11 +2294,9 @@ class IRBuilderZeroSkew(IRBuilder):
             bitwidth_out, scale_out, zero_out = bitwidth_in, scale_in, -zero_in
 
             # If the input variable is demoted to lower bit-width, demote the output as well as no extra information can be stored in the extra bits.
-            if forFixed():
-                self.varsForBitwidth[expr_out.idf] = bitwidth_out
-                if bitwidth_out != config.wordLength:
-                    self.demotedVarsList.append(expr_out.idf)
-                    self.demotedVarsOffsets[expr_out.idf] = self.demotedVarsOffsets[expr_in.idf]
+            self.varsForBitwidth[expr_out.idf] = bitwidth_out
+            if bitwidth_out != config.wordLength:
+                self.demotedVarsList.append(expr_out.idf)
 
             (m, M) = self.varIntervals[expr_in.idf]
             intv_out = (-M, -m)
@@ -2380,4 +2425,145 @@ class IRBuilderZeroSkew(IRBuilder):
         m = scale*(-max - zero)
         M = scale*(max - zero)
         return [m, M]
+    
+    def visitExp(self, node: AST.Func):
+        # Used in the old SeeDot (PLDI '19) version.
+        # Tunable parameter.
+
+        (prog_in, expr_in) = self.visit(node.expr)
+
+        type_in = node.expr.type
+
+        # Reading input scale and bit-width.
+        bitwidth_in, scale_in, zero_in = self.getBitwidthScaleZeros(expr_in.idf)
+
+        '''
+        1.  y = ((int) (exp(((float)e) / shr1) * shr2))
+        '''
+
+        expr_out = self.getTempVar()
+
+        # Reading / Computing output bit-width.
+        bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf)
+
+        [I, J] = type_in.shape
+        bitwidth_temp = self.getTempBitwidth(bitwidth_in, op="exp", bitwidthC=bitwidth_out)
+        left_shift, shrA, nA, shrB1, nB1, shrB2, nB2 = self.getExpScaleAndZeros(scale_in, zero_in, scale_out, zero_out, bitwidth_in, bitwidth_temp, bitwidth_out)
+        clamp_min, clamp_max = self.getClampValues(bitwidth_out) 
+        cmd0 = IR.Comment('exp(' + expr_in.idf + ')', self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
+        funcCall = IR.FuncCall("Exp", {
+            expr_in: "A",
+            expr_out: "B",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            IR.Int(left_shift): "left_shift",
+            IR.Int(-zero_in): "zero_in",
+            IR.Int(zero_out): "zero_out",
+            IR.Int(shrA): "shrA",
+            IR.Int(-nA): "nA",
+            IR.Int(shrB1): "shrB",
+            IR.Int(-nB1): "nB",
+            IR.Int(shrB2): "shrC",
+            IR.Int(-nB2): "nC",
+            IR.Int(clamp_min): "clamp_min",
+            IR.Int(clamp_max): "clamp_max"
+        }) if not self.vbwEnabled else IR.FuncCall("Exp<int%d_t, int%d_t, int%d_t>"%(bitwidth_in, bitwidth_temp, bitwidth_out), {
+            expr_in: "A",
+            expr_out: "B",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            IR.Float(scale_in): "scale_in",
+            IR.Float(scale_out): "scale_out",
+            IR.Int(left_shift): "left_shift",
+            IR.Int(-zero_in): "zero_in",
+            IR.Int(zero_out): "zero_out",
+            IR.Int(shrA): "shrA",
+            IR.Int(-nA): "nA",
+            IR.Int(shrB1): "shrB",
+            IR.Int(-nB1): "nB",
+            IR.Int(shrB2): "shrC",
+            IR.Int(-nB2): "nC",
+            IR.Int(clamp_min): "clamp_min",
+            IR.Int(clamp_max): "clamp_max"
+        })
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in, expr_out])
+
+        # This method is used in the profiling floating point stage to check whether the input values are beyond a threshold.
+        # Input values beyond a threshold are always mapped to zero in fixed-point code, hence these datapoints hold little use in the fixed-point mode.
+        rangeCheck = IR.FuncCall("checkRange2", {
+            expr_in: "A",
+            IR.Int(I): "I",
+            IR.Int(J): "J"
+        })  if self.functionReducedProfiling and forFloat() else IR.Comment("Recommend switching on Function Reduced Profiling for sound output")
+
+        profile = IR.FuncCall("Profile2", {
+            expr_out: "Var",
+            IR.Int(I): "I",
+            IR.Int(J): "J",
+            IR.String(expr_out): "VarName"
+        })
+        if forFloat():
+            self.independentVars.append(expr_out.idf)
         
+        debugPrint = []
+        if config.zeroSkewDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(I): "I",
+                IR.Int(J): "J",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
+                IR.String(expr_out): "varName"
+            }))
+
+        prog_exp = IR.Prog([cmd0, funcCall] + debugPrint)
+
+        prog_out = IRUtil.concatPrograms(prog_in, prog_exp)
+
+        # Update metadata.
+        self.varDeclarations[expr_out.idf] = type_in
+        self.varScales[expr_out.idf] = scale_out
+        self.varZeros[expr_out.idf] = zero_out
+        self.varIntervals[expr_out.idf] = (0,0)
+
+        return (prog_out, expr_out)
+    
+    def getExpScaleAndZeros(self, scale_in, zero_in, scale_out, zero_out, bitwidth_in, bitwidth_temp, bitwidth_out):
+        left_shift = 30 if bitwidth_temp == 32 else 62
+        
+        if bitwidth_temp == 32:
+            shrA, nA = self.getQuantizedMultiplierLTO(scale_in, bitwidth_temp, bitwidth_in)
+            nA -= (31  + 18)
+            shrB1, nB1 = self.getQuantizedMultiplierLTO(1.0/scale_out, bitwidth_temp, bitwidth_in)
+            nB2 = nB1 - (31 - left_shift + 7)
+            nB1 -= (31 - 7)
+            shrB2 = shrB1
+        elif bitwidth_temp == 64:
+            shrA, nA = self.getQuantizedMultiplierLTO(scale_in, bitwidth_temp, bitwidth_in)
+            nA -= (63 + 18)
+            shrB1, nB1 = self.getQuantizedMultiplierLTO(1.0/scale_out, bitwidth_temp, bitwidth_in)
+            nB2 = nB1 - (63 - left_shift + 7)
+            nB1 -= (63 - 7)
+            shrB2 = shrB1
+        else:
+            assert False, "Only 8 and 16 bit operations supported"
+        return left_shift, shrA, nA, shrB1, nB1, shrB2, nB2
+    
+    def memsetZeroSkew(self, expr, shape, scale, zero):
+        iters_in = self.getTempIterators(len(shape))
+
+        loopShape = []  # Contains the shape of the tensor being initialized.
+        loopIters = []  # Iterators which will be used to iterate to each tensor element.
+
+        for order in range(len(shape)):
+            loopShape.append(shape[order])
+            loopIters.append(iters_in[order])
+        loop = IRUtil.loop(loopShape, loopIters, [
+            IR.Assn(IRUtil.addIndex(expr, iters_in), 
+            IR.Int(zero))
+        ])
+        return loop

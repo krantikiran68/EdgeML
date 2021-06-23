@@ -216,7 +216,7 @@ inline InputType MulQuantMultiplierGTO(InputType x, InputType multiplier, MYITE 
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void MatAdd(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {	
+void MatAdd(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, float scaleA, float scaleB, float scaleC, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {	
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeAc a = A[i * J + j];
@@ -238,7 +238,7 @@ void MatAdd(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left_shift, Ty
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {
+void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, float scaleA, float scaleB, float scaleC, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {
 	TypeAc a = (TypeAc) *A;
 	a += zeroA;
 	a *= TypeAc(1LL << left_shift);
@@ -259,7 +259,7 @@ void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {
+void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, float scaleA, float scaleB, float scaleC, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {
 	TypeAc b = (TypeAc) *B;
 	b += zeroB;
 	b *= TypeAc(1LL << left_shift);
@@ -280,7 +280,44 @@ void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {
+void MatSub(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, float scaleA, float scaleB, float scaleC, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {	
+	// #define MATSUB_APPROX
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			#ifdef MATSUB_APPROX
+				float a = A[i * J + j];
+				float b = B[i * J + j];
+
+				a += zeroA;
+				b += zeroB;
+				a *= scaleA;
+				b *= scaleB;
+				
+				
+				float c = (a - b)/scaleC;
+				C[i * J + j] = Saturate<TypeAc, TypeC>(TypeAc(zeroC + c), clamp_min, clamp_max);
+			#else
+				TypeAc a = A[i * J + j];
+				TypeAc b = B[i * J + j];
+
+				a += zeroA;
+				b += zeroB;
+				a *= TypeAc(1LL << left_shift);
+				b *= TypeAc(1LL << left_shift);
+
+				a = MulQuantMultiplier<TypeAc>(a, shrA, nA);
+				b = MulQuantMultiplier<TypeAc>(b, shrB, nB);
+
+				TypeAc c = MulQuantMultiplier<TypeAc>(a - b, shrC, nC);
+				C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + c, clamp_min, clamp_max);
+			#endif
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeAc, class TypeC>
+void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, float scaleA, float scaleB, float scaleC, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {
 	TypeAc a = (TypeAc) *A;
 	a += zeroA;
 	a *= TypeAc(1LL << left_shift);
@@ -301,7 +338,7 @@ void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void MatSubBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {
+void MatSubBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, float scaleA, float scaleB, float scaleC, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {
 	TypeAc b = (TypeAc) *B;
 	b += zeroB;
 	b *= TypeAc(1LL << left_shift);
@@ -323,20 +360,39 @@ void MatSubBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, MYITE left
 
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void MatMul(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE K, MYITE J, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N, TypeAc clamp_min, TypeAc clamp_max) {
+void MatMul(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE K, MYITE J, float scaleA, float scaleB, float scaleC, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N, TypeAc clamp_min, TypeAc clamp_max) {
+	// #define MATMUL_APPROX
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			TypeAc sum = 0;
+			#ifdef MATMUL_APPROX
+				float sum = 0;
 
-			for (MYITE k = 0; k < K; k++) {
-				TypeAc a = A[i * K + k];
-				TypeAc b = B[k * J + j];
+				for (MYITE k = 0; k < K; k++) {
+					float a = A[i * K + k];
+					a += zeroA;
+					a *= scaleA;
 
-				sum += (a + zeroA) * (b + zeroB);
-			}
+					float b = B[k * J + j];
+					b += zeroB;
+					b *= scaleB;
 
-			sum = MulQuantMultiplier<TypeAc>(sum, M0, N);
-			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + sum, clamp_min, clamp_max);
+					sum += (a) * (b);
+				}
+				sum /= scaleC;
+				C[i * J + j] = Saturate<TypeAc, TypeC>(TypeAc(zeroC + sum), clamp_min, clamp_max);
+			#else
+				TypeAc sum = 0;
+
+				for (MYITE k = 0; k < K; k++) {
+					TypeAc a = A[i * K + k];
+					TypeAc b = B[k * J + j];
+
+					sum += (a + zeroA) * (b + zeroB);
+				}
+
+				sum = MulQuantMultiplier<TypeAc>(sum, M0, N);
+				C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + sum, clamp_min, clamp_max);
+			#endif
 		}
 	}
 	return;
@@ -359,19 +415,38 @@ void Hadamard(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, TypeAc zeroA, Type
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void MatMulBroadcastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N, TypeAc clamp_min, TypeAc clamp_max) {
-	TypeAc a = (TypeAc) *A;
-	a += zeroA;
+void MatMulBroadcastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, float scaleA, float scaleB, float scaleC, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N, TypeAc clamp_min, TypeAc clamp_max) {
+	// #define MATMULBROADCAST_A_APPROX
+	
+	#ifdef MATMULBROADCAST_A_APPROX
+			float a = (float) *A;
+			a += zeroA;
+			a *= scaleA;
 
-	for (MYITE i = 0; i < I; i++) {
-		for (MYITE j = 0; j < J; j++) {
-			TypeAc b = B[i * J + j];
-			TypeAc prod = a * (b + zeroB);
+			for (MYITE i = 0; i < I; i++) {
+				for (MYITE j = 0; j < J; j++) {
+					float b = B[i * J + j];
+					b += zeroB;
+					b *= scaleB;
+					float prod = (a * b)/scaleC;
 
-			prod = MulQuantMultiplier<TypeAc>(prod, M0, N);
-			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + prod, clamp_min, clamp_max);
+					C[i * J + j] = Saturate<TypeAc, TypeC>(TypeAc(zeroC + prod), clamp_min, clamp_max);
+				}
+			}
+	#else
+		TypeAc a = (TypeAc) *A;
+		a += zeroA;
+
+		for (MYITE i = 0; i < I; i++) {
+			for (MYITE j = 0; j < J; j++) {
+				TypeAc b = B[i * J + j];
+				TypeAc prod = a * (b + zeroB);
+
+				prod = MulQuantMultiplier<TypeAc>(prod, M0, N);
+				C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + prod, clamp_min, clamp_max);
+			}
 		}
-	}
+	#endif
 	return;
 }
 
@@ -461,43 +536,74 @@ void ArgMax(TypeA* A, MYITE I, MYITE J, float scale_in, ACINT zero_in, int* inde
 }
 
 template<class TypeA, class TypeAidx, class TypeB, class TypeAc, class TypeC>
-void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C, int16_t K, ACINT left_shift, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, ACINT N, ACINT shr1, ACINT n1, ACINT shr2, ACINT n2, ACINT shr3, ACINT n3, MYINT clamp_min, MYINT clamp_max) {
+void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C, int16_t K, float scaleA, float scaleB, float scale_out, ACINT left_shift, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, ACINT N, ACINT shr1, ACINT n1, ACINT shr2, ACINT n2, ACINT shr3, ACINT n3, MYINT clamp_min, MYINT clamp_max) {
 	MYITE ite_idx = 0, ite_val = 0;
 	for (MYITE k = 0; k < K; k++) {
-		TypeAc b = (TypeAc) B[k * 1][0];
-		b += zeroB;
+		// #define SPARSE_FLT_APPROX
+		#ifdef SPARSE_FLT_APPROX
+			float b = (float) B[k * 1][0];
+			b += zeroB;
 
-		MYITE idx = Aidx[ite_idx];
-		while (idx != 0) {
-			TypeAc a = (TypeAc) Aval[ite_val];
-			a += zeroA;
-			TypeAc c = (a * b);
-			c = MulQuantMultiplier<TypeAc>(c, M0, N);
-			c *= TypeAc(1LL << left_shift);
-			c = MulQuantMultiplier<TypeAc>(c, shr1, n1);
+			b *= scaleB;
 
-			TypeAc c2 = C[idx - 1];
-			c2 -= zeroC;
-			c2 *= TypeAc(1LL << left_shift);
-			c2 = MulQuantMultiplier<TypeAc>(c2, shr2, n2);
-			
+			MYITE idx = Aidx[ite_idx];
+			while (idx != 0) {
+				float a = (float) Aval[ite_val];
+				a += zeroA;
+				a *= scaleA;
+				float c = (a * b);
+				
+				float c2 = C[idx - 1];
+				c2 -= zeroC;
+				c2 *= scale_out;
+				
+				c = c + c2;
 
-			c = MulQuantMultiplier<TypeAc>(c + c2, shr3, n3);
+				c /= scale_out;
 
-			C[idx -1] = Saturate<TypeAc, TypeC>(c + zeroC, clamp_min, clamp_max);
+				C[idx -1] = Saturate<TypeAc, TypeC>(TypeAc(c + zeroC), clamp_min, clamp_max);
 
-			ite_idx++;
-			ite_val++;
+				ite_idx++;
+				ite_val++;
 
-			idx = Aidx[ite_idx];
-		}
+				idx = Aidx[ite_idx];
+			}
+		#else
+			TypeAc b = (TypeAc) B[k * 1][0];
+			b += zeroB;
+
+			MYITE idx = Aidx[ite_idx];
+			while (idx != 0) {
+				TypeAc a = (TypeAc) Aval[ite_val];
+				a += zeroA;
+				TypeAc c = (a * b);
+				c = MulQuantMultiplier<TypeAc>(c, M0, N);
+				c *= TypeAc(1LL << left_shift);
+				c = MulQuantMultiplier<TypeAc>(c, shr1, n1);
+
+				TypeAc c2 = C[idx - 1];
+				c2 -= zeroC;
+				c2 *= TypeAc(1LL << left_shift);
+				c2 = MulQuantMultiplier<TypeAc>(c2, shr2, n2);
+				
+
+				c = MulQuantMultiplier<TypeAc>(c + c2, shr3, n3);
+
+				C[idx -1] = Saturate<TypeAc, TypeC>(c + zeroC, clamp_min, clamp_max);
+
+				ite_idx++;
+				ite_val++;
+
+				idx = Aidx[ite_idx];
+			}
+		#endif
 		ite_idx++;
 	}
 	return;
 }
 
 template<class TypeA, class TypeAidx, class TypeB, class TypeAc, class TypeC>
-void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, int16_t K, ACINT left_shift, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, ACINT N, ACINT shr1, ACINT n1, ACINT shr2, ACINT n2, ACINT shr3, ACINT n3, MYINT clamp_min, MYINT clamp_max) {
+void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, int16_t K, float scaleA, float scaleB, float scale_out, TypeAc left_shift, TypeAc zeroA, TypeAc zeroB, ACINT zeroC, ACINT M0, ACINT N, ACINT shr1, ACINT n1, ACINT shr2, ACINT n2, ACINT shr3, ACINT n3, MYINT clamp_min, MYINT clamp_max) {
 	MYITE ite_idx = 0, ite_val = 0;
 	for (MYITE k = 0; k < K; k++) {
 		TypeAc b = (TypeAc) B[k];
@@ -540,4 +646,120 @@ TypeB AdjustScaleZero(TypeA A, TypeAc zeroA, TypeAc zeroOut, TypeAc M, TypeAc N,
 	a = MulQuantMultiplier<TypeAc>(a, M, N);
 
 	return Saturate<TypeAc, TypeB>(a + zeroOut, clamp_min, clamp_max);
+}
+
+template<typename TypeA, typename TypeAc, typename TypeB>
+void AddInPlace(TypeA* A, TypeB* B, MYITE I, MYITE J, float scaleA, float scaleB, TypeAc zero_in, TypeAc zero_out, TypeAc left_shift, TypeAc shrA, TypeAc nA, TypeAc shrB, TypeAc nB, TypeAc shrC, TypeAc nC, TypeAc clamp_min, TypeAc clamp_max) {
+	// #define AddInPlace_APPROX
+
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			#ifdef AddInPlace_APPROX
+				float a = A[i * J + j];
+				float b = B[i * J + j];
+
+				a -= zero_in;
+				b -= zero_out;
+				a *= scaleA;
+				b *= scaleB;
+
+				float c = (a + b)/scaleB;
+				B[i * J + j] = Saturate<TypeAc, TypeB>(TypeAc(zero_out + c), clamp_min, clamp_max);
+			#else
+				TypeAc a = A[i * J + j];
+				TypeAc b = B[i * J + j];
+
+				a -= zero_in;
+				b -= zero_out;
+				a *= TypeAc(1LL << left_shift);
+				b *= TypeAc(1LL << left_shift);
+
+				a = MulQuantMultiplier<TypeAc>(a, shrA, nA);
+				b = MulQuantMultiplier<TypeAc>(b, shrB, nB);
+
+				TypeAc c = MulQuantMultiplier<TypeAc>(a + b, shrC, nC);
+				B[i * J + j] = Saturate<TypeAc, TypeB>(zero_out + c, clamp_min, clamp_max);
+			#endif
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeAc, class TypeB>
+void Exp(TypeA* A, TypeB* B, MYINT I, MYINT J, float scale_in, float scale_out, TypeAc left_shift, TypeAc zeroA, TypeAc zeroB, TypeAc shrA, TypeAc nA, TypeAc shrB1, TypeAc nB1, TypeAc shrB2, TypeAc nB2, TypeB clamp_min, TypeB clamp_max) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			#ifdef FLOAT_APPROX
+				float x = A[i * J + j];
+				x += zeroA;
+
+				float y = exp(x*scale_in);
+
+				y /= scale_out;
+				y += zeroB;
+
+				B[i*J + j] = Saturate<TypeAc, TypeB>(TypeAc(y), clamp_min, clamp_max);
+			#else
+				TypeAc x = A[i * J + j];
+				x += zeroA;
+
+				TypeAc y;
+
+				if (x < 0)
+				{
+					const int32_t x_rescaled = MulQuantMultiplier<TypeAc>(x, shrA, nA);
+					using FixedPoint4 = gemmlowp::FixedPoint<int32_t, 13>;
+					using FixedPoint0 = gemmlowp::FixedPoint<int32_t, 0>;
+					const FixedPoint4 x_f4 = FixedPoint4::FromRaw(x_rescaled);
+					const FixedPoint0 y_f0 = gemmlowp::exp_on_negative_values(x_f4);
+
+					y = gemmlowp::RoundingDivideByPOT(y_f0.raw(), 24);
+
+					y = MulQuantMultiplier<TypeAc>(y, shrB1, nB1);
+				}
+				else{
+					x = -x;
+					const int32_t x_rescaled = MulQuantMultiplier<TypeAc>(x, shrA, nA);
+					using FixedPoint4 = gemmlowp::FixedPoint<int32_t, 13>;
+					using FixedPoint0 = gemmlowp::FixedPoint<int32_t, 0>;
+					const FixedPoint4 x_f4 = FixedPoint4::FromRaw(x_rescaled);
+					const FixedPoint0 y_f0 = gemmlowp::exp_on_negative_values(x_f4);
+
+					y = gemmlowp::RoundingDivideByPOT(y_f0.raw(), 24); 
+					// scale of y after this operation is -7
+					y = TypeAc(1LL<< left_shift) / (y);
+					// scale after this operation is -(left_shift -7)
+					y = MulQuantMultiplier<TypeAc>(y, shrB2, nB2);
+				}
+
+				B[i * J + j] = Saturate<TypeAc, TypeA>(y + zeroB, std::numeric_limits<TypeA>::min(), std::numeric_limits<TypeA>::max());
+			#endif
+
+
+		}
+	}
+	return;
+}
+
+template<class TypeA>
+void Transpose(TypeA* A, TypeA* B, MYINT I, MYINT J) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {
+			B[i * J + j] = A[j * I + i];
+		}
+	}
+	return;
+}
+
+template<class TypeA>
+void Reverse2(TypeA* A, MYINT axis, MYINT I, MYINT J, TypeA* B) {
+	for (MYITE i = 0; i < I; i++) {
+		for (MYITE j = 0; j < J; j++) {	
+			MYINT i_prime = (axis == 0 ? (I-1-i) : i);
+			MYINT j_prime = (axis == 1 ? (J-1-j) : j); 
+
+			B[i * J + j] = A[i_prime*J + j_prime];
+		}
+	}
+	return;
 }

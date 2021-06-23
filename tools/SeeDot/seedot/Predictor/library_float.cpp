@@ -986,6 +986,6 @@ void debugPrint(float *A, MYINT I, MYINT J, std::string varName)
 			f<<A[i * J + j] << " ";
 		}
 	}
-	std::cout<<std::endl<<std::endl;
+	f<<std::endl<<std::endl;
 	#endif
 }

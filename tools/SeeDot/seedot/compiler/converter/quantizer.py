@@ -357,6 +357,7 @@ class QuantizerZeroSkew(Quantizer):
         self.biasShifts = biasShifts
         self.scaleForY = scaleForY
         self.promoteParam = []
+        self.scaleZeroMap = {}
 
     # Quantize the matrices.
     def transformModel(self):
@@ -370,6 +371,59 @@ class QuantizerZeroSkew(Quantizer):
                 param.data, _ = scaleMat(param.data, scale)
             else:
                 if param.name in self.varsForBitwidth:
-                    param.data, _, _ = scaleMatZeroSkew(param.data, self.allScales[param.name][0], self.allScales[param.name[1]])
+                    param.data, scale, zero = scaleMatZeroSkew(param.data, self.allScales[param.name][0], self.allScales[param.name[1]])
                 else:
-                    param.data, _, _ = scaleMatZeroSkew(param.data)
+                    param.data, scale, zero = scaleMatZeroSkew(param.data)
+                self.scaleZeroMap[param.name] = (scale, zero)
+
+    def writeModel(self):
+        self.writeHeader()
+
+        if forArduino() and dumpDataset():
+            scaleOfX = self.allScales['X']
+            Xint, _ = scaleList(self.X[0], scaleOfX)
+
+            writeListAsArray(self.X[0], 'X', self.headerFile, None, self.varsForBitwidth['X'])
+            writeListAsArray(Xint, 'Xint', self.headerFile, None, self.varsForBitwidth['X'])
+            writeVars({'scaleOfX': scaleOfX}, self.headerFile)
+            writeVars({'Y': self.Y[0][0]}, self.headerFile)
+
+        if forM3() and dumpDataset():
+            writeVars({'scaleForX': self.allScales['X']}, self.scalesFile)
+            assert self.scaleForY is not None, "Illegal state for M3 codegen"
+            writeVars({'scaleForY': self.scaleForY}, self.scalesFile)
+
+        for param in self.params:
+            if param.sparse:
+                transp = matTranspose(param.data)
+                val, idx = convertToSparse(transp, zero_skew=True, zero=self.scaleZeroMap[param.name][1])
+                self.sparseMatSizes[param.name + 'val'] = len(val)
+                self.sparseMatSizes[param.name + 'idx'] = len(idx)
+                if forArduino() or forM3():
+                    bw = self.varsForBitwidth[param.name + 'val'] if param.name not in self.promoteParam else 2 * self.varsForBitwidth[param.name]
+                    writeListAsArray(val, param.name + 'val', self.headerFile, None, bw)
+                    writeListAsArray(idx, param.name + 'idx', self.headerFile, None, self.varsForBitwidth[param.name + 'idx'])
+                else:
+                    if hasattr(self, 'varsForBitwidth') and param.name + 'val' in self.varsForBitwidth:
+                        writeListAsArray(val, param.name + 'val', self.headerFile, None, self.varsForBitwidth[param.name + 'val'])
+                    else:
+                        writeListAsArray(val, param.name + 'val', self.headerFile)
+                    if hasattr(self, 'varsForBitwidth') and param.name + 'idx' in self.varsForBitwidth:
+                        writeListAsArray(idx, param.name + 'idx', self.headerFile, None, self.varsForBitwidth[param.name + 'idx'])
+                    else:
+                        writeListAsArray(idx, param.name + 'idx', self.headerFile)
+            else:
+                if forArduino():
+                    bw = self.varsForBitwidth[param.name] if param.name not in self.promoteParam else 2 * self.varsForBitwidth[param.name]
+                    writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape), bw=bw)
+                elif forM3():
+                    bw = self.varsForBitwidth[param.name] if param.name not in self.promoteParam else 2 * self.varsForBitwidth[param.name]
+                    assert len(param.shape) > 0
+                    writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d" + ("*%d" * (len(param.shape) - 1)) + "]") % tuple(param.shape), bw=bw)
+                else:
+                    if hasattr(self, 'varsForBitwidth') and param.name in self.varsForBitwidth:
+                        writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape), bw=self.varsForBitwidth[param.name])
+                    else:
+                        writeMatAsArray(param.data, param.name, self.headerFile, shapeStr=("[%d]" * len(param.shape)) % tuple(param.shape))
+
+        self.writeFooter()

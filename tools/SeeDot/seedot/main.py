@@ -458,6 +458,14 @@ class Main:
                 # demoted Scale = self.allScales[var] + 8 - offset
 
                 attemptToDemote = [var for var in self.variableToBitwidthMap if (var[-3:] != "val" and var not in self.demotedVarsList)]
+                # tmpAttemptToDemote = []
+                # for var in attemptToDemote:
+                #     tmp_var = var
+                #     while tmp_var in self.variableSubstitutions.keys():
+                #         tmp_var = self.variableSubstitutions[tmp_var]
+                #     if tmp_var not in tmpAttemptToDemote:
+                #         tmpAttemptToDemote.append(tmp_var)
+                # attemptToDemote = tmpAttemptToDemote
                 numCodes = config.offsetsPerDemotedVariable * len(attemptToDemote) + ((9 - config.offsetsPerDemotedVariable) if 'X' in attemptToDemote else 0)
                 # 9 offsets tried for X while 'offsetsPerDemotedVariable' tried for other variables.
 
@@ -613,7 +621,7 @@ class Main:
                 print('Flash Size: ' + str(flash_size))
                 
                 self.demotedVarsList = [i for i in okToDemote] + [i for i in self.demotedVarsList]
-                assert(set(self.demotedVarsList) == set(demotedList))
+                # assert(set(self.demotedVarsList) == set(demotedList))
                 self.demotedVarsOffsets.update(demotedVarsListToOffsets.get(okToDemote, {}))
 
                 if acceptedAcc != lastStageAcc:

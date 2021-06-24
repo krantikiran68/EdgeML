@@ -45,6 +45,7 @@ class CodegenBase:
         self.globalVars = globalVars
         self.internalVars = internalVars
         self.floatConstants = floatConstants
+        self.substitutions = substitutions
 
         # The following are pre-populated for VBW exploration.
         self.demotedVarsOffsets = demotedVarsOffsets
@@ -302,6 +303,9 @@ class CodegenBase:
         self.out.printf('memset(', indent=True)
         # If a memory optimized mapping is available for a variable, use that else use original variable name.
         if Config.x86MemoryOptimize and forFixed() and forX86() and self.numberOfMemoryMaps in self.scratchSubs:
+            # tmp_var = ir.e.idf
+            # while tmp_var in self.substitutions.keys():
+            #     tmp_var = self.substitutions[tmp_var]
             self.out.printf("(scratch + %d)", self.scratchSubs[self.numberOfMemoryMaps][ir.e.idf])
         else:
             self.print(ir.e)
@@ -839,7 +843,7 @@ class CodegenBase:
             memAlloc = [(l * m // 8, i, j) for ([i, j], k, l, m) in varToLiveRange if k not in self.notScratch]
             varOrderAndSize = [(k, l * m // 8) for ([i, j], k, l, m) in varToLiveRange if k not in self.notScratch]
             maxAllowedMemUsage = Config.memoryLimit
-            timeout = 60
+            timeout = 7200
             bestCaseMemUsage = DLXInputGen.generateDLXInput(memAlloc, 1, 0, True)
             if maxAllowedMemUsage < bestCaseMemUsage:
                 assert False, "Cannot fit the code within stipulated memory limit of %d" % maxAllowedMemUsage

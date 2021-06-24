@@ -11,6 +11,7 @@ from functools import reduce
 
 from seedot.compiler.codegen.codegenBase import CodegenBase
 
+from seedot.compiler.converter.util import *
 import seedot.compiler.ir.ir as IR
 import seedot.compiler.ir.irUtil as IRUtil
 
@@ -71,7 +72,10 @@ class X86(CodegenBase):
 
         self.storeFlashSize()
 
-        self.computeScratchLocationsFirstFitPriority() # computeScratchLocations computeScratchLocationsFirstFit computeScratchLocationsFirstFitPriority computeScratchLocationsDLX
+        if getDatasetType() == config.DatasetType.testing:
+            self.computeScratchLocationsDLX() # computeScratchLocations computeScratchLocationsFirstFit computeScratchLocationsFirstFitPriority computeScratchLocationsDLX
+        else:
+            self.computeScratchLocationsFirstFitPriority()
 
         self.printModelParamsWithBitwidth()
 

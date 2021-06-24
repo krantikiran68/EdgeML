@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 #include "SoftPosit/source/include/softposit.h"
+#include <fstream>
+#include <iostream>
 
 #pragma once
 // This file contains declarations for floating point versions of all operators supported by SeeDot.
@@ -68,7 +70,7 @@ void Reverse2(posit8_t* A, MYINT axis, MYINT I, MYINT J, posit8_t* B);
 void NormaliseL2(posit8_t* A, posit8_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA);
 posit8_t operator-(const posit8_t& a);
 bool operator>(const posit8_t& a, const int& b);
-void MatAddInplace(posit8_t* A, posit8_t* B, MYINT I, MYINT J);
+void AddInplace(posit8_t* A, posit8_t* B, MYINT I, MYINT J);
 
 
 void MatAddNN(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
@@ -133,7 +135,7 @@ void Reverse2(posit16_t* A, MYINT axis, MYINT I, MYINT J, posit16_t* B);
 void NormaliseL2(posit16_t* A, posit16_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA);
 posit16_t operator-(const posit16_t& a);
 bool operator>(const posit16_t& a, const int& b);
-void MatAddInplace(posit16_t* A, posit16_t* B, MYINT I, MYINT J);
+void AddInplace(posit16_t* A, posit16_t* B, MYINT I, MYINT J);
 
 void MatAddNN(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
 void MatAddCN(const posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
@@ -197,7 +199,7 @@ void Reverse2(posit32_t* A, MYINT axis, MYINT I, MYINT J, posit32_t* B);
 void NormaliseL2(posit32_t* A, posit32_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA);
 posit32_t operator-(const posit32_t& a);
 bool operator>(const posit32_t& a, const int& b);
-void MatAddInplace(posit32_t* A, posit32_t* B, MYINT I, MYINT J);
+void AddInplace(posit32_t* A, posit32_t* B, MYINT I, MYINT J);
 
 
 
@@ -261,7 +263,7 @@ void AdjustScaleShl(posit_2_t* A, MYINT I, MYINT J, MYINT scale, int bitwidth);
 void Reverse2(posit_2_t* A, MYINT axis, MYINT I, MYINT J, posit_2_t* B, int bitwidth);
 
 void NormaliseL2(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA, int bitwidth);
-void MatAddInplace(posit_2_t* A, posit_2_t* B, MYINT I, MYINT J, int bw);
+void AddInplace(posit_2_t* A, posit_2_t* B, MYINT I, MYINT J, int bw);
 
 void convertPosit(posit8_t* a, posit8_t *b);
 
@@ -328,6 +330,10 @@ posit32_t convertQuireToPosit(quire32_t q);
 quire8_t positFMA(quire8_t q, posit8_t a, posit8_t b);
 quire16_t positFMA(quire16_t q, posit16_t a, posit16_t b);
 quire32_t positFMA(quire32_t q, posit32_t a, posit32_t b);
+
+void debugPrint(posit8_t* A, int I, int J, std::string varName);
+void debugPrint(posit16_t* A, int I, int J, std::string varName);
+void debugPrint(posit32_t* A, int I, int J, std::string varName);
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAdd(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, MYINT demote) {
@@ -566,12 +572,11 @@ void Exp(TypeA* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, TypeB* B, int demot
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeA x = A[i * J + j];
-
-			updateRangeOfExp(-1*convertPositToDouble(x));
-
 			convertDoubleToPosit(exp(convertPositToDouble(x)), &B[i * J + j]);
+			std::cout<<exp(convertPositToDouble(x))<<std::endl;
 		}
 	}
+	std::cout<<std::endl;
 	return;
 }
 
@@ -635,7 +640,7 @@ void SparseMatMul(const TypeAidx* Aidx, TypeA* Aval, TypeB* B, TypeC* C, int16_t
 }
 
 template<typename TypeA, typename TypeB, typename TypeTemp>
-void MatAddInplace(TypeA* A, TypeB* B, MYINT I, MYINT J) {
+void AddInplace(TypeA* A, TypeB* B, MYINT I, MYINT J) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a, b;

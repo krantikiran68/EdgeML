@@ -562,7 +562,7 @@ int main(int argc, char* argv[]) {
 
 	float accuracy = (float)correct / total * 100.0f;
 
-	if ((argc == 6) && (argv[5] == "False"))
+	if ((argc == 6) && (string(argv[5]) == "False"))
 	{
 		cout.precision(3);
 		cout << fixed;

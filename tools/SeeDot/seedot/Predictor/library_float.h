@@ -66,3 +66,5 @@ void AdjustScaleShl(float* A, MYINT I, MYINT J, MYINT scale);
 void Reverse2(float* A, MYINT axis, MYINT I, MYINT J, float* B);
 
 void NormaliseL2(float* A, float* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA);
+
+void debugPrint(float *A, MYINT I, MYINT J, std::string varName);

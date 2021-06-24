@@ -785,13 +785,15 @@ class X86Posit(X86):
         if config.vbwEnabled and forPosit():
             if config.positBitwidth != 16:
                 name_end = name.find('<')
+                if name_end == -1:
+                    return name
                 funcName = name[0:name_end]
                 typenameArgs = name[name_end+1:name.find('>')].split(',')
                 typenameArgs = [typename.lstrip().rstrip() for typename in typenameArgs]
                 getLogger().debug("Found template args in processFuncName for posits: " \
                     + str(typenameArgs))
                 typenameArgs = [("posit%d_t"%(config.positBitwidth)\
-                     if typename[:5] == "posit" else "quire%d_t"%(config.positBitwidth)) \
+                     if typename[:5] == "posit" else ("quire%d_t"%(config.positBitwidth) if typename[:3] != "int" else ("int%d_t")%(config.wordLength))) \
                     for typename in typenameArgs]
                 name = funcName + "<" + ",".join(typenameArgs) + ">"
         return name

@@ -794,7 +794,16 @@ class IRBuilderPosit(IRBuilder):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        debugPrint = []
+        if config.printPositDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(I): "I",
+                IR.Int(J): "J",
+                IR.String(expr_out): "varName"
+            }))
+        
+        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else ([comment, funcCall] + debugPrint))
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -922,7 +931,15 @@ class IRBuilderPosit(IRBuilder):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        debugPrint = []
+        if config.printPositDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(I): "I",
+                IR.Int(K): "J",
+                IR.String(expr_out): "varName"
+            }))
+        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else ([comment, funcCall] + debugPrint))
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -1028,6 +1045,15 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(demote): "demote"
         })
 
+        debugPrint = []
+        if config.printPositDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(P): "I",
+                IR.Int(R): "J",
+                IR.String(expr_out): "varName"
+            }))
+
         self.counter_inst += 1
         self.updateLiveRange([in_A_idx, in_A_val, expr_in_B, expr_out])
 
@@ -1041,7 +1067,7 @@ class IRBuilderPosit(IRBuilder):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mul = IR.Prog([comment, cmd1, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, cmd1, funcCall])
+        prog_mul = IR.Prog([comment, cmd1, funcCall, profile] if forFloat() and self.ddsEnabled else ([comment, cmd1, funcCall] + debugPrint))
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -1805,6 +1831,22 @@ class IRBuilderPosit(IRBuilder):
                     IR.Int(W): "W",
                     IR.Int(C): "C"
                 })
+            debugPrint = []
+            if config.printPositDebug:
+                if type_out.dim == 2:
+                    debugPrint.append(IR.FuncCall("debugPrint", {
+                        expr_out: "expr",
+                        IR.Int(I): "I",
+                        IR.Int(J): "J",
+                        IR.String(expr_out): "varName"
+                    }))
+                else:
+                    debugPrint.append(IR.FuncCall("debugPrint", {
+                        expr_out: "expr",
+                        IR.Int(N*H*W): "I",
+                        IR.Int(C): "J",
+                        IR.String(expr_out): "varName"
+                    }))
 
             self.counter_inst += 1
             self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
@@ -1848,7 +1890,7 @@ class IRBuilderPosit(IRBuilder):
             else:
                 assert False, "Illegal number of dimensions"
 
-            prog_bop = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall] )
+            prog_bop = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else ([comment, funcCall] + debugPrint))
 
             prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_bop)
 
@@ -2938,13 +2980,13 @@ class IRBuilderPosit(IRBuilder):
 
         # Adjusting scale of input and output in the fixed-point code.
         cmd1 = IR.Memset(expr_out, type_out.size())
-        matAddComment = IR.Comment("For loop replaced by MatAdd", self.counter_inst)
-        cmd2 = IR.FuncCall("MatAddInplace", {
+        matAddComment = IR.Comment("For loop replaced by AddinPlace", self.counter_inst)
+        cmd2 = IR.FuncCall("AddInplace", {
                     expr_out: "A",
                     expr_in: "B",
                     IR.Int(type_out.shape[0]): "I",
                     IR.Int(type_out.shape[1]): "J",
-                }) if not self.vbwEnabled else IR.FuncCall("MatAddInplace" + ("<posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_out, bitwidth_in, self.getTempBitwidth(bitwidth_out, bitwidth_in, "add", bitwidth_out))), {
+                }) if not self.vbwEnabled else IR.FuncCall("AddInplace" + ("<posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_out, bitwidth_in, self.getTempBitwidth(bitwidth_out, bitwidth_in, "add", bitwidth_out))), {
                     expr_out: "A",
                     expr_in: "B",
                     IR.Int(type_out.shape[0]): "I",
@@ -2961,12 +3003,21 @@ class IRBuilderPosit(IRBuilder):
             })]
         if forFloat():
             self.independentVars.append(expr_out.idf)
-
+        
+        debugPrint = []
+        if config.printPositDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(type_out.shape[0]): "I",
+                IR.Int(type_out.shape[1]): "J",
+                IR.String(expr_out): "varName"
+            }))
+        
         # Final program to sum output of each iteration.
         prog_sum = [cmd1,
                     IR.Assn(var, IR.Int(start)),
                     IR.For(var_iter, 0, IRUtil.lt(var_iter, IR.Int(end - start)),
-                           prog_in.cmd_l + [matAddComment, cmd2] + (profile if forFloat() and self.ddsEnabled else []) + [IR.Assn(var, IRUtil.inc(var))])
+                           prog_in.cmd_l + [matAddComment, cmd2] + debugPrint + (profile if forFloat() and self.ddsEnabled else []) + [IR.Assn(var, IRUtil.inc(var))])
                     ]
 
         self.updateLiveRange([expr_in, expr_out])

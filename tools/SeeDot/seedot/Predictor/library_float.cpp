@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include <iostream>
+#include <fstream>
 #include <cmath>
 
 #include "datatypes.h"
@@ -972,4 +973,19 @@ void AdjustScaleShr(float* A, MYINT I, MYINT J, MYINT scale) {
 // A = AdjustScaleShl(A)
 void AdjustScaleShl(float* A, MYINT I, MYINT J, MYINT scale) {
 	return;
+}
+void debugPrint(float *A, MYINT I, MYINT J, std::string varName)
+{
+	#ifdef DEBUG
+	std::ofstream f("debugLog", std::ios::app);
+	f<<varName<<std::endl;
+	for(int i=0;i<I;i++)
+	{
+		for(int j=0;j<J;j++)
+		{
+			f<<A[i * J + j] << " ";
+		}
+	}
+	f<<std::endl<<std::endl;
+	#endif
 }

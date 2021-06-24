@@ -4157,7 +4157,7 @@ void MatAddInplace(posit32_t* A, posit32_t* B, MYINT I, MYINT J) {
 	return;
 }
 
-void MatAddInplace(posit_2_t* A, posit_2_t* B, MYINT I, MYINT J, int bitwidth) {
+void AddInplace(posit_2_t* A, posit_2_t* B, MYINT I, MYINT J, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit_2_t a = A[i * J + j];
@@ -4239,4 +4239,61 @@ posit16_t positSqrt(posit16_t a) {
 
 posit32_t positSqrt(posit32_t a) {
 	return p32_sqrt(a);
+}
+
+void debugPrint(posit8_t* A, int I, int J, std::string varName)
+{
+	#ifdef DEBUG
+	std::ofstream f("debugLog", std::ios::app);
+	
+	f << varName<<std::endl;
+	for(int i=0;i<I;i++)
+	{
+		for(int j=0;j<J;j++)
+		{
+			float a = convertP8ToDouble(A[i*J + j]);
+			f<< a << " ";
+		}
+	}
+	f<<std::endl<<std::endl;
+	f.close();
+	#endif
+}
+
+void debugPrint(posit16_t* A, int I, int J, std::string varName)
+{
+	#ifdef DEBUG
+	std::ofstream f("debugLog", std::ios::app);
+	
+	f << varName<<std::endl;
+	for(int i=0;i<I;i++)
+	{
+		for(int j=0;j<J;j++)
+		{
+			float a = convertP16ToDouble(A[i*J + j]);
+			f<< a << " ";
+		}
+	}
+	f<<std::endl<<std::endl;
+	f.close();
+	#endif
+}
+
+void debugPrint(posit32_t* A, int I, int J, std::string varName)
+{
+	#ifdef DEBUG
+	std::ofstream f("debugLog", std::ios::app);
+	
+	f << varName<<std::endl;
+	for(int i=0;i<I;i++)
+	{
+		for(int j=0;j<J;j++)
+		{
+			float a = convertP32ToDouble(A[i*J + j]);
+			f<< a << " ";
+		}
+	}
+	f<<std::endl<<std::endl;
+	f.close();
+	#endif
 }

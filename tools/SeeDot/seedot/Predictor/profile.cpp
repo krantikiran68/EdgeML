@@ -15,20 +15,20 @@
 
 using namespace std;
 
-float m_all, M_all;
-float m_exp, M_exp;
+FP_TYPE m_all, M_all;
+FP_TYPE m_exp, M_exp;
 
 void initializeProfiling() {
-	m_all = numeric_limits<float>::max();
-	M_all = -numeric_limits<float>::max();
+	m_all = numeric_limits<FP_TYPE>::max();
+	M_all = -numeric_limits<FP_TYPE>::max();
 
-	m_exp = numeric_limits<float>::max();
-	M_exp = -numeric_limits<float>::max();
+	m_exp = numeric_limits<FP_TYPE>::max();
+	M_exp = -numeric_limits<FP_TYPE>::max();
 
 	return;
 }
 
-void updateRange(float x) {
+void updateRange(FP_TYPE x) {
 	if (x < m_all) {
 		m_all = x;
 	}
@@ -38,7 +38,7 @@ void updateRange(float x) {
 	return;
 }
 
-void updateRangeOfExp(float x) {
+void updateRangeOfExp(FP_TYPE x) {
 	if (x < m_exp) {
 		m_exp = x;
 	}
@@ -59,14 +59,14 @@ void dumpRange(string outputFile) {
 	return;
 }
 
-unordered_map<string, float> min_all;
-unordered_map<string, float> max_all;
+unordered_map<string, FP_TYPE> min_all;
+unordered_map<string, FP_TYPE> max_all;
 
-unordered_map<string, float> min_temp;
-unordered_map<string, float> max_temp;
+unordered_map<string, FP_TYPE> min_temp;
+unordered_map<string, FP_TYPE> max_temp;
 
-unordered_map<string, vector<float>> all_values;
-unordered_map<string, pair<float, float>> statistics;
+unordered_map<string, vector<FP_TYPE>> all_values;
+unordered_map<string, pair<FP_TYPE, FP_TYPE>> statistics;
 
 bool range_exceeded = false;
 
@@ -114,7 +114,7 @@ void flushProfile() {
 	}
 }
 
-void checkRange2(float* A, int I, int J) {
+void checkRange2(FP_TYPE* A, int I, int J) {
 	if (!profilingEnabled) {
 		return;
 	}
@@ -127,14 +127,14 @@ void checkRange2(float* A, int I, int J) {
 	}
 }
 
-void Profile4(float* A, int I, int J, int K, int L, string name) {
+void Profile4(FP_TYPE* A, int I, int J, int K, int L, string name) {
 	if (!profilingEnabled) {
 		return;
 	}
 	if (min_temp.find(name) == min_temp.end()) {
 		min_temp[name] = FLT_MAX;
 		max_temp[name] = -FLT_MAX;
-		all_values[name] = vector<float>();
+		all_values[name] = vector<FP_TYPE>();
 	}
 	for (int i = 0; i < I; i++) {
 		for (int j = 0; j < J; j++) {
@@ -149,14 +149,14 @@ void Profile4(float* A, int I, int J, int K, int L, string name) {
 	}
 }
 
-void Profile3(float* A, int I, int J, int K, string name) {
+void Profile3(FP_TYPE* A, int I, int J, int K, string name) {
 	if (!profilingEnabled) {
 		return;
 	}
 	if (min_temp.find(name) == min_temp.end()) {
 		min_temp[name] = FLT_MAX;
 		max_temp[name] = -FLT_MAX;
-		all_values[name] = vector<float>();
+		all_values[name] = vector<FP_TYPE>();
 	}
 	for (int i = 0; i < I; i++) {
 		for (int j = 0; j < J; j++) {
@@ -169,14 +169,14 @@ void Profile3(float* A, int I, int J, int K, string name) {
 	}
 }
 
-void Profile2(float* A, int I, int J, string name) {
+void Profile2(FP_TYPE* A, int I, int J, string name) {
 	if (!profilingEnabled) {
 		return;
 	}
 	if (min_temp.find(name) == min_temp.end()) {
 		min_temp[name] = FLT_MAX;
 		max_temp[name] = -FLT_MAX;
-		all_values[name] = vector<float>();
+		all_values[name] = vector<FP_TYPE>();
 	}
 	for (int i = 0; i < I; i++) {
 		for (int j = 0; j < J; j++) {
@@ -187,20 +187,20 @@ void Profile2(float* A, int I, int J, string name) {
 	}
 }
 
-void diff(float* A, MYINT* B, MYINT scale, MYINT I, MYINT J) {
-	float min = numeric_limits<float>::max(), max = 0, sum = 0;
-	float min_relative = numeric_limits<float>::max(), max_relative = 0, sum_relative = 0;
+void diff(FP_TYPE* A, MYINT* B, MYINT scale, MYINT I, MYINT J) {
+	FP_TYPE min = numeric_limits<FP_TYPE>::max(), max(0), sum(0);
+	FP_TYPE min_relative = numeric_limits<FP_TYPE>::max(), max_relative(0), sum_relative(0);
 	int count = 0;
 
 	for (MYINT i = 0; i < I; i++) {
 		for (MYINT j = 0; j < J; j++) {
-			float a = A[i * J + j];
+			FP_TYPE a = A[i * J + j];
 
 			MYINT b = B[i * J + j];
-			float b_float = float(ldexp(double(b), scale));
+			FP_TYPE b_float = FP_TYPE(ldexp(double(b), scale));
 
-			float diff = abs(a - b_float);
-			float diff_relative = diff / abs(a);
+			FP_TYPE diff = abs(a - b_float);
+			FP_TYPE diff_relative = diff / abs(a);
 
 			if (diff < min) {
 				min = diff;
@@ -223,29 +223,29 @@ void diff(float* A, MYINT* B, MYINT scale, MYINT I, MYINT J) {
 		}
 	}
 
-	float avg = sum / count;
-	float avg_relative = sum_relative / count;
+	FP_TYPE avg(sum / count);
+	FP_TYPE avg_relative(sum_relative / count);
 
 	cout << max << "\t" << avg << "\t" << min << "\t" << max_relative << "\t" << avg_relative << "\t" << min_relative << endl;
 
 	return;
 }
 
-void diff(float* A, MYINT* B, MYINT scale, MYINT I, MYINT J, MYINT K) {
-	float min = numeric_limits<float>::max(), max = 0, sum = 0;
-	float min_relative = numeric_limits<float>::max(), max_relative = 0, sum_relative = 0;
+void diff(FP_TYPE* A, MYINT* B, MYINT scale, MYINT I, MYINT J, MYINT K) {
+	FP_TYPE min = numeric_limits<FP_TYPE>::max(), max(0), sum(0);
+	FP_TYPE min_relative = numeric_limits<FP_TYPE>::max(), max_relative(0), sum_relative(0);
 	int count = 0;
 
 	for (MYINT i = 0; i < I; i++) {
 		for (MYINT j = 0; j < J; j++) {
 			for (MYINT k = 0; k < K; k++) {
-				float a = A[i * J * K + j * K + k];
+				FP_TYPE a = A[i * J * K + j * K + k];
 
 				MYINT b = B[i * J * K + j * K + k];
-				float b_float = float(ldexp(double(b), scale));
+				FP_TYPE b_float = FP_TYPE(ldexp(double(b), scale));
 
-				float diff = abs(a - b_float);
-				float diff_relative = diff / abs(a);
+				FP_TYPE diff = abs(a - b_float);
+				FP_TYPE diff_relative = diff / abs(a);
 
 				if (diff < min) {
 					min = diff;
@@ -269,8 +269,8 @@ void diff(float* A, MYINT* B, MYINT scale, MYINT I, MYINT J, MYINT K) {
 		}
 	}
 
-	float avg = sum / count;
-	float avg_relative = sum_relative / count;
+	FP_TYPE avg(sum / count);
+	FP_TYPE avg_relative(sum_relative / count);
 
 	cout << max << "\t" << avg << "\t" << min << "\t" << max_relative << "\t" << avg_relative << "\t" << min_relative << endl;
 

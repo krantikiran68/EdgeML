@@ -103,10 +103,10 @@ void populateFixedVector(MYINT** features_int, vector<string> features, int scal
 }
 
 // Take in the input floating point datapoint and store it.
-void populateFloatVector(float** features_float, vector<string> features) {
+void populateFloatVector(FP_TYPE** features_float, vector<string> features) {
 	int features_size = (int)features.size();
 	for (int i = 0; i < features_size; i++) {
-		features_float[i][0] = (float)(atof(features.at(i).c_str()));
+		features_float[i][0] = (FP_TYPE)(atof(features.at(i).c_str()));
 	}
 	return;
 }
@@ -115,7 +115,7 @@ void populateFloatVector(float** features_float, vector<string> features) {
 // Each thread, which invokes the following method, is responsible for taking in one datapoint
 // and running it through all the generated codes.
 // Number of threads generated equals the number of datapoints in the given dataset.
-void launchThread(int features_size, MYINT** features_int, MYINT*** features_intV, float** features_float, int counter, float* float_res, int* res, int** resV) {
+void launchThread(int features_size, MYINT** features_int, MYINT*** features_intV, FP_TYPE** features_float, int counter, FP_TYPE* float_res, int* res, int** resV) {
 	seedotFixed(features_int, res);
 	seedotFloat(features_float, float_res);
 
@@ -203,17 +203,17 @@ int main(int argc, char* argv[]) {
 	int features_size = -1;
 	MYINT** features_int = NULL;
 	vector<MYINT**> features_intV(switches, NULL);
-	float** features_float = NULL;
+	FP_TYPE** features_float = NULL;
 
 	// Initialize variables used for profiling.
 	initializeProfiling();
 
 	// Following variables are used for storing the results of the inference.
-	vector<float*> vector_float_res;
+	vector<FP_TYPE*> vector_float_res;
 	vector<int32_t*> vector_int_res;
 	vector<int32_t**> vector_int_resV;
 	vector<int32_t*> labelsInt;
-	vector<float*> labelsFloat;
+	vector<FP_TYPE*> labelsFloat;
 	list<thread> threads;
 
 	MYINT*** features_intV_copy;
@@ -231,7 +231,7 @@ int main(int argc, char* argv[]) {
 		vector<string> features = getFeatures(line1);
 		vector<string> labelString = getLabel(line2);
 		int32_t* labelInt = new int32_t[numOutputs];
-		float* labelFloat = new float[numOutputs];
+		FP_TYPE* labelFloat = new FP_TYPE[numOutputs];
 
 		if (problem == Classification) {
 			for (int i = 0; i < numOutputs; i++) {
@@ -259,9 +259,9 @@ int main(int argc, char* argv[]) {
 				}
 			}
 
-			features_float = new float* [features_size];
+			features_float = new FP_TYPE* [features_size];
 			for (int i = 0; i < features_size; i++) {
-				features_float[i] = new float[1];
+				features_float[i] = new FP_TYPE[1];
 			}
 
 			alloc = true;
@@ -280,11 +280,11 @@ int main(int argc, char* argv[]) {
 
 		// Invoke the predictor function.
 		int* fixed_res = NULL;
-		float* float_res = NULL;
+		FP_TYPE* float_res = NULL;
 		vector <int> resV(switches, -1);
 
 		if (debugMode) {
-			float_res = new float[numOutputs];
+			float_res = new FP_TYPE[numOutputs];
 			seedotFloat(features_float, float_res);
 			fixed_res = new int32_t[numOutputs];
 			seedotFixed(features_int, fixed_res);
@@ -300,7 +300,7 @@ int main(int argc, char* argv[]) {
 		} else {
 			// There are several codes generated which are built simultaneously.
 			if (version == Fixed) {
-				vector_float_res.push_back(new float[numOutputs]);
+				vector_float_res.push_back(new FP_TYPE[numOutputs]);
 				vector_int_res.push_back(new int32_t[numOutputs]);
 				// Populating labels for each generated code.
 				if (problem == Classification) {
@@ -320,9 +320,9 @@ int main(int argc, char* argv[]) {
 					features_int_copy[i] = new MYINT[1];
 					features_int_copy[i][0] = features_int[i][0];
 				}
-				float** features_float_copy = new float* [features_size];
+				FP_TYPE** features_float_copy = new FP_TYPE* [features_size];
 				for (int i = 0; i < features_size; i++) {
-					features_float_copy[i] = new float[1];
+					features_float_copy[i] = new FP_TYPE[1];
 					features_float_copy[i][0] = features_float[i][0];
 				}
 				features_intV_copy = new MYINT** [switches];
@@ -342,7 +342,7 @@ int main(int argc, char* argv[]) {
 					threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back()));
 				}
 			} else if (version == Float) {
-				float_res = new float[numOutputs];
+				float_res = new FP_TYPE[numOutputs];
 				seedotFloat(features_float, float_res);
 				vector_float_res.push_back(float_res);
 				vector_int_res.push_back(new int[numOutputs]);
@@ -383,7 +383,7 @@ int main(int argc, char* argv[]) {
 	int correct = 0, total = 0;
 	for (int i = 0; i < counter; i++) {
 		int* fixed_res = vector_int_res[i];
-		float* float_res = vector_float_res[i];
+		FP_TYPE* float_res = vector_float_res[i];
 		int** resV = vector_int_resV[i];
 
 		if (problem == Classification) {

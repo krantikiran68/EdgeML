@@ -4,7 +4,7 @@
 #pragma once
 
 void seedotFixed(MYINT** X, int32_t* res);
-void seedotFloat(float** X, float* res);
+void seedotFloat(FP_TYPE** X, FP_TYPE* res);
 void seedotFixedSwitch(int i, MYINT** X, int32_t* res);
 
 extern const int switches;

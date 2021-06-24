@@ -41,6 +41,9 @@ class Predictor:
     def genHeaderFile(self):
         with open("datatypes.h", 'w') as file:
             file.write("#pragma once\n\n")
+            file.write("#include \"half.hpp\"\n\n")
+            file.write("using namespace half_float::literal;\n")
+            file.write("typedef half_float::half FP_TYPE;\n\n")
 
             if config.wordLength == 8:
                 file.write("#define INT8\n")

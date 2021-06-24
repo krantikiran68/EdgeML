@@ -136,7 +136,7 @@ def getDataType(num):
     if isinstance(num, int):
         return 'MYINT', '%d'
     elif isinstance(num, float):
-        return 'float', '%.6f'
+        return 'FP_TYPE', '%.6f'
     else:
         raise Exception(
             "Format specifier not found for the type: " + str(type(num)))
@@ -315,8 +315,8 @@ def writeMatAsArray(mat, name: str, fileName: str, shapeStr=None, bw=None):
     dataType, formatSpecifier = getDataType(mat[0][0])
 
     # Add the 'f' specifier for each float to supress compiler warnings.
-    if dataType == "float":
-        formatSpecifier += 'f'
+    if dataType == "FP_TYPE":
+        formatSpecifier += '_h'
 
     # If custom matrix shape is not specified, use default.
     if shapeStr == None:
@@ -350,8 +350,8 @@ def writeListAsArray(list, name: str, fileName: str, shapeStr=None, bw=None):
     dataType, formatSpecifier = getDataType(list[0])
 
     # Add the 'f' specifier for each float to supress compiler warnings.
-    if dataType == "float":
-        formatSpecifier += 'f'
+    if dataType == "FP_TYPE":
+        formatSpecifier += '_h'
 
     # If custom matrix shape is not specified, use default.
     if shapeStr == None:
@@ -405,8 +405,8 @@ def writeVars(vars: dict, fileName: str):
             dataType, formatSpecifier = getDataType(vars[key])
 
             # Add the 'f' specifier for each float to supress compiler warnings.
-            if dataType == "float":
-                formatSpecifier += 'f'
+            if dataType == "FP_TYPE":
+                formatSpecifier += '_h'
                 file.write(("static const %s %s = " + formatSpecifier + ";\n") %
                            (dataType, key, vars[key]))
             # todo: Why is this required when I am already taking care of

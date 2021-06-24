@@ -117,12 +117,12 @@ class X86(CodegenBase):
     def printCHeader(self):
         if forFloat():
             func = "Float"
-            type = "float"
+            type = "FP_TYPE"
         else:
             func = "Fixed"
             type = "MYINT"
         if forFloat():
-            self.out.printf('void seedot%s(%s **X, float* res) {\n' % (func, type), indent=True)
+            self.out.printf('void seedot%s(%s **X, FP_TYPE* res) {\n' % (func, type), indent=True)
         else:
             self.out.printf('void seedot%s%s(%s **X%s, int32_t* res) {\n' % (func, self.idStr if not self.generateAllFiles else "", type, "_temp" if config.vbwEnabled else ""), indent=True)
         self.out.increaseIndent()

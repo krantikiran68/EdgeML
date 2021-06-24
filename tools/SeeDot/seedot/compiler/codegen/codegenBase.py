@@ -312,7 +312,7 @@ class CodegenBase:
             else:
                 assert False, "Illegal state, VBW mode but no variable information present"
         self.out.printf(', 0, sizeof(%s) * %d);\n' %
-                        ("float" if forFloat() else typ_str, ir.len))
+                        ("FP_TYPE" if forFloat() else typ_str, ir.len))
 
     def printMemcpy(self, ir):
         # If one of the variables' offsets are used, this function computes an expression to reach the memory location including offsets.
@@ -332,7 +332,7 @@ class CodegenBase:
                 typ_str = ("int%d_t" % (self.varsForBitwidth[ir.to.idf])) if ir.to.idf in self.varsForBitwidth else typ_str
             else:
                 assert False, "Illegal state, VBW mode but no variable information present"
-        typ_str = "float" if forFloat() else typ_str
+        typ_str = "FP_TYPE" if forFloat() else typ_str
         self.out.printf('memcpy(', indent=True)
         # If a memory optimized mapping is available for a variable, use that else use original variable name.
         if Config.x86MemoryOptimize and forFixed() and self.numberOfMemoryMaps in self.scratchSubs:

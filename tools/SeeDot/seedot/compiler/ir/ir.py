@@ -348,7 +348,7 @@ class DataType:
               config.Target.x86: 'MYINT',
               config.Target.m3: 'MYINT'
               }
-    floatStr = "float"
+    floatStr = "FP_TYPE"
 
     @staticmethod
     def getInt(x: int):

@@ -54,8 +54,6 @@ class X86ZeroSkew(X86):
     def storeFlashSize(self):
         size_full = 0
         for var in self.globalVars:
-            if var == 'X':
-                continue
             bw = self.varsForBitwidth[var] if config.vbwEnabled else config.wordLength
             size = self.decls[var].shape
             size_ = 1

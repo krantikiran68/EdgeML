@@ -547,61 +547,62 @@ class MainZeroSkew(Main):
             # Stage I exploration.
             print("Stage I Exploration: Demoting variables one at a time...")
 
-            assert config.ddsEnabled, "Currently VBW on maxscale not supported"
+            # assert config.ddsEnabled, "Currently VBW on maxscale not supported"
             if config.wordLength != 16:
                 assert False, "VBW mode only supported if native bitwidth is 16"
 
-            # We attempt to demote all possible variables in the code. We try out multiple different scales
-            # (controlled by config.offsetsPerDemotedVariable) for each demoted variable. When a variable is
-            # demoted, it is assigned a scale given by :
-            # demoted Scale = self.allScales[var] + 8 - offset
+            # # We attempt to demote all possible variables in the code. We try out multiple different scales
+            # # (controlled by config.offsetsPerDemotedVariable) for each demoted variable. When a variable is
+            # # demoted, it is assigned a scale given by :
+            # # demoted Scale = self.allScales[var] + 8 - offset
 
             attemptToDemote = [var for var in self.variableToBitwidthMap if (var[-3:] != "val" and var not in self.demotedVarsList)]
             numCodes = len(attemptToDemote)
-            # 9 offsets tried for X while 'offsetsPerDemotedVariable' tried for other variables.
+            # # 9 offsets tried for X while 'offsetsPerDemotedVariable' tried for other variables.
 
             # We approximately club batchSize number of codes in one generated C++ code, so that one generated code does
             # not become too large.
             batchSize = int(np.ceil(50 / np.ceil(len(attemptToDemote) / 50)))
             redBatchSize = np.max((batchSize, 16))
 
-            totalSize = len(attemptToDemote)
-            numBatches = int(np.ceil(totalSize / redBatchSize))
+            self.readDataDrivenDemoteVariables(attemptToDemote)
+            # totalSize = len(attemptToDemote)
+            # numBatches = int(np.ceil(totalSize / redBatchSize))
 
-            self.varDemoteDetails = []
-            for i in tqdm(range(numBatches)):
-                Util.getLogger().info("=====\nBatch %i out of %d\n=====\n" %(i + 1, numBatches))
+            # self.varDemoteDetails = []
+            # for i in tqdm(range(numBatches)):
+            #     Util.getLogger().info("=====\nBatch %i out of %d\n=====\n" %(i + 1, numBatches))
 
-                firstVarIndex = (totalSize * i) // numBatches
-                lastVarIndex = (totalSize * (i + 1)) // numBatches
-                demoteBatch = [attemptToDemote[i] for i in range(firstVarIndex, lastVarIndex)]
-                numCodes = len(demoteBatch)
-                # 9 offsets tried for X while 'config.offsetsPerDemotedVariable' tried for other variables.
+            #     firstVarIndex = (totalSize * i) // numBatches
+            #     lastVarIndex = (totalSize * (i + 1)) // numBatches
+            #     demoteBatch = [attemptToDemote[i] for i in range(firstVarIndex, lastVarIndex)]
+            #     numCodes = len(demoteBatch)
+            #     # 9 offsets tried for X while 'config.offsetsPerDemotedVariable' tried for other variables.
 
-                self.partialCompile(self.encoding, config.Target.x86, True, None, -1 if len(demoteBatch) > 0 else 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList))
-                codeId = 0
-                contentToCodeIdMap = {}
+            #     self.partialCompile(self.encoding, config.Target.x86, True, None, -1 if len(demoteBatch) > 0 else 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList))
+            #     codeId = 0
+            #     contentToCodeIdMap = {}
 
-                for demoteVar in demoteBatch:
-                    codeId += 1
-                    # For each variable being demoted, we populate some variables containing information regarding demoted variable.
-                    newbitwidths = dict(self.variableToBitwidthMap)
-                    newbitwidths[demoteVar] = config.wordLength // 2
-                    if demoteVar + "val" in newbitwidths:
-                        newbitwidths[demoteVar + "val"] = config.wordLength // 2
-                    for alreadyDemotedVars in self.demotedVarsList: # In subsequent iterations during fixed point compilation, this variable will have the variables demoted during the previous runs.
-                        newbitwidths[alreadyDemotedVars] = config.wordLength // 2
-                    demotedVarsList = [i for i in newbitwidths.keys() if newbitwidths[i] != config.wordLength]
+            #     for demoteVar in demoteBatch:
+            #         codeId += 1
+            #         # For each variable being demoted, we populate some variables containing information regarding demoted variable.
+            #         newbitwidths = dict(self.variableToBitwidthMap)
+            #         newbitwidths[demoteVar] = config.wordLength // 2
+            #         if demoteVar + "val" in newbitwidths:
+            #             newbitwidths[demoteVar + "val"] = config.wordLength // 2
+            #         for alreadyDemotedVars in self.demotedVarsList: # In subsequent iterations during fixed point compilation, this variable will have the variables demoted during the previous runs.
+            #             newbitwidths[alreadyDemotedVars] = config.wordLength // 2
+            #         demotedVarsList = [i for i in newbitwidths.keys() if newbitwidths[i] != config.wordLength]
 
-                    # We try out multiple offsets for each variable to find best scale assignment for each variable.
+            #         # We try out multiple offsets for each variable to find best scale assignment for each variable.
                     
-                    contentToCodeIdMap[tuple(demotedVarsList)] = codeId
-                    compiled = self.partialCompile(self.encoding, config.Target.x86, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demotedVarsList))
-                    if compiled == False:
-                        Util.getLogger().error("Variable bitwidth exploration resulted in a compilation error\n")
-                        return False
+            #         contentToCodeIdMap[tuple(demotedVarsList)] = codeId
+            #         compiled = self.partialCompile(self.encoding, config.Target.x86, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demotedVarsList))
+            #         if compiled == False:
+            #             Util.getLogger().error("Variable bitwidth exploration resulted in a compilation error\n")
+            #             return False
 
-                res, exit = self.runAll(self.encoding, config.DatasetType.training, None, contentToCodeIdMap)
+            #     res, exit = self.runAll(self.encoding, config.DatasetType.training, None, contentToCodeIdMap)
             
             print("Stage II Exploration: Cumulatively demoting variables...")
             # Stage IV exploration.
@@ -682,3 +683,23 @@ class MainZeroSkew(Main):
             f.write(str(self.demotedVarsList))
             f.close()
         return True
+
+    def readDataDrivenDemoteVariables(self, attemptToDemote):
+        range = []
+        assert config.wordLength == 16, "vbw supported only for 16-bit"
+        attemptToDemoteLocal = list(attemptToDemote)
+        for var in attemptToDemote:
+            scale = self.allScales[var]
+            varRange = 2*(config.maxVar16Bit) * scale
+            range.append((var, varRange))
+        
+        rangeSort = lambda a: a[1]
+        range.sort(key=rangeSort)
+
+        self.varDemoteDetails = [(((a[0],), 0), None) for a in range]
+        return
+
+
+
+
+        

@@ -190,7 +190,7 @@ void MatMulNN(FP_TYPE* A, FP_TYPE* B, FP_TYPE* C, FP_TYPE* tmp, MYINT I, MYINT K
 					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
 						sum = tmp[2 * p];
 					} else {
-						sum = 0;
+						sum = FP_TYPE(0);
 					}
 
 					if (shr) {
@@ -236,7 +236,7 @@ void MatMulCN(const FP_TYPE* A, FP_TYPE* B, FP_TYPE* C, FP_TYPE* tmp, MYINT I, M
 					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
 						sum = tmp[2 * p];
 					} else {
-						sum = 0;
+						sum = FP_TYPE(0);
 					}
 
 					if (shr) {
@@ -282,7 +282,7 @@ void MatMulNC(FP_TYPE* A, const FP_TYPE* B, FP_TYPE* C, FP_TYPE* tmp, MYINT I, M
 					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
 						sum = tmp[2 * p];
 					} else {
-						sum = 0;
+						sum = FP_TYPE(0);
 					}
 
 					if (shr) {
@@ -328,7 +328,7 @@ void MatMulCC(const FP_TYPE* A, const FP_TYPE* B, FP_TYPE* C, FP_TYPE* tmp, MYIN
 					} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
 						sum = tmp[2 * p];
 					} else {
-						sum = 0;
+						sum = FP_TYPE(0);
 					}
 
 					if (shr) {
@@ -417,7 +417,7 @@ void TanH(FP_TYPE* A, MYINT I, MYINT J, float scale_in, float scale_out, FP_TYPE
 			FP_TYPE x = A[i * J + j], y;
 
 			#ifdef FLOATEXP
-				y = tanh(x);
+				y = std::tanh(x);
 			#else
 				y = x > -1 ? x : -1;
 				y = y < 1 ? y : 1;
@@ -515,7 +515,7 @@ void MBConv(FP_TYPE* A, const FP_TYPE* F1, const FP_TYPE* BN1W, const FP_TYPE* B
 							} else if ((p == (count / 2)) && ((count % 2) == 1)) {
 								U[p] = U[2 * p];
 							} else {
-								U[p] = 0;
+								U[p] = FP_TYPE(0);
 							}
 						}
 
@@ -527,7 +527,7 @@ void MBConv(FP_TYPE* A, const FP_TYPE* F1, const FP_TYPE* BN1W, const FP_TYPE* B
 					X[i * W * Ct + j * Ct + k] = (ar) * BN1W[k];
 					Profile2(&ar, 1, 1, name + "t1");
 					X[i * W * Ct + j * Ct + k] = X[i * W * Ct + j * Ct + k] < FP_TYPE(0.0) ? FP_TYPE(0.0) : X[i * W * Ct + j * Ct + k];
-					X[i * W * Ct + j * Ct + k] = X[i * W * Ct + j * Ct + k] > 6.0 ? 6.0 : X[i * W * Ct + j * Ct + k];
+					X[i * W * Ct + j * Ct + k] = X[i * W * Ct + j * Ct + k] > FP_TYPE(6.0) ? FP_TYPE(6.0) : X[i * W * Ct + j * Ct + k];
 				}
 			}
 		}
@@ -554,7 +554,7 @@ void MBConv(FP_TYPE* A, const FP_TYPE* F1, const FP_TYPE* BN1W, const FP_TYPE* B
 								} else if ((p == (count / 2)) && ((count % 2) == 1)) {
 									U[p] = U[2 * p];
 								} else {
-									U[p] = 0;
+									U[p] = FP_TYPE(0);
 								}
 							}
 
@@ -566,7 +566,7 @@ void MBConv(FP_TYPE* A, const FP_TYPE* F1, const FP_TYPE* BN1W, const FP_TYPE* B
 						X[iRed * W * Ct + j * Ct + k] = (ar) * BN1W[k];
 						Profile2(&ar, 1, 1, name + "t1");
 						X[iRed * W * Ct + j * Ct + k] = X[iRed * W * Ct + j * Ct + k] < FP_TYPE(0.0) ? FP_TYPE(0.0) : X[iRed * W * Ct + j * Ct + k];
-						X[iRed * W * Ct + j * Ct + k] = X[iRed * W * Ct + j * Ct + k] > 6.0 ? 6.0 : X[iRed * W * Ct + j * Ct + k];
+						X[iRed * W * Ct + j * Ct + k] = X[iRed * W * Ct + j * Ct + k] > FP_TYPE(6.0) ? FP_TYPE(6.0) : X[iRed * W * Ct + j * Ct + k];
 					}
 				}
 			}
@@ -593,7 +593,7 @@ void MBConv(FP_TYPE* A, const FP_TYPE* F1, const FP_TYPE* BN1W, const FP_TYPE* B
 							} else if ((p == (count / 2)) && ((count % 2) == 1)) {
 								U[p] = U[2 * p];
 							} else {
-								U[p] = 0;
+								U[p] = FP_TYPE(0);
 							}
 						}
 
@@ -605,7 +605,7 @@ void MBConv(FP_TYPE* A, const FP_TYPE* F1, const FP_TYPE* BN1W, const FP_TYPE* B
 					T[g] = (ar) * BN2W[g];
 					Profile2(&ar, 1, 1, name + "t3");
 					T[g] = T[g] < FP_TYPE(0.0) ? FP_TYPE(0.0) : T[g];
-					T[g] = T[g] > 6.0 ? 6.0 : T[g];
+					T[g] = T[g] > FP_TYPE(6.0) ? FP_TYPE(6.0) : T[g];
 				}
 
 				for (MYITE i = 0; i < Cout; i++) {
@@ -623,7 +623,7 @@ void MBConv(FP_TYPE* A, const FP_TYPE* F1, const FP_TYPE* BN1W, const FP_TYPE* B
 							} else if ((p == (count / 2)) && ((count % 2) == 1)) {
 								U[p] = U[2 * p];
 							} else {
-								U[p] = 0;
+								U[p] = FP_TYPE(0);
 							}
 						}
 
@@ -683,7 +683,7 @@ void Convolution(FP_TYPE* A, const FP_TYPE* B, FP_TYPE* C, FP_TYPE* tmp, MYINT N
 								} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
 									sum = tmp[2 * p];
 								} else {
-									sum = 0;
+									sum = FP_TYPE(0);
 								}
 
 								if (shr) {
@@ -745,7 +745,7 @@ void Conv(FP_TYPE* A, const FP_TYPE* B, FP_TYPE* C, FP_TYPE* tmp, MYINT N, MYINT
 							} else if ((p == (count >> 1)) && ((count & 1) == 1)) {
 								sum = tmp[2 * p];
 							} else {
-								sum = 0;
+								sum = FP_TYPE(0);
 							}
 
 							if (shr) {
@@ -822,8 +822,8 @@ void Relu4D(FP_TYPE* A, MYINT N, MYINT H, MYINT W, MYINT C) {
 			for (MYITE w = 0; w < W; w++) {
 				for (MYITE c = 0; c < C; c++) {
 					FP_TYPE a = A[n * H * W * C + h * W * C + w * C + c];
-					if (a < 0) {
-						a = 0;
+					if (a < FP_TYPE(0)) {
+						a = FP_TYPE(0);
 					}
 
 					A[n * H * W * C + h * W * C + w * C + c] = a;
@@ -842,11 +842,11 @@ void Relu6(FP_TYPE* A, FP_TYPE* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six
 			for (MYITE w = 0; w < W; w++) {
 				for (MYITE c = 0; c < C; c++) {
 					FP_TYPE a = A[n * H * W * C + h * W * C + w * C + c];
-					if (a < 0) {
-						a = 0;
+					if (a < FP_TYPE(0)) {
+						a = FP_TYPE(0);
 					}
-					if (a > 6) {
-						a = 6;
+					if (a > FP_TYPE(6)) {
+						a = FP_TYPE(6);
 					}
 
 					B[n * H * W * C + h * W * C + w * C + c] = a;
@@ -863,8 +863,8 @@ void Relu2D(FP_TYPE* A, MYINT H, MYINT W) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			FP_TYPE a = A[h * W + w];
-			if (a < 0) {
-				a = 0;
+			if (a < FP_TYPE(0)) {
+				a = FP_TYPE(0);
 			}
 
 			A[h * W + w] = a;
@@ -915,11 +915,11 @@ void NormaliseL2(FP_TYPE* A, FP_TYPE* B, MYINT N, MYINT H, MYINT W, MYINT C, MYI
 				}
 
 				// Calculate the inverse square root of sumSquare.
-				if (sumSquare == 0) {
-					sumSquare = 1e-5;
+				if (sumSquare == FP_TYPE(0)) {
+					sumSquare = FP_TYPE(1e-5);
 				}
 
-				FP_TYPE inverseNorm(1 / sqrt(sumSquare));
+				FP_TYPE inverseNorm(FP_TYPE(1) / std::sqrt(sumSquare));
 
 				// Multiply all elements by the 1 / sqrt(sumSquare).
 				for (MYITE c = 0; c < C; c++) {
@@ -939,7 +939,7 @@ void Exp(FP_TYPE* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, FP_TYPE* B) {
 
 			updateRangeOfExp(-x);
 
-			B[i * J + j] = exp(x);
+			B[i * J + j] = std::exp(x);
 		}
 	}
 	return;
@@ -952,7 +952,7 @@ void Sigmoid(FP_TYPE* A, MYINT I, MYINT J, float div, float add, float sigmoid_l
 			FP_TYPE x = A[i * J + j], y;
 
 #ifdef FLOATEXP
-			y = 1 / (1 + exp(-x));
+			y = FP_TYPE(1) / (FP_TYPE(1) + std::exp(-x));
 #else
 			y = (x + 1) / 2;
 			y = y > 0 ? y : 0;

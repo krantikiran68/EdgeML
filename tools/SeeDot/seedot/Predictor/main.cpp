@@ -239,7 +239,7 @@ int main(int argc, char* argv[]) {
 			}
 		} else if (problem == Regression) {
 			for (int i = 0; i < numOutputs; i++) {
-				labelFloat[i] = atof(labelString[i].c_str());
+				labelFloat[i] = FP_TYPE(atof(labelString[i].c_str()));
 			}
 		}
 
@@ -390,13 +390,13 @@ int main(int argc, char* argv[]) {
 			for (int j = 0; j < numOutputs; j++) {
 				float res;
 				if (version == Float) {
-					res = float_res[j];
+					res = (float) float_res[j];
 				} else {
 					res = (float) fixed_res[j];
 				}
 
-				if (res != float_res[j]) {
-					if (float_res[j] == labelsInt[i][j]) {
+				if (res != (float)float_res[j]) {
+					if ((int32_t) float_res[j] == labelsInt[i][j]) {
 						reduced_disagreements++;
 					}
 					disagreements++;
@@ -416,8 +416,8 @@ int main(int argc, char* argv[]) {
 						throw "Multiple codes not expected in Floating point execution";
 					}
 
-					if (resV[k][j] != float_res[j]) {
-						if (float_res[j] == labelsInt[i][j]) {
+					if (resV[k][j] != (int) float_res[j]) {
+						if ((int32_t)float_res[j] == labelsInt[i][j]) {
 							reduced_disagreementsV[k]++;
 						}
 						disagreementsV[k]++;
@@ -437,15 +437,15 @@ int main(int argc, char* argv[]) {
 			for (int j = 0; j < numOutputs; j++) {
 				float res;
 				if (version == Float) {
-					res = float_res[j];
+					res = (float)float_res[j];
 				} else {
 					res = ((float)fixed_res[j]) / ldexp(1.0, -scaleForY);
 				}
 
 				trace << res << " ";
 
-				float error = 100.0 * fabs(res - labelsFloat[i][j]);
-				float ferror = 100.0 * fabs(res - float_res[j]);
+				float error = 100.0 * fabs(res - (float)labelsFloat[i][j]);
+				float ferror = 100.0 * fabs(res - (float)float_res[j]);
 				errors.push_back(error);
 				ferrors.push_back(ferror);
 				total++;
@@ -455,8 +455,8 @@ int main(int argc, char* argv[]) {
 						throw "Multiple codes not expected in Floating point execution";
 					}
 					float normRes = ((float) resV[k][j]) / ldexp(1.0 , -scalesForY[k]);
-					float error = 100.0 * fabs(normRes - labelsFloat[i][j]);
-					float ferror = 100.0 * fabs(normRes - float_res[j]);
+					float error = 100.0 * fabs(normRes - (float)labelsFloat[i][j]);
+					float ferror = 100.0 * fabs(normRes - (float)float_res[j]);
 					errorsV[k].push_back(error);
 					ferrorsV[k].push_back(ferror);
 					totalV[k]++;

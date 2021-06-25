@@ -101,14 +101,14 @@ void flushProfile() {
 				min_all[name] = min_all[name] < min_temp[name] ? min_all[name] : min_temp[name];
 				max_all[name] = max_all[name] > max_temp[name] ? max_all[name] : max_temp[name];
 			}
-			min_temp[name] = FLT_MAX;
-			max_temp[name] = -FLT_MAX;
+			min_temp[name] = FP_TYPE().highest();
+			max_temp[name] = FP_TYPE().lowest();
 		}
 	} else {
 		for (auto it = min_temp.begin(); it != min_temp.end(); it++) {
 			string name = it -> first;
-			min_temp[name] = FLT_MAX;
-			max_temp[name] = -FLT_MAX;
+			min_temp[name] = FP_TYPE().highest();
+			max_temp[name] = FP_TYPE().lowest();
 		}
 		range_exceeded = false;
 	}
@@ -120,7 +120,7 @@ void checkRange2(FP_TYPE* A, int I, int J) {
 	}
 	for (int i = 0; i < I; i++) {
 		for (int j = 0; j < J; j++) {
-			if (fabs(A[i * J + j]) >= 32) {
+			if (std::abs(A[i * J + j]) >= FP_TYPE(32)) {
 				range_exceeded = true;
 			}
 		}
@@ -132,8 +132,8 @@ void Profile4(FP_TYPE* A, int I, int J, int K, int L, string name) {
 		return;
 	}
 	if (min_temp.find(name) == min_temp.end()) {
-		min_temp[name] = FLT_MAX;
-		max_temp[name] = -FLT_MAX;
+		min_temp[name] = FP_TYPE().highest();
+		max_temp[name] = FP_TYPE().lowest();
 		all_values[name] = vector<FP_TYPE>();
 	}
 	for (int i = 0; i < I; i++) {
@@ -154,8 +154,8 @@ void Profile3(FP_TYPE* A, int I, int J, int K, string name) {
 		return;
 	}
 	if (min_temp.find(name) == min_temp.end()) {
-		min_temp[name] = FLT_MAX;
-		max_temp[name] = -FLT_MAX;
+		min_temp[name] = FP_TYPE().highest();
+		max_temp[name] = FP_TYPE().lowest();
 		all_values[name] = vector<FP_TYPE>();
 	}
 	for (int i = 0; i < I; i++) {
@@ -174,8 +174,8 @@ void Profile2(FP_TYPE* A, int I, int J, string name) {
 		return;
 	}
 	if (min_temp.find(name) == min_temp.end()) {
-		min_temp[name] = FLT_MAX;
-		max_temp[name] = -FLT_MAX;
+		min_temp[name] = FP_TYPE().highest();
+		max_temp[name] = FP_TYPE().lowest();
 		all_values[name] = vector<FP_TYPE>();
 	}
 	for (int i = 0; i < I; i++) {
@@ -223,8 +223,8 @@ void diff(FP_TYPE* A, MYINT* B, MYINT scale, MYINT I, MYINT J) {
 		}
 	}
 
-	FP_TYPE avg(sum / count);
-	FP_TYPE avg_relative(sum_relative / count);
+	FP_TYPE avg(sum / FP_TYPE(count));
+	FP_TYPE avg_relative(sum_relative / FP_TYPE(count));
 
 	cout << max << "\t" << avg << "\t" << min << "\t" << max_relative << "\t" << avg_relative << "\t" << min_relative << endl;
 
@@ -269,8 +269,8 @@ void diff(FP_TYPE* A, MYINT* B, MYINT scale, MYINT I, MYINT J, MYINT K) {
 		}
 	}
 
-	FP_TYPE avg(sum / count);
-	FP_TYPE avg_relative(sum_relative / count);
+	FP_TYPE avg(sum / FP_TYPE(count));
+	FP_TYPE avg_relative(sum_relative / FP_TYPE(count));
 
 	cout << max << "\t" << avg << "\t" << min << "\t" << max_relative << "\t" << avg_relative << "\t" << min_relative << endl;
 

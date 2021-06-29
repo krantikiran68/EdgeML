@@ -446,9 +446,9 @@ class MainZeroSkew(Main):
         if res == False:
             return False
 
-        res = self.findBestConfiguration()
-        if res == False:
-            return False
+        # res = self.findBestConfiguration()
+        # if res == False:
+        #     return False
 
         res = self.runOnTestingDataset()
         if res == False:

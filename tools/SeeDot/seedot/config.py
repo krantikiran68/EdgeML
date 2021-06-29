@@ -31,7 +31,7 @@ msbuildPathOptions = [r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Comm
 ddsEnabled = True
 
 # Enable variable bit-width code generation. Setting this to false results in a code which uses mostly 16 bits.
-vbwEnabled = False
+vbwEnabled = True
 
 # For exponential activation functions, turning this on restricts the range of the values taken by TanH and Sigmoid,
 # which results in a better scale assignment (OOPSLA'20 Section 5.4).

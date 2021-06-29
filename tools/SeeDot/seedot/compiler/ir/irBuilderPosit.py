@@ -1036,6 +1036,7 @@ class IRBuilderPosit(IRBuilder):
             expr_in_B: "B",
             expr_out: "C",
             IR.Int(Q): "K",
+            IR.Int(P): "P",
             IR.Int(bitwidth_in_A): "bwA",
             IR.Int(bitwidth_in_B): "bwB",
             IR.Int(bitwidth_mul): "bwTemp",
@@ -1046,6 +1047,7 @@ class IRBuilderPosit(IRBuilder):
             expr_in_B: "B",
             expr_out: "C",
             IR.Int(Q): "K",
+            IR.Int(P): "P",
             IR.Int(bitwidth_in_A): "bwA",
             IR.Int(bitwidth_in_B): "bwB",
             IR.Int(bitwidth_mul): "bwTemp",
@@ -1395,7 +1397,24 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(node.padding[2]): "WPADL",
             IR.Int(node.padding[3]): "WPADR",
             IR.Int(node.stride[0]): "HSTR",
-            IR.Int(node.stride[1]): "WSTR"
+            IR.Int(node.stride[1]): "WSTR",
+            IR.Int(bitwidth_in_A): "bwA",
+            IR.Int(bitwidth_in_F1): "bwF1",
+            IR.Int(bitwidth_in_W1): "bwW1",
+            IR.Int(bitwidth_in_B1): "bwB1",
+            IR.Int(bitwidth_in_F2): "bwF2",
+            IR.Int(bitwidth_in_W2): "bwW2",
+            IR.Int(bitwidth_in_B2): "bwB2",
+            IR.Int(bitwidth_in_F3): "bwF3",
+            IR.Int(bitwidth_in_W3): "bwW3",
+            IR.Int(bitwidth_in_B3): "bwB3",
+            IR.Int(bitwidth_out): "bwC",
+            IR.Int(bitwidth_x): "bwX",
+            IR.Int(bitwidth_t): "bwT",
+            IR.Int(bitwidth_u): "bwU",
+            IR.Int(bitwidth_mul1_code): "bwUB1W",
+            IR.Int(bitwidth_mul2_code): "bwUB2W",
+            IR.Int(bitwidth_mul3_code): "bwUB3W"
         }
 
 

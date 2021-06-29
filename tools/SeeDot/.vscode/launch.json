@@ -14,17 +14,17 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "rnnpool",
+                "fastgrnn",
                 "-e",
                 "posit",
                 "-d",
-                "face-2",
+                "cifar-multiclass",
                 "-m",
-                "disagree",
+                "red_disagree",
                 "-t",
                 "x86",
                 "-n",
-                "18000"
+                "1"
             ]
         }
     ]

@@ -677,16 +677,26 @@ class MainZeroSkew(Main):
                     okToDemote = demotedVars
                     acceptedAcc = acc
 
-            self.demotedVarsList = [i for i in okToDemote] + [i for i in self.demotedVarsList]
-            print('Demoted Variables: ' + str(self.demotedVarsList))
+            demotedList = []
             flash_size = 0
             for var in self.variableToBitwidthMap.keys():
-                if var.startswith('tmp'):
+                tmp_var = var
+                while tmp_var in self.variableSubstitutions.keys():
+                    tmp_var = self.variableSubstitutions[tmp_var]
+                if tmp_var not in demotedList:
+                    if tmp_var in okToDemote:
+                        demotedList.append(tmp_var)
+                else:
+                    print("Repeated Var: " + str(tmp_var))
+                if tmp_var.startswith('tmp'):
                     continue
                 else:
-                    if var in self.demotedVarsList:
-                        flash_size += self.varSizes[var] * config.wordLength // 16
+                    if tmp_var in okToDemote:
+                        flash_size += self.varSizes[tmp_var] * config.wordLength // 16
                     else:
-                        flash_size += self.varSizes[var] * config.wordLength // 8
+                        flash_size += self.varSizes[tmp_var] * config.wordLength // 8
+            print('Demoted Variables: ' + str(demotedList))
             print('Flash Size: ' + str(flash_size))
+            self.demotedVarsList = [i for i in okToDemote] + [i for i in self.demotedVarsList]
+            assert(set(demotedList) == set(self.demotedVarsList))
         return True

@@ -1079,6 +1079,7 @@ class IRBuilder(ASTVisitor):
 
         assert R == 1, "Sparse matrix multiplication currently only support multiplication with a vector"
 
+        tmp_out = self.getTempVar()
         expr_out = self.getTempVar()
         type_out = node.type
 

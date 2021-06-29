@@ -452,7 +452,9 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(padding[0]): "HPADL",
             IR.Int(padding[1]): "HPADR",
             IR.Int(padding[2]): "WPADL",
-            IR.Int(padding[3]): "WPADR"
+            IR.Int(padding[3]): "WPADR",
+            IR.Int(bw_in): "bw_in",
+            IR.Int(bw_out): "bw_out"
         }) if not self.vbwEnabled else IR.FuncCall("Maxpool<posit%d_t, posit%d_t>"%(bw_in, bw_out), {
             expr_in: "A",
             expr_out: "B",
@@ -468,6 +470,8 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(padding[1]): "HPADR",
             IR.Int(padding[2]): "WPADL",
             IR.Int(padding[3]): "WPADR",
+            IR.Int(bw_in): "bw_in",
+            IR.Int(bw_out): "bw_out"
         })
 
         self.counter_inst += 1
@@ -769,17 +773,20 @@ class IRBuilderPosit(IRBuilder):
             expr_out: "C",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            shr_a: "shrA",
-            shr_b: "shrB"
+            IR.Int(bitwidth_in_A): "bwA",
+            IR.Int(bitwidth_in_B): "bwB",
+            IR.Int(bitwidth_temp): "bwTemp",
+            IR.Int(bitwidth_out): "bwC"
         }) if not self.vbwEnabled else IR.FuncCall("ScalarMul<posit%d_t, posit%d_t, posit%d_t, posit%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
             a: "A",
             b: "B",
             expr_out: "C",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            shr_a: "shrA",
-            shr_b: "shrB",
-            IR.Int(demote): "demote"
+            IR.Int(bitwidth_in_A): "bwA",
+            IR.Int(bitwidth_in_B): "bwB",
+            IR.Int(bitwidth_temp): "bwTemp",
+            IR.Int(bitwidth_out): "bwC"
         })
 
         self.counter_inst += 1
@@ -899,10 +906,10 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(K): "K",
-            shr_A: "shrA",
-            shr_B: "shrB",
-            IR.Int(H1): "H1",
-            IR.Int(H2): "H2"
+            IR.Int(bitwidth_in_A): "bwA",
+            IR.Int(bitwidth_in_B): "bwB",
+            IR.Int(bitwidth_temp): "bwTemp",
+            IR.Int(bitwidth_out): "bwC"
         }) if not self.vbwEnabled else IR.FuncCall("MatMul" + c + ("<posit%d_t, posit%d_t, posit%d_t, quire%d_t, posit%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_mul, bitwidth_out)), {
             expr_in_A: "A",
             expr_in_B: "B",
@@ -911,11 +918,10 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(I): "I",
             IR.Int(J): "J",
             IR.Int(K): "K",
-            shr_A: "shrA",
-            shr_B: "shrB",
-            IR.Int(H1): "H1",
-            IR.Int(H2): "H2",
-            IR.Int(demote): "demote"
+            IR.Int(bitwidth_in_A): "bwA",
+            IR.Int(bitwidth_in_B): "bwB",
+            IR.Int(bitwidth_temp): "bwTemp",
+            IR.Int(bitwidth_out): "bwC"
         })
 
         self.counter_inst += 1
@@ -1030,19 +1036,20 @@ class IRBuilderPosit(IRBuilder):
             expr_in_B: "B",
             expr_out: "C",
             IR.Int(Q): "K",
-            shr_A: "shrA",
-            shr_B: "shrB",
-            height_shr: "shrC"
+            IR.Int(bitwidth_in_A): "bwA",
+            IR.Int(bitwidth_in_B): "bwB",
+            IR.Int(bitwidth_mul): "bwTemp",
+            IR.Int(bitwidth_out): "bwC"
         }) if not self.vbwEnabled else IR.FuncCall("%s<posit%d_t, int%d_t, posit%d_t, posit%d_t, posit%d_t>"%(funcName, bitwidth_in_A, bitwidth_in_Aid, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
             in_A_idx: "Aidx",
             in_A_val: "Aval",
             expr_in_B: "B",
             expr_out: "C",
             IR.Int(Q): "K",
-            shr_A: "shrA",
-            shr_B: "shrB",
-            height_shr: "shrC",
-            IR.Int(demote): "demote"
+            IR.Int(bitwidth_in_A): "bwA",
+            IR.Int(bitwidth_in_B): "bwB",
+            IR.Int(bitwidth_mul): "bwTemp",
+            IR.Int(bitwidth_out): "bwC"
         })
 
         debugPrint = []
@@ -1154,17 +1161,20 @@ class IRBuilderPosit(IRBuilder):
             expr_out: "C",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            shr_A: "shrA",
-            shr_B: "shrB"
+            IR.Int(bitwidth_in_A): "bwA",
+            IR.Int(bitwidth_in_B): "bwB",
+            IR.Int(bitwidth_temp): "bwTemp",
+            IR.Int(bitwidth_out): "bwC"
         }) if not self.vbwEnabled else IR.FuncCall("MulCir<posit%d_t, posit%d_t, posit%d_t, posit%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
             expr_in_A: "A",
             expr_in_B: "B",
             expr_out: "C",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            shr_A: "shrA",
-            shr_B: "shrB",
-            IR.Int(demote): "demote"
+            IR.Int(bitwidth_in_A): "bwA",
+            IR.Int(bitwidth_in_B): "bwB",
+            IR.Int(bitwidth_temp): "bwTemp",
+            IR.Int(bitwidth_out): "bwC"
         })
 
         self.counter_inst += 1
@@ -1510,7 +1520,11 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(node.stride[1]): "WSTR",
             IR.Int(node.dilation[0]): "HDL",
             IR.Int(node.dilation[1]): "WDL",
-            IR.Int(G): "G"
+            IR.Int(G): "G",
+            IR.Int(bitwidth_in_A): "bwA",
+            IR.Int(bitwidth_in_B): "bwB",
+            IR.Int(bitwidth_mul): "bwTemp",
+            IR.Int(bitwidth_out): "bwC"
         }
 
 
@@ -1605,6 +1619,8 @@ class IRBuilderPosit(IRBuilder):
                              op_ir.name + "> " + expr_in_B.idf, self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
 
+        bitwidth_temp = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add", bitwidth_out)
+
         # Generate function call for the output code depending on whether the input is 2-D or 4-D.
         if type_out.dim == 4:
             [N, H, W, C] = type_out.shape
@@ -1616,8 +1632,12 @@ class IRBuilderPosit(IRBuilder):
                 IR.Int(H): "H",
                 IR.Int(W): "W",
                 IR.Int(C): "C",
-                IR.Bool(add): "add"
-            }) if not self.vbwEnabled else IR.FuncCall("AddOrSubCir4D" + ("<posit%d_t, posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_in_A, bitwidth_in_B, self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add", bitwidth_out), bitwidth_out)), {
+                IR.Bool(add): "add",
+                IR.Int(bitwidth_in_A): "bwA",
+                IR.Int(bitwidth_in_B): "bwB",
+                IR.Int(bitwidth_temp): "bwTemp",
+                IR.Int(bitwidth_out): "bwC"
+            }) if not self.vbwEnabled else IR.FuncCall("AddOrSubCir4D" + ("<posit%d_t, posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_in_A, bitwidth_in_B, bitwidth_temp, bitwidth_out)), {
                 expr_in_A: "A",
                 expr_in_B: "B",
                 expr_out: "X",
@@ -1625,7 +1645,11 @@ class IRBuilderPosit(IRBuilder):
                 IR.Int(H): "H",
                 IR.Int(W): "W",
                 IR.Int(C): "C",
-                IR.Bool(add): "add"
+                IR.Bool(add): "add",
+                IR.Int(bitwidth_in_A): "bwA",
+                IR.Int(bitwidth_in_B): "bwB",
+                IR.Int(bitwidth_temp): "bwTemp",
+                IR.Int(bitwidth_out): "bwC"
             })
             profile = IR.FuncCall("Profile4", {
                 expr_out: "Var",
@@ -1643,14 +1667,22 @@ class IRBuilderPosit(IRBuilder):
                 expr_out: "X",
                 IR.Int(H): "H",
                 IR.Int(W): "W",
-                IR.Bool(add): "add"
+                IR.Bool(add): "add",
+                IR.Int(bitwidth_in_A): "bwA",
+                IR.Int(bitwidth_in_B): "bwB",
+                IR.Int(bitwidth_temp): "bwTemp",
+                IR.Int(bitwidth_out): "bwC"
             }) if not self.vbwEnabled else IR.FuncCall("AddOrSubCir2D" + ("<posit%d_t, posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_in_A, bitwidth_in_B, self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add", bitwidth_out), bitwidth_out)), {
                 expr_in_A: "A",
                 expr_in_B: "B",
                 expr_out: "X",
                 IR.Int(H): "H",
                 IR.Int(W): "W",
-                IR.Bool(add): "add"
+                IR.Bool(add): "add",
+                IR.Int(bitwidth_in_A): "bwA",
+                IR.Int(bitwidth_in_B): "bwB",
+                IR.Int(bitwidth_temp): "bwTemp",
+                IR.Int(bitwidth_out): "bwC"
             })
             profile = IR.FuncCall("Profile2", {
                 expr_out: "Var",
@@ -1790,7 +1822,7 @@ class IRBuilderPosit(IRBuilder):
             comment = IR.Comment(expr_in_A.idf + ' ' +
                                  op_ir.name + ' ' + expr_in_B.idf, self.counter_inst+1)
             self.allDepths[self.counter_inst+1] = self.curDepth
-
+            bitwidth_temp = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add", bitwidth_out)
             # Generate output function call depending on dimensionality of the input / output.
             if type_out.dim == 2:
                 funcCall = IR.FuncCall(funcName + c, {
@@ -1801,17 +1833,21 @@ class IRBuilderPosit(IRBuilder):
                     IR.Int(J): "J",
                     shr_A: "shrA",
                     shr_B: "shrB",
-                    shr_out: "shrC"
-                }) if not self.vbwEnabled else IR.FuncCall(funcName + c + ("<posit%d_t, posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_in_A, bitwidth_in_B, self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add", bitwidth_out), bitwidth_out)), {
+                    shr_out: "shrC",
+                    IR.Int(bitwidth_in_A): "bwA",
+                    IR.Int(bitwidth_in_B): "bwB",
+                    IR.Int(bitwidth_temp): "bwTemp",
+                    IR.Int(bitwidth_out): "bwC"
+                }) if not self.vbwEnabled else IR.FuncCall(funcName + c + ("<posit%d_t, posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_in_A, bitwidth_in_B, bitwidth_temp, bitwidth_out)), {
                     expr_in_A: "A",
                     expr_in_B: "B",
                     expr_out: "C",
                     IR.Int(I): "I",
                     IR.Int(J): "J",
-                    shr_A: "shrA",
-                    shr_B: "shrB",
-                    shr_out: "shrC",
-                    irdemote: "demote"
+                    IR.Int(bitwidth_in_A): "bwA",
+                    IR.Int(bitwidth_in_B): "bwB",
+                    IR.Int(bitwidth_temp): "bwTemp",
+                    IR.Int(bitwidth_out): "bwC"
                 })
             elif type_out.dim == 4:
                 funcCall = IR.FuncCall(funcName + "4", {
@@ -1821,7 +1857,11 @@ class IRBuilderPosit(IRBuilder):
                     IR.Int(N): "N",
                     IR.Int(H): "H",
                     IR.Int(W): "W",
-                    IR.Int(C): "C"
+                    IR.Int(C): "C",
+                    IR.Int(bitwidth_in_A): "bwA",
+                    IR.Int(bitwidth_in_B): "bwB",
+                    IR.Int(bitwidth_temp): "bwTemp",
+                    IR.Int(bitwidth_out): "bwC"
                 }) if not self.vbwEnabled else IR.FuncCall(funcName + "4" + ("<posit%d_t, posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_in_A, bitwidth_in_B, self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add", bitwidth_out), bitwidth_out)), {
                     expr_in_A: "A",
                     expr_in_B: "B",
@@ -1829,7 +1869,11 @@ class IRBuilderPosit(IRBuilder):
                     IR.Int(N): "N",
                     IR.Int(H): "H",
                     IR.Int(W): "W",
-                    IR.Int(C): "C"
+                    IR.Int(C): "C",
+                    IR.Int(bitwidth_in_A): "bwA",
+                    IR.Int(bitwidth_in_B): "bwB",
+                    IR.Int(bitwidth_temp): "bwTemp",
+                    IR.Int(bitwidth_out): "bwC"
                 })
             debugPrint = []
             if config.printPositDebug:
@@ -1980,14 +2024,16 @@ class IRBuilderPosit(IRBuilder):
                 IR.Int(N): "N",
                 IR.Int(H): "H",
                 IR.Int(W): "W",
-                IR.Int(C): "C"
+                IR.Int(C): "C",
+                IR.Int(bw_in): "bwA",
             }) if not self.vbwEnabled else IR.FuncCall("NormaliseL2<posit%d_t>"%(bw_in), {
                 expr_in: "A",
                 expr_out: "B",
                 IR.Int(N): "N",
                 IR.Int(H): "H",
                 IR.Int(W): "W",
-                IR.Int(C): "C"
+                IR.Int(C): "C",
+                IR.Int(bw_in): "bwA"
             })
         else:
             assert False, "inverseL2Norm only supports 4D tensors."
@@ -2018,6 +2064,7 @@ class IRBuilderPosit(IRBuilder):
 
         comment = IR.Comment("relu(" + expr_in.idf + ")", self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
+        bitwidth_in_A, _, _ = self.getBitwidthAndScale(expr_in.idf)
 
         if node.type.dim == 4:
             [N, H, W, C] = node.type.shape
@@ -2026,14 +2073,16 @@ class IRBuilderPosit(IRBuilder):
                 IR.Int(N): "N",
                 IR.Int(H): "H",
                 IR.Int(W): "W",
-                IR.Int(C): "C"
+                IR.Int(C): "C",
+                IR.Int(bitwidth_in_A): "bwA"
             })
         elif node.type.dim == 2:
             [H, W] = node.type.shape
             funcCall = IR.FuncCall("Relu2D", {
                 expr_in: "A",
                 IR.Int(H): "H",
-                IR.Int(W): "W"
+                IR.Int(W): "W",
+                IR.Int(bitwidth_in_A): "bwA"
             })
         else:
             assert False, "Relu operator currently only supports 2D and 4D tensors."
@@ -2085,7 +2134,8 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(H): "H",
             IR.Int(W): "W",
             IR.Int(C): "C",
-            # IR.Int(cap): "six"
+            IR.Int(bitwidth_in): "bwA",
+            IR.Int(bitwidth_out): "bwC"
         }) if not self.vbwEnabled else IR.FuncCall("Relu6<posit%d_t, posit%d_t>" % (bitwidth_in, bitwidth_out), {
             expr_in: "A",
             expr_out: "B",
@@ -2093,7 +2143,8 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(H): "H",
             IR.Int(W): "W",
             IR.Int(C): "C",
-            # IR.Int(cap): "six"
+            IR.Int(bitwidth_in): "bwA",
+            IR.Int(bitwidth_out): "bwC"
         })
 
         self.counter_inst += 1
@@ -2110,91 +2161,9 @@ class IRBuilderPosit(IRBuilder):
 
         return (prog_out, expr_out)
 
-    # out = exp(in)
-    def visitExp(self, node: AST.Func):
-        if forFloat() or useMathExp():
-            return self.visitMathExp(node)
-        elif useTableExp():
-            self.readExpProfileFile()
-            return self.visitTableExp(node)
-        elif useNewTableExp():
-            return self.visitNewTableExp(node)
-        else:
-            assert False
-
-    def visitNewTableExp(self, node: AST.Func):
-        # For a theoretical explation, please refer to OOPSLA '20 paper Section 5.4.
-        assert self.vbwEnabled, "VBW must be enabled for new table"
-
-        (prog_in, expr_in) = self.visit(node.expr)
-
-        type_in = node.expr.type
-
-        # Raw input scale, which can be any value.
-        bitwidth_in_raw, scale_in_raw = self.getBitwidthAndScale(expr_in.idf)
-
-        MIN = 0.1
-        maxExp = np.exp(MIN)
-
-        expr_out = self.getTempVar()
-
-        # Output bit-width.
-        if self.ddsEnabled:
-            bitwidth_out, _ = self.getBitwidthAndScale(expr_out.idf)
-        else:
-            bitwidth_out = config.wordLength // 2 if expr_out.idf in self.demotedVarsList else config.wordLength
-        
-        # Output scale, refer to the paper for a detailed explanation.
-        # The output scale is fixed depending on only the output bit-width.
-        scale_out = self.getScale(maxExp) + config.wordLength // 2 if expr_out.idf in self.demotedVarsList else self.getScale(maxExp)
-        # Adjusting the input scale given the bit-width, refer to the OOPSLA '20 paper for explanation.
-        # The input scale if fixed depending on only the input bit-width.
-        scale_in_adjusted = self.getScale(maxExp) + config.wordLength // 2 if expr_in.idf in self.demotedVarsList else self.getScale(maxExp)
-
-        [I, J] = type_in.shape
-
-        scale_in = -4 if expr_in.idf in self.demotedVarsList else -11
-
-        # Scaling hyperparameters.
-        scaling = 1
-        if expr_in.idf in self.demotedVarsList and expr_out.idf not in self.demotedVarsList:
-            scaling = 256
-        elif expr_in.idf not in self.demotedVarsList and expr_out.idf in self.demotedVarsList:
-            scaling = 256
-
-        # Refer to OOPSLA '20 paper Section 5.4 which explains the computation of input and output scales for TanH and Sigmoid and Exp.
-        # The input scales are adjusted to the theoretically known value for different bit-widths.
-        adjust = []
-
-        comm = IR.Comment('exp(' + expr_in.idf + ')', self.counter_inst+1)
-        self.allDepths[self.counter_inst+1] = self.curDepth
-
-        # TODO: Check if saturation/overflows are handled.
-        funcCall = IR.FuncCall("ExpNew%d<posit%d_t>" %(bitwidth_in_raw, bitwidth_out), {
-            expr_in: "A",
-            IR.Int(I): "I",
-            IR.Int(J): "J",
-            IR.Int(scaling): "adjust",
-            expr_out: "B"
-        })
-
-        self.counter_inst += 1
-        self.updateLiveRange([expr_in, expr_out])
-
-        prog_exp = IR.Prog([comm]  + [funcCall])
-
-        prog_out = IRUtil.concatPrograms(prog_in, prog_exp)
-
-        # Update metadata.
-        self.varDeclarations[expr_out.idf] = type_in
-        self.varScales[expr_out.idf] = scale_out
-        self.varIntervals[expr_out.idf] = (0, 0)
-
-        return (prog_out, expr_out)
-
     # Used in floating point mode always for profiling. May or may not be used in the fixed-point mode.
     # Note: We assume e<=0 for exp(e).
-    def visitMathExp(self, node: AST.Func):
+    def visitExp(self, node: AST.Func):
         # Used in the old SeeDot (PLDI '19) version.
         # Tunable parameter.
         MIN = 0.1
@@ -2236,21 +2205,23 @@ class IRBuilderPosit(IRBuilder):
         cmd0 = IR.Comment('exp(' + expr_in.idf + ')', self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
 
+        bitwidth_temp = self.getTempBitwidth(bitwidth_in, None, op="exp", bitwidthC=bitwidth_out)
         funcCall = IR.FuncCall("Exp", {
             expr_in: "A",
+            expr_out: "B",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            shr1: "shrA",
-            shr2: "shrB",
-            expr_out: "B"
+            IR.Int(bitwidth_in): "bwA",
+            IR.Int(bitwidth_temp): "bwTemp",
+            IR.Int(bitwidth_out): "bwB"
         }) if not self.vbwEnabled else IR.FuncCall("Exp<posit%d_t, posit%d_t>"%(bitwidth_in, bitwidth_out), {
             expr_in: "A",
+            expr_out: "B",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            shr1: "shrA",
-            shr2: "shrB",
-            expr_out: "B",
-            IR.Int(1): "demote"
+            IR.Int(bitwidth_in): "bwA",
+            IR.Int(bitwidth_temp): "bwTemp",
+            IR.Int(bitwidth_out): "bwC"
         })
 
         self.counter_inst += 1
@@ -2284,86 +2255,6 @@ class IRBuilderPosit(IRBuilder):
 
         return (prog_out, expr_out)
 
-    # Used by old SeeDot (PLDI '19).
-    # Note: We assume e<=0 for exp(e).
-    def visitTableExp(self, node: AST.Func):
-        assert False, "Must redesign IMHO"
-
-        (prog_in, expr_in) = self.visit(node.expr)
-
-        # TODO: Use MAX_VAL_EXP.
-        type_in = node.expr.type
-
-        scale_in = self.varScales[expr_in.idf]
-
-        [m, M] = self.expRange
-        [m_scale, M_scale] = [
-            int(np.ldexp(m, -scale_in)), int(np.ldexp(M, -scale_in))]
-
-        max = int(np.ldexp(M - m, -scale_in))
-        shl = self.getShl(max)
-
-        input = self.getTempVar()
-        [i, j] = self.getTempVars(2)
-        expr_out = self.getTempVar()
-
-        '''
-        1.  if ((-x) < min) {
-        2.      i = 0;
-        3.      j = 0;
-        4.  }
-        5.  else {
-        6.      y = ((-x) - min) << shl
-        7.      i = (y >> shrI) & (2^b-1)
-        8.      j = (y >> shrJ) & (2^b-1)
-        9.  }
-        10. ans = T[i] * U[j]
-        '''
-
-        mask = IR.Int(2 ** self.expB - 1)
-        shrI = config.wordLength - self.expB
-        shrJ = config.wordLength - self.expB * 2
-        table = self.getExpTable(scale_in)
-
-        scale1 = self.getScale(1)
-        scale2 = self.getScale(abs(np.exp(-m)))
-
-        [shr1, shr2] = self.getShrForMul(scale1, scale2)
-
-        expr_1_elt = IRUtil.addIndex(expr_in, [IRUtil.zero] * type_in.dim)
-        expr_2_elt = IRUtil.addIndex(expr_out, [IRUtil.zero] * type_in.dim)
-
-        cond = IRUtil.lt(IRUtil.negate(expr_1_elt), IR.Int(m_scale))
-
-        cmd2 = IR.Assn(i, IR.Int(0))
-        cmd3 = IR.Assn(j, IR.Int(0))
-
-        cmd6 = IR.Assn(input, IRUtil.shl(IRUtil.sub(
-            IRUtil.negate(expr_1_elt), IR.Int(m_scale)), shl))
-        cmd7 = IR.Assn(i, IRUtil.bitAnd(IRUtil.shrUint(input, shrI), mask))
-        cmd8 = IR.Assn(j, IRUtil.bitAnd(IRUtil.shrUint(input, shrJ), mask))
-
-        cmd1 = IR.If(cond, [cmd2, cmd3], [cmd6, cmd7, cmd8])
-        cmd10 = IR.Assn(expr_2_elt, IRUtil.mul(IRUtil.shrUint(IRUtil.addIndex(
-            table[0], [i]), shr1), IRUtil.shrUint(IRUtil.addIndex(table[1], [j]), shr2)))
-
-        scale_out = self.getScaleForExp(scale1, shr1, scale2, shr2)
-        intv_out = self.getIntervalForExp(scale_out, [-m_scale, -M_scale])
-
-        cmd0 = IR.Comment('exp(' + expr_in.idf + ')')
-
-        prog_exp = IR.Prog([cmd0, cmd1, cmd10])
-
-        prog_out = IRUtil.concatPrograms(prog_in, prog_exp)
-
-        self.varDeclarations[expr_out.idf] = type_in
-        self.varScales[expr_out.idf] = scale_out
-        self.varIntervals[expr_out.idf] = intv_out
-
-        self.varDeclarations.update(
-            dict((var.idf, Type.Int()) for var in [input, i, j]))
-
-        return (prog_out, expr_out)
 
     def getShl(self, n: int):
         assert n != 0
@@ -2480,12 +2371,14 @@ class IRBuilderPosit(IRBuilder):
             expr_in: "A",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            expr_out: "index"
+            expr_out: "index",
+            IR.Int(bitwidth_in): "bwA"
         }) if not self.vbwEnabled else IR.FuncCall("ArgMax<posit%d_t>"%(bitwidth_in), {
             expr_in: "A",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            expr_out: "index"
+            expr_out: "index",
+            IR.Int(bitwidth_in): "bwA"
         })
 
         self.counter_inst += 1
@@ -2576,21 +2469,23 @@ class IRBuilderPosit(IRBuilder):
 
         scale_out = scale_in # self.getScale(1.5)
         tanh_limit_out = 2 ** -scale_out
-
+        bitwidth_temp = self.getTempBitwidth(bitwidth_in, bitwidth_in, op = "tanh", bitwidthC=bitwidth_in)
         funcCall = IR.FuncCall("TanH", {
             expr_in: "A",
+            expr_out: "B",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            tanh_limit: "scale_in",
-            IR.Int(tanh_limit_out): "scale_out",
-            expr_out: "B"
-        }) if not self.vbwEnabled else IR.FuncCall("TanH<posit%d_t>"%(bitwidth_in), {
+            IR.Int(bitwidth_in): "bwA",
+            IR.Int(bitwidth_temp): "bwTemp",
+            IR.Int(bitwidth_in): "bwC"
+        }) if not self.vbwEnabled else IR.FuncCall("TanH<posit%d_t, posit%s_t>"%(bitwidth_in, str(bitwidth_in)), {
             expr_in: "A",
+            expr_out: "B",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            tanh_limit: "scale_in",
-            IR.Int(tanh_limit_out): "scale_out",
-            expr_out: "B"
+            IR.Int(bitwidth_in): "bwA",
+            IR.Int(bitwidth_temp): "bwTemp",
+            IR.Int(bitwidth_in): "bwC"
         })
 
         self.counter_inst += 1
@@ -2726,26 +2621,24 @@ class IRBuilderPosit(IRBuilder):
         comment = IR.Comment("Sigmoid(" + expr_in.idf + ")", self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
 
+        bitwidth_temp = self.getTempBitwidth(bitwidth_in, bitwidth_in, op="sigmoid", bitwidthC=bitwidth_in)
+
         funcCall = IR.FuncCall("Sigmoid", {
             expr_in: "A",
+            expr_out: "B",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            IR.Int(denominator): "div",
-            addition_ir: "add",
-            sigmoid_limit_ir: "sigmoid_limit",
-            IR.Int(scale_in_num): "scale_in",
-            IR.Int(scale_out_num): "scale_out",
-            expr_out: "B"
-        }) if not self.vbwEnabled else IR.FuncCall("Sigmoid<posit%d_t>"%(bitwidth_in), {
+            IR.Int(bitwidth_in): "bwA",
+            IR.Int(bitwidth_temp): "bwTemp",
+            IR.Int(bitwidth_in): "bwC"
+        }) if not self.vbwEnabled else IR.FuncCall("Sigmoid<posit%d_t, posit%s_t>"%(bitwidth_in, str(bitwidth_in)), {
             expr_in: "A",
+            expr_out: "B",
             IR.Int(I): "I",
             IR.Int(J): "J",
-            IR.Int(denominator): "div",
-            addition_ir: "add",
-            sigmoid_limit_ir: "sigmoid_limit",
-            IR.Int(scale_in_num): "scale_in",
-            IR.Int(scale_out_num): "scale_out",
-            expr_out: "B"
+            IR.Int(bitwidth_in): "bwA",
+            IR.Int(bitwidth_temp): "bwTemp",
+            IR.Int(bitwidth_in): "bwC"
         })
 
         self.counter_inst += 1
@@ -2977,7 +2870,7 @@ class IRBuilderPosit(IRBuilder):
 
         expr_in_idx = IRUtil.addIndex(expr_in, iters)
         expr_out_idx = IRUtil.addIndex(expr_out, iters)
-
+        bitwidth_temp = self.getTempBitwidth(bitwidth_out, bitwidth_in, "add", bitwidth_out)
         # Adjusting scale of input and output in the fixed-point code.
         cmd1 = IR.Memset(expr_out, type_out.size())
         matAddComment = IR.Comment("For loop replaced by AddinPlace", self.counter_inst)
@@ -2986,11 +2879,17 @@ class IRBuilderPosit(IRBuilder):
                     expr_in: "B",
                     IR.Int(type_out.shape[0]): "I",
                     IR.Int(type_out.shape[1]): "J",
-                }) if not self.vbwEnabled else IR.FuncCall("AddInplace" + ("<posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_out, bitwidth_in, self.getTempBitwidth(bitwidth_out, bitwidth_in, "add", bitwidth_out))), {
+                    IR.Int(bitwidth_in): "bwA",
+                    IR.Int(bitwidth_temp): "bwTemp",
+                    IR.Int(bitwidth_in): "bwC"
+                }) if not self.vbwEnabled else IR.FuncCall("AddInplace" + ("<posit%d_t, posit%d_t, posit%d_t>" % (bitwidth_out, bitwidth_in, bitwidth_temp)), {
                     expr_out: "A",
                     expr_in: "B",
                     IR.Int(type_out.shape[0]): "I",
                     IR.Int(type_out.shape[1]): "J",
+                    IR.Int(bitwidth_in): "bwA",
+                    IR.Int(bitwidth_temp): "bwTemp",
+                    IR.Int(bitwidth_in): "bwC"
                 })
 
         assert type_out.dim == 2, "Only 2 dim Summation supported for now due to laziness of programmer"
@@ -3592,6 +3491,15 @@ class IRBuilderPosit(IRBuilder):
             assert bitwidthC is not None, "Illegal call to getTempBitwidth()"
             biggerBitWidth = max(bitwidthA, bitwidthB, bitwidthC)
             return biggerBitWidth * 2 if isSaturate() else biggerBitWidth
+        elif op == "exp":
+            assert bitwidthC is not None, "Illegal call to getTempBitwidth():%s"%(op)
+            return max(bitwidthA, bitwidthC)
+        elif op == "sigmoid":
+            assert bitwidthC is not None, "Illegal call to getTempBitwidth():%s"%(op)
+            return max(bitwidthA, bitwidthC)
+        elif op == "tanh":
+            assert bitwidthC is not None, "Illegal call to getTempBitwidth():%s"%(op)
+            return max(bitwidthA, bitwidthC)
         else:
             assert False, "Illegal operation specified for temp bitwidth"
 

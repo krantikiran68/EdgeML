@@ -993,7 +993,12 @@ class IRBuilderZeroSkew(IRBuilder):
         return (prog_out, expr_out)
     
     def getTempBitwidth(self, bitwidthA = None, bitwidthB = None, op = None, bitwidthC=None):
-        if op == "mul":
+        if op == "sparse_mul":
+            assert (bitwidthA is not None) and (bitwidthB is not None) and (bitwidthC is not None)
+            # assert bitwidthC is None, "Illegal call to getTempBitwidth()"
+            # biggerBitWidth = max(bitwidthA, bitwidthB)
+            return (32 if min(bitwidthA, bitwidthB) == 8 else 64)
+        elif op == "mul":
             assert (bitwidthA is not None) and (bitwidthB is not None) and (bitwidthC is not None)
             # assert bitwidthC is None, "Illegal call to getTempBitwidth()"
             # biggerBitWidth = max(bitwidthA, bitwidthB)
@@ -1528,7 +1533,10 @@ class IRBuilderZeroSkew(IRBuilder):
         intv_in = self.varIntervals[expr_in.idf]
 
         # If input is demoted to lower bit-width, demote the output to lower bit-width as well.
-        if bitwidth_in == (config.wordLength // 2):
+        tmp_var = expr_in.idf
+        while tmp_var in self.substitutions.keys():
+            tmp_var = self.substitutions[tmp_var]
+        if tmp_var in self.demotedVarsList:
             self.demotedVarsList.append(expr_out.idf)
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
@@ -1676,7 +1684,10 @@ class IRBuilderZeroSkew(IRBuilder):
         intv_in = self.varIntervals[expr_in.idf]
 
         # If input is demoted to lower bit-width, demote the output variable to lower bit-width as well.
-        if bitwidth_in == (config.wordLength // 2):
+        tmp_var = expr_in.idf
+        while tmp_var in self.substitutions.keys():
+            tmp_var = self.substitutions[tmp_var]
+        if tmp_var in self.demotedVarsList:
             self.demotedVarsList.append(expr_out.idf)
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
         else:
@@ -2066,6 +2077,7 @@ class IRBuilderZeroSkew(IRBuilder):
 
         assert R == 1, "Sparse matrix multiplication currently only support multiplication with a vector"
 
+        tmp_out = self.getTempVar()
         expr_out = self.getTempVar()
         type_out = node.type
 
@@ -2076,8 +2088,7 @@ class IRBuilderZeroSkew(IRBuilder):
         # Read output scales and bit-widths. In data-driven scaling, the output scale is directly profiled from floating-point runtime.
         # In static scaling used by old SeeDot (PLDI '19), output scale and bitwidth is set to None is statically computed later.
         bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf)
-        bitwidth_temp = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul", bitwidth_out)
-        
+        bitwidth_temp = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "sparse_mul", bitwidth_out)
 
         intv_in_A, intv_in_B = self.varIntervals[expr_in_A.idf], self.varIntervals[expr_in_B.idf]
 
@@ -2096,13 +2107,17 @@ class IRBuilderZeroSkew(IRBuilder):
         in_A_val.inputVar = False
         expr_in_B.inputVar = False
         expr_out.inputVar = False
+        tmp_out.inputVar = False
 
         comment = IR.Comment(expr_in_A.idf + ' |*| ' + expr_in_B.idf, self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
 
         # The output variable needs to be set to zero as the matrix multiplication implementation assumes this.
         cmd1 = self.memsetZeroSkew(expr_out, type_out.shape, scale_out, zero_out)
+        cmd2 = self.memsetZeroSkew(tmp_out, type_out.shape, scale_out, 0)
+
         bitwidth_mul = bitwidth_temp
+        self.varsForBitwidth[tmp_out.idf] = bitwidth_temp
 
         # For input variable 'X', the data is streamed on the target device, which necessitates a different function implementation.
         if expr_in_B.idf == 'X':
@@ -2117,6 +2132,8 @@ class IRBuilderZeroSkew(IRBuilder):
             in_A_val: "Aval",
             expr_in_B: "B",
             expr_out: "C",
+            tmp_out: "tmp",
+            IR.Int(P): "P",
             IR.Int(Q): "K",
             IR.Float(scale_in_A): "scaleA",
             IR.Float(scale_in_B): "scaleB",
@@ -2127,12 +2144,6 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(zero_out): "zeroC",
             IR.Int(M0): "M0",
             IR.Int(-N): "N",
-            IR.Int(shrA): "shrA",
-            IR.Int(-nA): "nA",
-            IR.Int(shrB): "shrB",
-            IR.Int(-nB): "nB",
-            IR.Int(shrC): "shrC",
-            IR.Int(-nC): "nC",
             IR.Int(clamp_min): "clamp_min",
             IR.Int(clamp_max): "clamp_max"
         }) if not self.vbwEnabled else IR.FuncCall("%s<uint%d_t, uint%d_t, uint%d_t, int%d_t, uint%d_t>"%(funcName, bitwidth_in_A, bitwidth_in_Aid, bitwidth_in_B, bitwidth_mul, bitwidth_out), {
@@ -2140,6 +2151,8 @@ class IRBuilderZeroSkew(IRBuilder):
             in_A_val: "Aval",
             expr_in_B: "B",
             expr_out: "C",
+            tmp_out: "tmp",
+            IR.Int(P): "P",
             IR.Int(Q): "K",
             IR.Float(scale_in_A): "scaleA",
             IR.Float(scale_in_B): "scaleB",
@@ -2150,12 +2163,6 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(zero_out): "zeroC",
             IR.Int(M0): "M0",
             IR.Int(-N): "N",
-            IR.Int(shrA): "shrA",
-            IR.Int(-nA): "nA",
-            IR.Int(shrB): "shrB",
-            IR.Int(-nB): "nB",
-            IR.Int(shrC): "shrC",
-            IR.Int(-nC): "nC",
             IR.Int(clamp_min): "clamp_min",
             IR.Int(clamp_max): "clamp_max"
         })
@@ -2172,7 +2179,7 @@ class IRBuilderZeroSkew(IRBuilder):
             }))
 
         self.counter_inst += 1
-        self.updateLiveRange([in_A_idx, in_A_val, expr_in_B, expr_out])
+        self.updateLiveRange([in_A_idx, in_A_val, expr_in_B, expr_out, tmp_out])
 
         # Profiling the floating-point output for scale computation for the fixed-point code (only used if ddsEnabled is True).
         
@@ -2188,6 +2195,10 @@ class IRBuilderZeroSkew(IRBuilder):
         self.varScales[expr_out.idf] = scale_out
         self.varZeros[expr_out.idf] = zero_out
         self.varIntervals[expr_out.idf] = intv_out
+        self.varDeclarations[tmp_out.idf] = type_out
+        self.varScales[tmp_out.idf] = scale_out
+        self.varZeros[tmp_out.idf] = 0
+        self.varIntervals[tmp_out.idf] = intv_out
 
         # Update metadata for sparse matrix.
         self.varDeclarations.update({in_A_idx.idf: Type.Tensor([self.sparseMatrixSizes[expr_in_A.idf + 'idx']]),

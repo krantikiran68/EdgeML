@@ -376,6 +376,17 @@ class Main:
                 # demoted Scale = self.allScales[var] + 8 - offset
 
                 attemptToDemote = [var for var in self.variableToBitwidthMap if (var[-3:] != "val" and var not in self.demotedVarsList)]
+                tmpAttemptToDemote = []
+                for var in attemptToDemote:
+                    tmp_var = var
+                    while tmp_var in self.variableSubstitutions.keys():
+                        print(tmp_var)
+                        tmp_var = self.variableSubstitutions[tmp_var]
+                    if tmp_var not in tmpAttemptToDemote:
+                        tmpAttemptToDemote.append(tmp_var)
+                    else:
+                        print("Repeated Var: " + tmp_var)
+                attemptToDemote = tmpAttemptToDemote
                 numCodes = len(attemptToDemote)
                 # 9 offsets tried for X while 'offsetsPerDemotedVariable' tried for other variables.
 

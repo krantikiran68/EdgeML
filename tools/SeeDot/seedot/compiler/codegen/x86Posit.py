@@ -13,6 +13,7 @@ from numpy.lib.type_check import typename
 
 from seedot.compiler.codegen.x86 import X86
 
+from seedot.compiler.converter.util import *
 import seedot.compiler.ir.ir as IR
 import seedot.compiler.ir.irUtil as IRUtil
 
@@ -51,7 +52,11 @@ class X86Posit(X86):
 
         self.printCHeader()
         self.storeFlashSize()
-        self.computeScratchLocationsFirstFitPriority() # computeScratchLocations computeScratchLocationsFirstFit computeScratchLocationsFirstFitPriority computeScratchLocationsDLX
+
+        if getDatasetType() == config.DatasetType.testing:
+            self.computeScratchLocationsDLX() # computeScratchLocations computeScratchLocationsFirstFit computeScratchLocationsFirstFitPriority computeScratchLocationsDLX
+        else:
+            self.computeScratchLocationsFirstFitPriority()
 
         self.printModelParamsWithBitwidth()
 

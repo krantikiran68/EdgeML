@@ -78,6 +78,7 @@ class Compiler:
         self.paramInNativeBitwidth = paramInNativeBitwidth
 
         self.biasShifts = {}
+        self.memoryUsage = -1
 
     # Method takes in input file location, calls the tokenizer, parser upon the file to generate a parse tree
     # and subsequently calls the ASTBuilder to convert it into an AST.
@@ -131,6 +132,7 @@ class Compiler:
             assert False
 
         codegen.printAll(*res)
+        self.memoryUsage = codegen.memoryUsage
 
     def compile(self, ast):
         return self.genCodeWithFuncCalls(ast)

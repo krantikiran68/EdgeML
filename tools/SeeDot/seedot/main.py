@@ -90,6 +90,8 @@ class Main:
             # In operations like WX + B, B is mostly used once in the code. So all the fixed point computations are clubbed into one.
         self.varSizes = {}
             # Map from a variable to number of elements it holds. Populated in floating point mode.
+        self.memoryUsage = -1
+            # Dummy variable for holding the scratch buffer size.
 
     # This function is invoked right at the beginning for moving around files into the working directory.
     def setup(self):
@@ -184,6 +186,7 @@ class Main:
                         variableToBitwidthMap, self.sparseMatrixSizes, demotedVarsList, demotedVarsOffsets,
                         paramInNativeBitwidth)
         obj.run()
+        self.memoryUsage = obj.memoryUsage
         self.biasShifts = obj.biasShifts
         self.allScales = dict(obj.varScales)
         if encoding == config.Encoding.floatt:
@@ -466,6 +469,7 @@ class Main:
                 demotedVarsOffsets = dict(self.demotedVarsOffsets)
                 demotedVarsList = list(self.demotedVarsList)
                 demotedVarsListToOffsets = {}
+                contentToMemoryUsage = {}
 
                 # Knowing the accuracy when each single variable is demoted to 8-bits one at a time, we proceed to cumulatively
                 # demoting all of them one after the other ensuring accuracy of target code does not fall below a threshold. The
@@ -479,6 +483,7 @@ class Main:
 
                     self.partialCompile(self.encoding, config.Target.x86, self.sf, True, None, -1 if len(attemptToDemote) > 0 else 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
                     contentToCodeIdMap = {}
+                    contentToMemoryUsage[tuple(demotedVarsList)] = self.memoryUsage
                     codeId = 0
                     numCodes = len(demoteBatch)
                     for (demoteVars, offset) in demoteBatch:
@@ -490,6 +495,7 @@ class Main:
                             if var not in demotedVarsList:
                                 demotedVarsList.append(var)
                         codeId += 1
+                        contentToMemoryUsage[tuple(demotedVarsList)] = -1
                         contentToCodeIdMap[tuple(demotedVarsList)] = {}
                         contentToCodeIdMap[tuple(demotedVarsList)][offset] = codeId
                         demotedVarsListToOffsets[tuple(demotedVarsList)] = dict(demotedVarsOffsets)
@@ -497,6 +503,7 @@ class Main:
                         if compiled == False:
                             Util.getLogger().error("Variable bitwidth exploration resulted in another compilation error\n")
                             return False
+                        contentToMemoryUsage[tuple(demotedVarsList)] = self.memoryUsage
 
                     res, exit = self.runAll(self.encoding, config.DatasetType.training, None, contentToCodeIdMap, True)
 
@@ -507,15 +514,20 @@ class Main:
                 # as many variables as possible in 8-bits, while ensuring accuracy drop compared to floating point is reasonable:
                 okToDemote = ()
                 acceptedAcc = lastStageAcc
-                for ((demotedVars, _), metrics) in self.varDemoteDetails:
-                    acc = metrics[0]
-                    if self.problemType == config.ProblemType.classification and (self.flAccuracy - acc) > config.permittedClassificationAccuracyLoss:
-                        break
-                    elif self.problemType == config.ProblemType.regression and acc > config.permittedRegressionNumericalLossMargin:
-                        break
-                    else:
-                        okToDemote = demotedVars
-                        acceptedAcc = acc
+                if (self.problemType == config.ProblemType.classification and contentToMemoryUsage[okToDemote] > config.permittedClassificationMemoryLimit) or (self.problemType == config.ProblemType.regression and contentToMemoryUsage[okToDemote] > config.permittedRegressionMemoryLimit):
+                    for ((demotedVars, _), metrics) in self.varDemoteDetails:
+                        acc = metrics[0]
+                        if self.problemType == config.ProblemType.classification and contentToMemoryUsage[demotedVars] <= config.permittedClassificationMemoryLimit and contentToMemoryUsage[demotedVars] != -1:
+                            okToDemote = demotedVars
+                            acceptedAcc = acc
+                            break
+                        elif self.problemType == config.ProblemType.regression and contentToMemoryUsage[demotedVars] <= config.permittedRegressionMemoryLimit and contentToMemoryUsage[demotedVars] != -1:
+                            okToDemote = demotedVars
+                            acceptedAcc = acc
+                            break
+                        elif contentToMemoryUsage[demotedVars] != -1:
+                            okToDemote = demotedVars
+                            acceptedAcc = acc
 
                 demotedList = []
                 flash_size = 0

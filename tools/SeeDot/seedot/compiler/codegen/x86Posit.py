@@ -31,6 +31,7 @@ class X86Posit(X86):
 
     def __init__(self, outputDir, generateAllFiles, printSwitch, idStr, paramInNativeBitwidth, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals, notScratch, coLocatedVariables):
         super().__init__(outputDir, generateAllFiles, printSwitch, idStr, paramInNativeBitwidth, decls, localDecls, scales, intvs, cnsts, expTables, globalVars, internalVars, floatConstants, substitutions, demotedVarsOffsets, varsForBitwidth, varLiveIntervals, notScratch, coLocatedVariables)
+        self.memoryUsage = -1
     
     def storeFlashSize(self):
         size_full = 0
@@ -56,7 +57,7 @@ class X86Posit(X86):
         if getDatasetType() == config.DatasetType.testing:
             self.computeScratchLocationsDLX() # computeScratchLocations computeScratchLocationsFirstFit computeScratchLocationsFirstFitPriority computeScratchLocationsDLX
         else:
-            self.computeScratchLocationsFirstFitPriority()
+            self.memoryUsage = self.computeScratchLocationsFirstFitPriority()
 
         self.printModelParamsWithBitwidth()
 

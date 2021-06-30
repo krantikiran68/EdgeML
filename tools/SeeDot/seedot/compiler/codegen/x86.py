@@ -48,7 +48,9 @@ class X86(CodegenBase):
         self.printSwitch = printSwitch
 
         self.paramInNativeBitwidth = paramInNativeBitwidth
-    
+
+        self.memoryUsage = -1
+
     def storeFlashSize(self):
         size_full = 0
         for var in self.globalVars:
@@ -73,7 +75,7 @@ class X86(CodegenBase):
 
         self.storeFlashSize()
 
-        self.computeScratchLocationsFirstFitPriority() # computeScratchLocations computeScratchLocationsFirstFit computeScratchLocationsFirstFitPriority computeScratchLocationsDLX
+        self.memoryUsage = self.computeScratchLocationsFirstFitPriority() # computeScratchLocations computeScratchLocationsFirstFit computeScratchLocationsFirstFitPriority computeScratchLocationsDLX
 
         self.printModelParamsWithBitwidth()
 

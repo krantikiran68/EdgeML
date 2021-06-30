@@ -50,6 +50,8 @@ class X86(CodegenBase):
 
         self.paramInNativeBitwidth = paramInNativeBitwidth
 
+        self.memoryUsage = -1
+
     def storeFlashSize(self):
         size_full = 0
         for var in self.globalVars:
@@ -75,7 +77,7 @@ class X86(CodegenBase):
         if getDatasetType() == config.DatasetType.testing:
             self.computeScratchLocationsDLX() # computeScratchLocations computeScratchLocationsFirstFit computeScratchLocationsFirstFitPriority computeScratchLocationsDLX
         else:
-            self.computeScratchLocationsFirstFitPriority()
+            self.memoryUsage = self.computeScratchLocationsFirstFitPriority()
 
         self.printModelParamsWithBitwidth()
 

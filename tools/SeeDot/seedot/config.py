@@ -51,10 +51,10 @@ fixedPointVbwIteration = False
 offsetsPerDemotedVariable = 3
 
 # For a classification algorithm, fixed point code can have this much drop in accuracy compared to floating point code. Not used in regression algorithms.
-permittedClassificationAccuracyLoss = 2.0
+permittedClassificationMemoryLimit = 80
 
 # For a regression algorithm, fixed point code can have this much more numerical loss compared to floating point code. Not used in classification algorithms.
-permittedRegressionNumericalLossMargin = 90.0
+permittedRegressionMemoryLimit = 204000
 
 # Minimum version of gcc required for compilation
 min_gcc_version = 8

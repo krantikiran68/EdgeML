@@ -624,7 +624,7 @@ class Main:
                 print('Flash Size: ' + str(flash_size))
                 
                 self.demotedVarsList = [i for i in okToDemote] + [i for i in self.demotedVarsList]
-                # assert(set(self.demotedVarsList) == set(demotedList))
+                assert(set(self.demotedVarsList) == set(demotedList))
                 self.demotedVarsOffsets.update(demotedVarsListToOffsets.get(okToDemote, {}))
 
                 if acceptedAcc != lastStageAcc:

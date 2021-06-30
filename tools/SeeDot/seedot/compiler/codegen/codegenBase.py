@@ -45,7 +45,6 @@ class CodegenBase:
         self.globalVars = globalVars
         self.internalVars = internalVars
         self.floatConstants = floatConstants
-        self.substitutions = substitutions
 
         # The following are pre-populated for VBW exploration.
         self.demotedVarsOffsets = demotedVarsOffsets
@@ -303,9 +302,6 @@ class CodegenBase:
         self.out.printf('memset(', indent=True)
         # If a memory optimized mapping is available for a variable, use that else use original variable name.
         if Config.x86MemoryOptimize and forFixed() and forX86() and self.numberOfMemoryMaps in self.scratchSubs:
-            # tmp_var = ir.e.idf
-            # while tmp_var in self.substitutions.keys():
-            #     tmp_var = self.substitutions[tmp_var]
             self.out.printf("(scratch + %d)", self.scratchSubs[self.numberOfMemoryMaps][ir.e.idf])
         else:
             self.print(ir.e)

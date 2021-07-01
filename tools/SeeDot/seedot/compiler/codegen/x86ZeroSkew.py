@@ -53,18 +53,16 @@ class X86ZeroSkew(X86):
 
     def storeFlashSize(self):
         size_full = 0
-        bw = config.wordLength
-        if bw in [9, 10, 12]:
-            bw = 32
         for var in self.globalVars:
             if var == 'X':
                 continue
+            bw = self.varsForBitwidth[var] if config.vbwEnabled else config.wordLength
             size = self.decls[var].shape
             size_ = 1
-            size_ = reduce(lambda x, y: x*y , size)
-            size_full += size_
+            size_ = reduce(lambda x, y: x*y , size) 
+            size_full += size_ * bw
         f = open("flashsize.txt", "w")
-        f.write(str((size_full * bw)//8))
+        f.write(str((size_full)//8))
         f.close()
 
     def printPrefix(self):
@@ -126,7 +124,7 @@ class X86ZeroSkew(X86):
         self.out.increaseIndent()
 
     def printModelParamsWithBitwidth(self):
-        if config.vbwEnabled and forZeroSkew():
+        if config.vbwEnabled:
             for var in self.globalVars:
                 if var + "idx" in self.globalVars and var + "val" in self.globalVars:
                     continue
@@ -392,7 +390,7 @@ class X86ZeroSkew(X86):
     def printMemset(self, ir):
         self.out.printf('memset(', indent=True)
         # If a memory optimized mapping is available for a variable, use that else use original variable name.
-        if Config.x86MemoryOptimize and forFixed() and forX86() and self.numberOfMemoryMaps in self.scratchSubs:
+        if Config.x86MemoryOptimize and forX86() and self.numberOfMemoryMaps in self.scratchSubs:
             self.out.printf("(scratch + %d)", self.scratchSubs[self.numberOfMemoryMaps][ir.e.idf])
         else:
             self.print(ir.e)

@@ -4,6 +4,7 @@
 import math
 import numpy as np
 import os
+from numpy.core.numeric import zeros_like
 from sklearn.datasets import load_svmlight_file
 
 import seedot.config as config
@@ -441,7 +442,7 @@ def matTranspose(mat):
             transp[j][i] = mat[i][j]
     return transp
 
-def convertToSparse(mat):
+def convertToSparse(mat, zero_skew=False, zero=0):
     '''
     Convert a sparse matrix into two arrays M_val and M_idx.
     M_val contains all the non-zero elements in the matrix.
@@ -454,7 +455,7 @@ def convertToSparse(mat):
 
     for i in range(m):
         for j in range(n):
-            if mat[i][j] != 0:
+            if mat[i][j] != zero:
                 matVal.append(mat[i][j])
                 matIdx.append(int(j + 1))
         matIdx.append(int(0))

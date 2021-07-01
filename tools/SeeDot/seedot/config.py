@@ -7,7 +7,7 @@ It also contains the various classes for CLI arguments.
 '''
 
 # Target word length. Currently set to match the word length of Arduino (2 bytes).
-wordLength = 8
+wordLength = 16
 availableBitwidths = [8, 16, 32]
 
 # Range of max scale factor used for exploration.
@@ -31,7 +31,7 @@ msbuildPathOptions = [r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Comm
 ddsEnabled = True
 
 # Enable variable bit-width code generation. Setting this to false results in a code which uses mostly 16 bits.
-vbwEnabled = False
+vbwEnabled = True
 
 # For exponential activation functions, turning this on restricts the range of the values taken by TanH and Sigmoid,
 # which results in a better scale assignment (OOPSLA'20 Section 5.4).
@@ -66,6 +66,8 @@ maxVar16Bit =  32766
 min_gcc_version = 8
 
 printFloatDebug = False
+
+zeroSkewDebug = False
 # Following classes are used sanity checks for arguments passed to the compiler, to prevent unexpected arguments being passed.
 # These lists should be updated as the compiler is expanded to multiple algorithms and datasets.
 

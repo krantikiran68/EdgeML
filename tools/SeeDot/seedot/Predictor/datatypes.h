@@ -4,8 +4,8 @@
 #pragma once
 
 #define INT16
-typedef int64_t ACINT;
-typedef int16_t MYINT;
+typedef int32_t ACINT;
+typedef int8_t MYINT;
 typedef int16_t MYITE;
 typedef uint16_t MYUINT;
 

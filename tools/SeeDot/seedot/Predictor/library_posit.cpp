@@ -3969,6 +3969,111 @@ void convertPosit(posit32_t* a, posit32_t *b, int bwA, int bwB)
         *b=*a;
 }
 
+// void convertPosit(posit_1_t* a, posit8_t *b, int bwA, int bwB)
+// {
+//         *b = pX1_to_p8(*a);
+// }
+
+// void convertPosit(posit_1_t* a, posit16_t *b, int bwA, int bwB)
+// {
+//         *b = pX1_to_p16(*a);
+// }
+
+
+// void convertPosit(posit_1_t* a, posit32_t *b, int bwA, int bwB)
+// {
+//         *b = pX1_to_p32(*a);
+// }
+
+void convertPosit(posit_2_t* a, posit8_t *b, int bwA, int bwB)
+{
+        *b = pX2_to_p8(*a);
+}
+
+void convertPosit(posit_2_t* a, posit16_t *b, int bwA, int bwB)
+{
+        *b = pX2_to_p16(*a);
+}
+
+void convertPosit(posit_2_t* a, posit32_t *b, int bwA, int bwB)
+{
+        *b = pX2_to_p32(*a);
+}
+
+// void convertPosit(posit8_t* a, posit_1_t *b, int bwA, int bwB)
+// {
+//         *b = p8_to_pX1(*a, bwB);
+// }
+
+
+// void convertPosit(posit16_t* a, posit_1_t *b, int bwA, int bwB)
+// {
+//         *b = p16_to_pX1(*a, bwB);
+// }
+
+
+// void convertPosit(posit32_t* a, posit_1_t *b, int bwA, int bwB)
+// {
+//         *b = p32_to_pX1(*a, bwB);
+// }
+
+void convertPosit(posit8_t* a, posit_2_t *b, int bwA, int bwB)
+{
+        *b = p8_to_pX2(*a, bwB);
+}
+
+
+void convertPosit(posit16_t* a, posit_2_t *b, int bwA, int bwB)
+{
+        *b = p16_to_pX2(*a, bwB);
+}
+
+
+void convertPosit(posit32_t* a, posit_2_t *b, int bwA, int bwB)
+{
+        *b = p32_to_pX2(*a, bwB);
+}
+
+// void convertPosit(posit_1_t* a, posit_1_t *b, int bwA, int bwB)
+// {
+//     *b = pX1_to_pX1(*a, bwB);
+// }
+
+// void convertPosit(posit_1_t* a, posit_2_t *b, int bwA, int bwB)
+// {
+//     *b = pX1_to_pX2(*a, bwB);
+// }
+
+// void convertPosit(posit_2_t* a, posit_1_t *b, int bwA, int bwB)
+// {
+//     *b = pX2_to_pX1(*a, bwB);
+// }
+
+void convertPosit(posit_2_t* a, posit_2_t *b, int bwA, int bwB)
+{
+    *b = pX2_to_pX2(*a, bwB);
+}
+
+// double convertPositToDouble(posit_1_t a, int bw)
+// {
+// 	return convertPX1ToDouble(a);
+// }
+
+double convertPositToDouble(posit_2_t a, int bw)
+{
+	return convertPX2ToDouble(a);
+}
+
+// void convertDoubleToPosit(double a, posit_1_t *b, int bw)
+// {
+// 	*b = convertDoubleToPX1(a, bw);
+// }
+
+void convertDoubleToPosit(double a, posit_2_t *b, int bw)
+{
+	*b = convertDoubleToPX2(a, bw);
+}
+
 posit8_t positAdd(posit8_t a, posit8_t b, int bw)
 {
 	return p8_add(a, b);
@@ -4239,6 +4344,104 @@ posit16_t positSqrt(posit16_t a) {
 
 posit32_t positSqrt(posit32_t a) {
 	return p32_sqrt(a);
+}
+
+// posit_1_t positAdd(posit_1_t a, posit_1_t b, int bw)
+// {
+// 	return pX1_add(a, b, bw);
+// }
+
+posit_2_t positAdd(posit_2_t a, posit_2_t b, int bw)
+{
+	return pX2_add(a, b, bw);
+}
+
+// posit_1_t positSub(posit_1_t a, posit_1_t b, int bw)
+// {
+// 	return pX1_sub(a, b, bw);
+// }
+
+posit_2_t positSub(posit_2_t a, posit_2_t b, int bw)
+{
+	return pX2_sub(a, b, bw);
+}
+
+// posit_1_t positMul(posit_1_t a, posit_1_t b, int bw)
+// {
+// 	return pX1_mul(a, b, bw);
+// }
+
+posit_2_t positMul(posit_2_t a, posit_2_t b, int bw)
+{
+	return pX2_mul(a, b, bw);
+}
+
+// posit_1_t positDiv(posit_1_t a, posit_1_t b, int bw)
+// {
+// 	return pX1_div(a, b, bw);
+// }
+
+posit_2_t positDiv(posit_2_t a, posit_2_t b, int bw)
+{
+	return pX2_div(a, b, bw);
+}
+
+// posit_1_t positSqrt(posit_1_t a, int bw) {
+// 	return pX1_sqrt(a, bw);
+// }
+
+posit_2_t positSqrt(posit_2_t a, int bw) {
+	return pX2_sqrt(a, bw);
+}
+
+// posit_1_t convertQuireToPosit(quire_1_t q, int bw)
+// {
+// 	return qX1_to_pX1(q, bw);
+// }
+
+posit_2_t convertQuireToPosit(quire_2_t q, int bw)
+{
+	return qX2_to_pX2(q, bw);
+}
+
+// quire_1_t positFMA(quire_1_t q, posit_1_t a, posit_1_t b, int bw)
+// {
+// 	return qX1_fdp_add(q, a, b);
+// }
+
+quire_2_t positFMA(quire_2_t q, posit_2_t a, posit_2_t b, int bw)
+{
+	return qX2_fdp_add(q, a, b);
+}
+
+// bool positLT(posit_1_t a, posit_1_t b, int bw)
+// {
+// 	return pX1_lt(a, b);
+// }
+
+bool positLT(posit_2_t a, posit_2_t b, int bw)
+{
+	return pX2_lt(a, b);
+}
+
+// bool positEQ(posit_1_t a, posit_1_t b, int bw)
+// {
+// 	return pX1_eq(a, b);
+// }
+
+bool positEQ(posit_2_t a, posit_2_t b, int bw)
+{
+	return pX2_eq(a, b);
+}
+
+// quire_1_t clearQuire(quire_1_t q, int bw)
+// {
+// 	return qX1_clr(q);
+// }
+
+quire_2_t clearQuire(quire_2_t q, int bw)
+{
+	return qX2_clr(q);
 }
 
 void debugPrint(posit8_t* A, int I, int J, std::string varName)

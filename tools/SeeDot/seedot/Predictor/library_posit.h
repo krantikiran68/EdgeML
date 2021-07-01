@@ -266,22 +266,30 @@ void NormaliseL2(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C,
 void AddInplace(posit_2_t* A, posit_2_t* B, MYINT I, MYINT J, int bw);
 
 void convertPosit(posit8_t* a, posit8_t *b, int bwA, int bwB);
-
 void convertPosit(posit8_t* a, posit16_t *b, int bwA, int bwB);
-
 void convertPosit(posit8_t* a, posit32_t *b, int bwA, int bwB);
-
 void convertPosit(posit16_t* a, posit8_t *b, int bwA, int bwB);
-
 void convertPosit(posit16_t* a, posit16_t *b, int bwA, int bwB);
-
 void convertPosit(posit16_t* a, posit32_t *b, int bwA, int bwB);
-
 void convertPosit(posit32_t* a, posit8_t *b, int bwA, int bwB);
-
 void convertPosit(posit32_t* a, posit16_t *b, int bwA, int bwB);
-
 void convertPosit(posit32_t* a, posit32_t *b, int bwA, int bwB);
+void convertPosit(posit_1_t* a, posit8_t *b, int bwA, int bwB);
+void convertPosit(posit_1_t* a, posit16_t *b, int bwA, int bwB);
+void convertPosit(posit_1_t* a, posit32_t *b, int bwA, int bwB);
+void convertPosit(posit_2_t* a, posit8_t *b, int bwA, int bwB);
+void convertPosit(posit_2_t* a, posit16_t *b, int bwA, int bwB);
+void convertPosit(posit_2_t* a, posit32_t *b, int bwA, int bwB);
+void convertPosit(posit8_t* a, posit_2_t *b, int bwA, int bwB);
+void convertPosit(posit16_t* a, posit_2_t *b, int bwA, int bwB);
+void convertPosit(posit32_t* a, posit_2_t *b, int bwA, int bwB);
+void convertPosit(posit8_t* a, posit_1_t *b, int bwA, int bwB);
+void convertPosit(posit16_t* a, posit_1_t *b, int bwA, int bwB);
+void convertPosit(posit32_t* a, posit_1_t *b, int bwA, int bwB);
+void convertPosit(posit_1_t* a, posit_1_t *b, int bwA, int bwB);
+void convertPosit(posit_1_t* a, posit_2_t *b, int bwA, int bwB);
+void convertPosit(posit_2_t* a, posit_1_t *b, int bwA, int bwB);
+void convertPosit(posit_2_t* a, posit_2_t *b, int bwA, int bwB);
 
 posit8_t positAdd(posit8_t a, posit8_t b, int bw);
 posit16_t positAdd(posit16_t a, posit16_t b, int bw);
@@ -318,6 +326,32 @@ double convertPositToDouble(posit32_t a, int bw);
 void convertDoubleToPosit(double a, posit8_t *b, int bw);
 void convertDoubleToPosit(double a, posit16_t *b, int bw);
 void convertDoubleToPosit(double a, posit32_t *b, int bw);
+
+posit_1_t positAdd(posit_1_t a, posit_1_t b, int bw);
+posit_2_t positAdd(posit_2_t a, posit_2_t b, int bw);
+posit_1_t positSub(posit_1_t a, posit_1_t b, int bw);
+posit_2_t positSub(posit_2_t a, posit_2_t b, int bw);
+posit_1_t positMul(posit_1_t a, posit_1_t b, int bw);
+posit_2_t positMul(posit_2_t a, posit_2_t b, int bw);
+posit_1_t positDiv(posit_1_t a, posit_1_t b, int bw);
+posit_2_t positDiv(posit_2_t a, posit_2_t b, int bw);
+posit_1_t positSqrt(posit_1_t a, int bw);
+posit_2_t positSqrt(posit_2_t a, int bw);
+posit_1_t convertQuireToPosit(quire_1_t q, int bw);
+posit_2_t convertQuireToPosit(quire_2_t q, int bw);
+quire_1_t positFMA(quire_1_t q, posit_1_t a, posit_1_t b, int bw);
+quire_2_t positFMA(quire_2_t q, posit_2_t a, posit_2_t b, int bw);
+bool positLT(posit_1_t a, posit_1_t b, int bw);
+bool positLT(posit_2_t a, posit_2_t b, int bw);
+bool positEQ(posit_1_t a, posit_1_t b, int bw);
+bool positEQ(posit_2_t a, posit_2_t b, int bw);
+quire_1_t clearQuire(quire_1_t q, int bw);
+quire_2_t clearQuire(quire_2_t q, int bw);
+
+double convertPositToDouble(posit_1_t a, int bw);
+double convertPositToDouble(posit_2_t a, int bw);
+void convertDoubleToPosit(double a, posit_1_t *b, int bw);
+void convertDoubleToPosit(double a, posit_2_t *b, int bw);
 
 quire8_t clearQuire(quire8_t q, int bw);
 quire16_t clearQuire(quire16_t q, int bw);

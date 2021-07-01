@@ -334,7 +334,7 @@ class X86Posit(X86):
             self.out.printf("{\n", indent=True)
             self.out.increaseIndent()
             self.printLocalVarDecls(ir)
-            self.out.printf("%s(" % self.processFuncName(ir.name), indent=True)
+            self.out.printf("%s(" % (ir.name), indent=True)
             keys = list(ir.argList)
             if config.positBitwidth not in [8, 16, 32]:
                 keys.append(IR.Int(config.positBitwidth))
@@ -377,6 +377,8 @@ class X86Posit(X86):
     def getPositType(self, bw):
         if config.positBitwidth != 16:
             bw = config.positBitwidth
+        if config.useUnverified:
+            return "posit_2_t"
         if bw == 8:
             return "posit8_t"
         if bw == 16:
@@ -388,6 +390,8 @@ class X86Posit(X86):
     def getConversionFunction(self, bw):
         if config.positBitwidth != 16:
             bw = config.positBitwidth
+        if config.useUnverified:
+            return "convertDoubleToPX2"
         if bw == 8:
             return "convertDoubleToP8"
         if bw == 16:
@@ -440,7 +444,8 @@ class X86Posit(X86):
                 if config.vbwEnabled and var in self.varsForBitwidth.keys() and (forX86() or forM3()):
                     float_val = self.fixedVarToFloat(var, num)
                     conversion_func = self.getConversionFunction(self.varsForBitwidth[var])
-                    self.out.printf('%s_%d = %s(%f);\n', var, self.varsForBitwidth[var], conversion_func, float_val, indent=True)
+                    bitwidth_str_PX2 = ", %d"%(self.varsForBitwidth[var]) if (self.getPositType(self.varsForBitwidth[var]) == "posit_2_t") else ""
+                    self.out.printf('%s_%d = %s(%f%s);\n', var, self.varsForBitwidth[var], conversion_func, float_val, bitwidth_str_PX2, indent=True)
                     # if np.iinfo(np.int16).min <= num <= np.iinfo(np.int16).max:
                     #     self.out.printf('%s_%d = %d;\n', var, self.varsForBitwidth[var], num, indent=True)
                     # elif np.iinfo(np.int32).min <= num <= np.iinfo(np.int32).max:
@@ -463,6 +468,8 @@ class X86Posit(X86):
     def getPX2Suffix(self, bw):
         if config.positBitwidth != 16:
             bw = config.positBitwidth
+        if config.useUnverified:
+            return ", %d"%(config.positBitwidth)
         if bw == 8:
             return ""
         if bw == 16:
@@ -781,20 +788,4 @@ class X86Posit(X86):
             self.print(e)
             self.out.printf(']')
 
-    def processFuncName(self, name: str) -> str:
-        if config.vbwEnabled and forPosit():
-            if config.positBitwidth != 16:
-                name_end = name.find('<')
-                if name_end == -1:
-                    return name
-                funcName = name[0:name_end]
-                typenameArgs = name[name_end+1:name.find('>')].split(',')
-                typenameArgs = [typename.lstrip().rstrip() for typename in typenameArgs]
-                getLogger().debug("Found template args in processFuncName for posits: " \
-                    + str(typenameArgs))
-                typenameArgs = [("posit%d_t"%(config.positBitwidth)\
-                     if typename[:5] == "posit" else ("quire%d_t"%(config.positBitwidth) if typename[:3] != "int" else ("int%d_t")%(config.wordLength))) \
-                    for typename in typenameArgs]
-                name = funcName + "<" + ",".join(typenameArgs) + ">"
-        return name
                 

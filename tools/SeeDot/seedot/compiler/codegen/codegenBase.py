@@ -103,7 +103,7 @@ class CodegenBase:
                                     else:
                                         self.out.printf("*(%s(&(scratch[%d + " % (typeCast, offset))
                                 else:
-                                    typeCast = "(int%d_t&)" % self.varsForBitwidth[ir.idf]
+                                    typeCast = "(uint%d_t&)" % self.varsForBitwidth[ir.idf]
                                     if isPointer:
                                         self.out.printf("(scratch + %d +" % (offset))
                                     else:

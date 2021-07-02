@@ -366,7 +366,7 @@ class X86ZeroSkew(X86):
                     x = 0
 
                 if forZeroSkew():
-                    typeCast = "(int%d_t*)" % self.varsForBitwidth[arg.idf] if x > 0 else ""
+                    typeCast = "(uint%d_t*)" % self.varsForBitwidth[arg.idf] if x > 0 else ""
                     self.out.printf(typeCast)
 
                 if self.currentMemMap not in self.scratchSubs or not (isinstance(arg, IR.Var) and arg.idf in self.scratchSubs[self.currentMemMap]):

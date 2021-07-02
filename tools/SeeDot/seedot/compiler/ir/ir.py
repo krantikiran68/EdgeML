@@ -81,19 +81,21 @@ class Float(IntExpr):
 
 class Var(IntExpr):
 
-    def __init__(self, idf: str, idx: list = [], inputVar=False, internalVar=False):
+    def __init__(self, idf: str, idx: list = [], inputVar=False, internalVar=False, prefixStr = "", suffixStr = ""):
         self.idf = idf
         self.idx = idx
         self.inputVar = inputVar
         self.internalVar = internalVar
+        self.prefixStr = prefixStr
+        self.suffixStr = suffixStr
 
     def subst(self, from_idf: str, to_e: Expr):
         idx_new = list(map(lambda e: e.subst(from_idf, to_e), self.idx))
         if self.idf != from_idf:
-            return Var(self.idf, idx_new, self.inputVar, self.internalVar)
+            return Var(self.idf, idx_new, self.inputVar, self.internalVar, self.prefixStr, self.suffixStr)
         else:
             if isinstance(to_e, Var):
-                return Var(to_e.idf, to_e.idx + idx_new, to_e.inputVar and self.inputVar, self.internalVar)
+                return Var(to_e.idf, to_e.idx + idx_new, to_e.inputVar and self.inputVar, self.internalVar, self.prefixStr, self.suffixStr)
             elif isinstance(to_e, Int):
                 return to_e
             else:
@@ -364,9 +366,11 @@ class DataType:
         if x_np != x:
             x_np = DataType.intType[target][wordLen * 2](x)
             if x_np != x:
-                getLogger().debug('Warning: Integer overflow for %d' % (x))
-            else:
-                getLogger().debug('Integer overflow for %d handled' % (x))
+                x_np = DataType.intType[target][wordLen * 4](x)
+                if x_np != x:
+                    getLogger().debug('Warning: Integer overflow for %d' % (x))
+                else:
+                    getLogger().debug('Integer overflow for %d handled' % (x))
         return x_np
 
     @staticmethod

@@ -647,9 +647,11 @@ class IRBuilderPosit(IRBuilder):
             
             (m, M) = self.varIntervals[expr_in.idf]
             intv_out = (-M, -m)
-
+            funcNameA = "UnaryNegate<%s>("%(self.getPositType(expr_in, bitwidth_out))
+            expr = IRUtil.addStrPrefixAndSuffix(funcNameA, IRUtil.addIndex(expr_in, iters), 
+                                    ", %d)"%(bitwidth_out), bitwidth_out)
             lhs = IRUtil.addIndex(expr_out, iters)
-            rhs = IRUtil.negate(IRUtil.addIndex(expr_in, iters))
+            rhs = expr
             loop = IRUtil.loop(type_out.shape, iters, [IR.Assn(lhs, rhs)])
             prog_uop = IR.Prog(loop)
 
@@ -1033,7 +1035,7 @@ class IRBuilderPosit(IRBuilder):
             funcName = "SparseMatMulX"
         else:
             funcName = "SparseMatMul"
-        templateArgs = "<%s, %s, %s, %s, %s>"%(self.getPositType(expr_in_A, bitwidth_in_A), self.getPositType(expr_in_A, bitwidth_in_B), self.getPositType(None, bitwidth_mul, isTemp=True), \
+        templateArgs = "<%s, int%d_t, %s, %s, %s, %s>"%(self.getPositType(expr_in_A, bitwidth_in_A), bitwidth_in_A, self.getPositType(expr_in_B, bitwidth_in_B), self.getPositType(None, bitwidth_mul, isTemp=True), \
                 self.getPositType(None, bitwidth_mul, isTemp = True, retQuireType=True), self.getPositType(expr_out, bitwidth_out))
         funcCall = IR.FuncCall(funcName, {
             in_A_idx: "Aidx",
@@ -2443,9 +2445,12 @@ class IRBuilderPosit(IRBuilder):
         type_in = node.expr.type
 
         expr_in_idx = IRUtil.addIndex(expr_in, [IRUtil.zero] * type_in.dim)
-
+        
         bitwidth_in, scale_in = self.getBitwidthAndScale(expr_in.idf)
 
+        expr_in_idx = IRUtil.addStrPrefixAndSuffix(\
+                "convertPositToDouble(", expr_in_idx, ",%d)"%(bitwidth_in))
+                
         comment = IR.Comment('sgn(' + expr_in.idf + ')', self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
 
@@ -3046,6 +3051,10 @@ class IRBuilderPosit(IRBuilder):
         else:
             expr_in_cond_idx = IRUtil.addIndex(
                 expr_in_cond, [IRUtil.zero] * type_in_cond.dim)
+            bitwidth_in_cond, _ = self.getBitwidthAndScale(expr_in_cond.idf)
+            expr_in_cond_idx = IRUtil.addStrPrefixAndSuffix(\
+                "convertPositToDouble(", expr_in_cond_idx, ",%d)"%(bitwidth_in_cond))
+
 
         # e2, e3 : Int
         if Type.isInt(type_in_A):
@@ -3085,9 +3094,12 @@ class IRBuilderPosit(IRBuilder):
             expr_in_B_idx = IRUtil.addIndex(expr_in_B, iters)
             expr_out_idx = IRUtil.addIndex(expr_out, iters)
 
-            rhs = IRUtil.cond_zero(expr_in_cond_idx,
-                                   IRUtil.shr(expr_in_A_idx, shr_A),
-                                   IRUtil.shr(expr_in_B_idx, shr_B))
+            bitwidth_out = max(bitwidth_in_A, bitwidth_in_B)
+
+            rhs = IRUtil.cond_zero(IRUtil.addStrPrefixAndSuffix("convertPositToDouble(", expr_in_cond_idx, ", %d)"%(bitwidth_in_cond)),
+                                   IRUtil.addStrPrefixAndSuffix("convertPositToDouble(", expr_in_A_idx, ", %d)"%(bitwidth_in_A)),
+                                   IRUtil.addStrPrefixAndSuffix("convertPositToDouble(", expr_in_B_idx, ", %d)"%(bitwidth_in_B)))
+            rhs = IRUtil.addStrPrefixAndSuffix("convertDoubleToPosit(", rhs, ", %d)"%(bitwidth_out))
             cmdl_assn = IRUtil.loop(type_in_A.shape, iters, [
                                     IR.Assn(expr_out_idx, rhs)])
             prog_cond = IR.Prog(cmdl_assn)

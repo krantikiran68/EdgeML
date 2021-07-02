@@ -586,7 +586,7 @@ void TanH(TypeA* A, TypeB* B, MYINT I, MYINT J, int bwA, int bwTemp, int bwB) {
 	return;
 }
 
-template<typename TypeA, typename TypeB>
+template<typename TypeA, typename TypeTemp, typename TypeB>
 void Exp(TypeA* A, TypeB *B, MYINT I, MYINT J, int bwA, int bwTemp, int bwB) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -1177,4 +1177,11 @@ void MatAdd4(TypeA* A, TypeB* B, TypeX* X, MYINT N, MYINT H, MYINT W, MYINT C, i
 		}
 	}
 	return;
+}
+
+template<typename TypeA>
+TypeA UnaryNegate(TypeA A, int bw) {
+	float a = convertPositToDouble(A, bw);
+	convertDoubleToPosit(-1*a, &A, bw);
+	return A;
 }

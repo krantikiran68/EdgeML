@@ -763,3 +763,12 @@ void Reverse2(TypeA* A, MYINT axis, MYINT I, MYINT J, TypeA* B) {
 	}
 	return;
 }
+
+template<class TypeA, class TypeAc>
+TypeA UnaryNegate(TypeA A, TypeAc zeroA, TypeAc zeroOut, TypeAc clamp_min, TypeAc clamp_max)
+{
+	TypeAc a = A;
+	a += zeroA;
+	a *= -1;
+	return Saturate<TypeAc, TypeA> (a + zeroOut, clamp_min, clamp_max);
+}

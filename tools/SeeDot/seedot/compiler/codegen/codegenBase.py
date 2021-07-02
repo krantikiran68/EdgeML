@@ -136,17 +136,18 @@ class CodegenBase:
                         assert False, "Illegal state, scratchSubs variable should be present if memory optimisation enabled"
 
                 if ir.idf in self.varsForBitwidth and ir.idf[:3] == "tmp" and ir.idf in self.decls:
-                    self.out.printf("%s_%d", ir.idf, self.varsForBitwidth[ir.idf])
+                    self.out.printf("%s%s_%d", ir.prefixStr, ir.idf, self.varsForBitwidth[ir.idf])
                 else:
-                    self.out.printf("%s", ir.idf)
+                    self.out.printf("%s%s",ir.prefixStr, ir.idf)
             else:
                 assert False, "Illegal state, codegenBase must have variable bitwidth info for VBW mode"
         else:
-            self.out.printf("%s", ir.idf)
+            self.out.printf("%s%s", ir.prefixStr, ir.idf)
         for e in ir.idx:
             self.out.printf('[')
             self.print(e)
             self.out.printf(']')
+        self.out.printf("%s", ir.suffixStr)
 
     def printBool(self, ir):
         self.out.printf({True: 'true', False: 'false'}[ir.b])

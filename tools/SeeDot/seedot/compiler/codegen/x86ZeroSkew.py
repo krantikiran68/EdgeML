@@ -129,7 +129,7 @@ class X86ZeroSkew(X86):
                 if var + "idx" in self.globalVars and var + "val" in self.globalVars:
                     continue
                 bw = self.varsForBitwidth[var]
-                typ_str = "int%d_t" % bw
+                typ_str = "uint%d_t" % bw
                 size = self.decls[var].shape
                 sizestr = ''.join(["[%d]" % (i) for i in size])
 
@@ -178,7 +178,7 @@ class X86ZeroSkew(X86):
             elif forZeroSkew() and decl not in self.internalVars:
                 if config.vbwEnabled and decl not in self.internalVars:
                     bw = self.varsForBitwidth.get(decl, config.wordLength)
-                    typ_str = "int%d_t" % bw
+                    typ_str = "uint%d_t" % bw
                 else:
                     typ_str = IR.DataType.getIntStr()
             else:
@@ -200,9 +200,9 @@ class X86ZeroSkew(X86):
                 if forZeroSkew() and idf_str in self.varsForBitwidth and idf_str[:3] == "tmp":
                     if globalVarDecl:
                         for bw in config.availableBitwidths:
-                            self.out.printf("int%d_t vars_%s::%s_%d%s;\n", bw, getEncoding(), idf_str, bw, shape_str, indent=True)
+                            self.out.printf("uint%d_t vars_%s::%s_%d%s;\n", bw, getEncoding(), idf_str, bw, shape_str, indent=True)
                     else:
-                        self.out.printf("int%d_t %s_%d%s;\n", self.varsForBitwidth[idf_str], idf_str, bw, shape_str, indent=True)
+                        self.out.printf("uint%d_t %s_%d%s;\n", self.varsForBitwidth[idf_str], idf_str, bw, shape_str, indent=True)
                 else:
                     if globalVarDecl:
                         self.out.printf("%s vars_%s::%s%s;\n", typ_str, getEncoding(), idf_str, shape_str, indent=True)
@@ -212,7 +212,7 @@ class X86ZeroSkew(X86):
                 if self.generateAllFiles:
                     if forZeroSkew() and idf_str in self.varsForBitwidth and idf_str[:3] == "tmp":
                         for bw in config.availableBitwidths:
-                            varsFile.printf("extern int%d_t %s_%d%s;\n", bw, idf_str, bw, shape_str, indent=True)
+                            varsFile.printf("extern uint%d_t %s_%d%s;\n", bw, idf_str, bw, shape_str, indent=True)
                     else:
                         varsFile.printf("extern %s %s%s;\n", typ_str, idf_str, shape_str, indent=True)
 

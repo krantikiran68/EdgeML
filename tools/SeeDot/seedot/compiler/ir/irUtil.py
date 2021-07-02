@@ -182,6 +182,4 @@ def print_loop(shape: list, iters: list, cmdl_body: CmdList, factor=0) -> CmdLis
     return cmdl_for
 
 def addStrPrefixAndSuffix(prefix: str, expr: Var, suffix: str, bw: int = 16) -> Var:
-    idx = "".join('[' + expr.idx[i].idf + ']' for i in range(len(expr.idx)))
-    out = prefix + expr.idf  +  (("_" + str(bw)) if config.vbwEnabled else "") + idx + suffix
-    return Var(out)
+    return Var(expr.idf, expr.idx, expr.inputVar, expr.internalVar, prefix, suffix)

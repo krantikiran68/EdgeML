@@ -403,11 +403,11 @@ class IRBuilderZeroSkew(IRBuilder):
     def adjustScaleAndZero(self, scale, zero, demote=True):
         if demote == False: # 8-bit to 16-bit
             new_scale = (scale * config.maxVar8Bit) / config.maxVar16Bit 
-            new_zero = int(zero*scale/new_scale)
+            new_zero = int(zero * scale / new_scale)
             return new_scale, new_zero
         else: # 16-bit to 8-bit
-            new_scale = (scale * config.maxVar16Bit)/config.maxVar8Bit
-            new_zero = int(zero*scale/new_scale)
+            new_scale = (scale * config.maxVar16Bit) / config.maxVar8Bit
+            new_zero = int(zero * scale / new_scale)
             return new_scale, new_zero
     
     def getScaleAndZero(self, minVal, maxVal, bw=config.wordLength, decl=False, varName = None):
@@ -419,7 +419,6 @@ class IRBuilderZeroSkew(IRBuilder):
         #     return scale, int(zero)
         
         if maxVal == minVal:
-            
             scale = math.fabs(1.0/maxVal) if (maxVal > 1.0) else math.fabs(maxVal)
             zero = 0
             return scale, zero
@@ -431,7 +430,7 @@ class IRBuilderZeroSkew(IRBuilder):
         if math.fabs(maxVal) < 0.00000001:
             scale = 1.0
         else:
-            scale = maxVal/(2*maxVar)
+            scale = maxVal / maxVar
 
         return scale, int(zero/scale)
 
@@ -831,7 +830,7 @@ class IRBuilderZeroSkew(IRBuilder):
             "reverse" + '(' + expr_in.idf + ',' + str(node.axis) + ')', self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
 
-        funcCall = IR.FuncCall('Reverse' + str(len(node.type.shape)), args) if not self.vbwEnabled else IR.FuncCall('Reverse' + str(len(node.type.shape)) + '<int' + str(bitwidth_in) + '_t>', args)
+        funcCall = IR.FuncCall('Reverse' + str(len(node.type.shape)), args) if not self.vbwEnabled else IR.FuncCall('Reverse' + str(len(node.type.shape)) + '<uint' + str(bitwidth_in) + '_t>', args)
 
         prog_funcCall = IR.Prog([comment, funcCall])
 
@@ -1515,7 +1514,36 @@ class IRBuilderZeroSkew(IRBuilder):
         self.internalVars.append(expr_out.idf)
 
         return (prog_out, expr_out)
-    
+
+    def visitSgn(self, node: AST.Func):
+        (prog_in, expr_in) = self.visit(node.expr)
+
+        expr_out = self.getTempVar()
+        type_in = node.expr.type
+
+        expr_in_idx = IRUtil.addIndex(expr_in, [IRUtil.zero] * type_in.dim)
+        bitwidth_in, scale_in, zero_in = self.getBitwidthScaleZeros(expr_in.idf)
+
+        expr_in_idx = IRUtil.addStrPrefixAndSuffix("ConvertZSkewToFloat<uint%d_t>("%(bitwidth_in), expr_in_idx, ",%d,%f)"%(zero_in, scale_in))
+
+        comment = IR.Comment('sgn(' + expr_in.idf + ')', self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
+        cmd1 = IR.Assn(expr_out, IRUtil.cond_zero(
+            expr_in_idx, IRUtil.one, IRUtil.zero))
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in, expr_out])
+
+        prog_sgn = IR.Prog([comment, cmd1])
+
+        prog_out = IRUtil.concatPrograms(prog_in, prog_sgn)
+
+        self.varDeclarations[expr_out.idf] = Type.Int()
+        self.internalVars.append(expr_out.idf)
+
+        return (prog_out, expr_out)
+
     def visitTanh(self, node: AST.Func):
         # Old implementation of TanH, where a linear approximation is used.
         # The floating-point version of this method uses math.h implementation of exp(x).
@@ -2065,7 +2093,7 @@ class IRBuilderZeroSkew(IRBuilder):
         return scale, zero, intv
     
     def getClampValues(self, bitwidth_out):
-        return (0, 2*config.maxVar8Bit) if bitwidth_out == 8 else (0, 2*config.maxVar16Bit)
+        return (0, config.maxVar8Bit) if bitwidth_out == 8 else (0, config.maxVar16Bit)
     
     def visitBopSparseMul(self, node: AST.Bop1):
         (prog_in_A, expr_in_A) = self.visit(node.expr1)
@@ -2306,6 +2334,8 @@ class IRBuilderZeroSkew(IRBuilder):
         else:
             expr_in_cond_idx = IRUtil.addIndex(
                 expr_in_cond, [IRUtil.zero] * type_in_cond.dim)
+            bitwidth_in_cond_idx, scale_in_cond_idx, zero_in_cond_idx = self.getBitwidthScaleZeros(expr_in_cond_idx.idf)
+            expr_in_cond_idx = IRUtil.addStrPrefixAndSuffix("ConvertZSkewToFloat<uint%d_t>("%(bitwidth_in_cond_idx), expr_in_cond_idx, ", %d, %f)"%(zero_in_cond_idx, scale_in_cond_idx), bitwidth_in_cond_idx)
 
         # e2, e3 : Int
         if Type.isInt(type_in_A):
@@ -2387,9 +2417,9 @@ class IRBuilderZeroSkew(IRBuilder):
     
     def getIntervalFromScaleZero(self, bitwidth, scale, zero):
         if bitwidth == 8:
-            max = 2*config.maxVar8Bit
+            max = config.maxVar8Bit
         elif bitwidth == 16:
-            max = 2*config.maxVar16Bit
+            max = config.maxVar16Bit
         else:
             assert False, "Unsupported bitwidth of variable: %d"%(bitwidth)
         

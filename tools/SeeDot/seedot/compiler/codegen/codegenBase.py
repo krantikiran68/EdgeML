@@ -105,9 +105,9 @@ class CodegenBase:
                                 else:
                                     typeCast = "(uint%d_t&)" % self.varsForBitwidth[ir.idf]
                                     if isPointer:
-                                        self.out.printf("(scratch + %d +" % (offset))
+                                        self.out.printf("%s(scratch + %d +" % (ir.prefixStr, offset))
                                     else:
-                                        self.out.printf("%s(scratch[%d + " % (typeCast, offset))
+                                        self.out.printf("%s%s(scratch[%d + " % (ir.prefixStr, typeCast, offset))
                                 self.out.printf("%d * ("% (self.varsForBitwidth[ir.idf] // 8))
                                 for i in range(type.dim):
                                     if i >= len(ir.idx):
@@ -124,9 +124,9 @@ class CodegenBase:
                                         self.out.printf(")])))")
                                 else:
                                     if isPointer:
-                                        self.out.printf("))")
+                                        self.out.printf("))%s"%(ir.suffixStr))
                                     else:
-                                        self.out.printf(")])")
+                                        self.out.printf(")])%s"%(ir.suffixStr))
                                 return
                             else:
                                 pass

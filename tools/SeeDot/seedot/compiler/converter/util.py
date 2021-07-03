@@ -532,7 +532,7 @@ def getScaleAndZero(m, M):
 
     M = M + zero
 
-    scale = (M) / (2*maxVar)
+    scale = M / maxVar
 
     return scale, int(zero / scale)
 

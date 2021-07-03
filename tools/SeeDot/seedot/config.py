@@ -59,8 +59,8 @@ permittedRegressionNumericalLossMargin = 90.0
 # Used in the zero skew representation, this value is used in the quantization of variables
 quantizationLevels = 265 if wordLength == 8 else 65536
 
-maxVar8Bit = 126
-maxVar16Bit =  32766
+maxVar8Bit = 255
+maxVar16Bit = 65535
 
 # Minimum version of gcc required for compilation
 min_gcc_version = 8

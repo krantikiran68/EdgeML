@@ -193,7 +193,7 @@ class CompilerZeroSkew(Compiler):
                 m = m + zero
                 M = M + zero
                 maxVar = config.maxVar8Bit if config.wordLength == 8 else config.maxVar16Bit
-                scale = M/(2*maxVar)
+                scale = M/maxVar
                 zero = int(zero/scale)
 
                 tempScales[var] = scale, zero

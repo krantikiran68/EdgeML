@@ -213,7 +213,7 @@ class Compiler:
                 entries = line.strip().split(",")
                 var, m, M = entries
                 m, M = float(m), float(M)
-                zero = -1*((m + M)/2)
+                zero = -m
                 m = m + zero
                 M = M + zero
                 maxVar = config.maxVar8Bit if config.wordLength == 8 else config.maxVar16Bit

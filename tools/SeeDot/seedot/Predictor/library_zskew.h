@@ -143,7 +143,7 @@ void MatMulBroadcastA(MYINT* A, MYINT* B, MYINT* C, MYITE I, MYITE J, ACINT zero
  */
 
 void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius);
-void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, float scale_in,  ACINT zeroA, ACINT shrA, MYITE nA, float scale_out, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius);
+void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, float scale_in, ACINT zeroA, ACINT shrA, MYITE nA, float scale_out, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius);
 /**
  * Dimensions:	A, B are matrices, dim(A) = dim(B) = [I][J]. I, J, scale_in, scale_out are integers.
  *
@@ -449,7 +449,7 @@ void MatMulBroadcastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, float scal
 }
 
 template<class TypeA, class TypeAc>
-void Sigmoid(TypeA* A, TypeA* B, MYITE I, MYITE J, float scale_in,  TypeAc zeroA, TypeAc shrA, MYITE nA, float scale_out, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc clamp_radius) {
+void Sigmoid(TypeA* A, TypeA* B, MYITE I, MYITE J, float scale_in, TypeAc zeroA, TypeAc shrA, MYITE nA, float scale_out, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc clamp_radius) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeAc x = A[i * J + j];
@@ -510,9 +510,9 @@ void TanH(TypeA* A, TypeA* B, MYITE I, MYITE J, float scale_in, TypeAc zeroA, Ty
 	return;
 }
 
-template<typename TypeA>
-void ArgMax(TypeA* A, MYITE I, MYITE J, float scale_in, ACINT zero_in, int* index) {
-	ACINT a = A[0];
+template<class TypeA, class TypeAc>
+void ArgMax(TypeA* A, MYITE I, MYITE J, float scale_in, TypeAc zero_in, int* index) {
+	TypeAc a = A[0];
 	a += zero_in;
 	float max = a * scale_in;
 	MYITE maxIndex = 0, counter = 0;
@@ -534,7 +534,7 @@ void ArgMax(TypeA* A, MYITE I, MYITE J, float scale_in, ACINT zero_in, int* inde
 }
 
 template<class TypeA, class TypeAidx, class TypeB, class TypeAc, class TypeC>
-void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C, TypeAc* tmp, int16_t P, int16_t K, float scaleA, float scaleB, float scale_out, ACINT left_shift, ACINT zeroA, ACINT zeroB, ACINT zeroC, ACINT M0, ACINT N, MYINT clamp_min, MYINT clamp_max) {
+void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C, TypeAc* tmp, MYITE P, MYITE K, float scaleA, float scaleB, float scale_out, MYITE left_shift, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N, TypeAc clamp_min, TypeAc clamp_max) {
 	MYITE ite_idx = 0, ite_val = 0;
 	memset(tmp, 0, sizeof(TypeAc) * P);
 	for (MYITE k = 0; k < K; k++) {
@@ -594,7 +594,7 @@ void SparseMatMulX(const TypeAidx* Aidx, const TypeA* Aval, TypeB** B, TypeC* C,
 }
 
 template<class TypeA, class TypeAidx, class TypeB, class TypeAc, class TypeC>
-void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, TypeAc* tmp, int16_t P, int16_t K, float scaleA, float scaleB, float scale_out, TypeAc left_shift, TypeAc zeroA, TypeAc zeroB, ACINT zeroC, ACINT M0, ACINT N, MYINT clamp_min, MYINT clamp_max) {
+void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, TypeAc* tmp, MYITE P, MYITE K, float scaleA, float scaleB, float scale_out, MYITE left_shift, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N, TypeAc clamp_min, TypeAc clamp_max) {
 	MYITE ite_idx = 0, ite_val = 0;
 	memset(tmp, 0, sizeof(TypeAc) * P);
 	for (MYITE k = 0; k < K; k++) {
@@ -622,8 +622,8 @@ void SparseMatMul(const TypeAidx* Aidx, const TypeA* Aval, TypeB* B, TypeC* C, T
 	return;
 }
 
-template<typename TypeA, typename TypeAc, typename TypeB>
-TypeB AdjustScaleZero(TypeA A, TypeAc zeroA, TypeAc zeroOut, TypeAc M, TypeAc N, TypeB clamp_min, TypeB clamp_max) {
+template<class TypeA, class TypeAc, class TypeB>
+TypeB AdjustScaleZero(TypeA A, TypeAc zeroA, TypeAc zeroOut, TypeAc M, MYITE N, TypeAc clamp_min, TypeAc clamp_max) {
 	TypeAc a = A;
 	a -= zeroA;
 
@@ -632,8 +632,16 @@ TypeB AdjustScaleZero(TypeA A, TypeAc zeroA, TypeAc zeroOut, TypeAc M, TypeAc N,
 	return Saturate<TypeAc, TypeB>(a + zeroOut, clamp_min, clamp_max);
 }
 
-template<typename TypeA, typename TypeAc, typename TypeB>
-void AddInPlace(TypeA* A, TypeB* B, MYITE I, MYITE J, float scaleA, float scaleB, TypeAc zero_in, TypeAc zero_out, TypeAc left_shift, TypeAc shrA, TypeAc nA, TypeAc shrB, TypeAc nB, TypeAc shrC, TypeAc nC, TypeAc clamp_min, TypeAc clamp_max) {
+template<class TypeA>
+float ConvertZSkewToFloat(TypeA A, TypeA zeroA, float scaleA) {
+	float a = A;
+	a -= zeroA;
+
+	return (a * scaleA);
+}
+
+template<class TypeA, class TypeAc, class TypeB>
+void AddInPlace(TypeA* A, TypeB* B, MYITE I, MYITE J, float scaleA, float scaleB, TypeAc zero_in, TypeAc zero_out, MYITE left_shift, TypeAc shrA, MYITE nA, TypeAc shrB, MYITE nB, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {
 	// #define AddInPlace_APPROX
 
 	for (MYITE i = 0; i < I; i++) {
@@ -670,7 +678,7 @@ void AddInPlace(TypeA* A, TypeB* B, MYITE I, MYITE J, float scaleA, float scaleB
 }
 
 template<class TypeA, class TypeAc, class TypeB>
-void Exp(TypeA* A, TypeB* B, MYINT I, MYINT J, float scale_in, float scale_out, TypeAc left_shift, TypeAc zeroA, TypeAc zeroB, TypeAc shrA, TypeAc nA, TypeAc shrB1, TypeAc nB1, TypeAc shrB2, TypeAc nB2, TypeB clamp_min, TypeB clamp_max) {
+void Exp(TypeA* A, TypeB* B, MYITE I, MYITE J, float scale_in, float scale_out, MYITE left_shift, TypeAc zeroA, TypeAc zeroB, TypeAc shrA, MYITE nA, TypeAc shrB1, MYITE nB1, TypeAc shrB2, MYITE nB2, TypeAc clamp_min, TypeAc clamp_max) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			#ifdef FLOAT_APPROX

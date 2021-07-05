@@ -182,3 +182,8 @@ def computeScalingFactorForInlineCodegen(val):
 def getLogger():
     log =  logging.getLogger()    
     return log
+
+# get bitwidth of index array in case of Sparse Matrices
+def getIdxBitwidth(bitwidth):
+    if bitwidth not in [8, 16, 32]:
+        return config.wordLength

@@ -1035,7 +1035,7 @@ class IRBuilderPosit(IRBuilder):
             funcName = "SparseMatMulX"
         else:
             funcName = "SparseMatMul"
-        templateArgs = "<%s, int%d_t, %s, %s, %s, %s>"%(self.getPositType(expr_in_A, bitwidth_in_A), bitwidth_in_A, self.getPositType(expr_in_B, bitwidth_in_B), self.getPositType(None, bitwidth_mul, isTemp=True), \
+        templateArgs = "<%s, int%d_t, %s, %s, %s, %s>"%(self.getPositType(expr_in_A, bitwidth_in_A), getIdxBitwidth(bitwidth_in_A), self.getPositType(expr_in_B, bitwidth_in_B), self.getPositType(None, bitwidth_mul, isTemp=True), \
                 self.getPositType(None, bitwidth_mul, isTemp = True, retQuireType=True), self.getPositType(expr_out, bitwidth_out))
         funcCall = IR.FuncCall(funcName, {
             in_A_idx: "Aidx",
@@ -3670,21 +3670,26 @@ class IRBuilderPosit(IRBuilder):
     def getBitwidthAndScale(self, varName, native=False):
         if forFloat():
             return 0,0
-
+        
         if self.ddsEnabled or self.vbwEnabled: # If not enabled, all scales statically computed.
             while varName in self.substitutions:
                 varName = self.substitutions[varName]
+        
+        bitwidth = self.varsForBitwidth[varName]
+
+        if bitwidth == None:
+            return config.positBitwidth
 
         if varName in self.varScales.keys(): # Function has been called on this variable or scale has been manually computed.
             if varName in self.demotedVarsList:
-                return config.wordLength // 2, self.varScales[varName]
+                return bitwidth, self.varScales[varName]
             else:
-                return config.wordLength, self.varScales[varName]
+                return bitwidth, self.varScales[varName]
         elif varName in self.intermediateVarScales.keys(): # This will be populated for DDS mode.
             if varName in self.demotedVarsList and native == False:
-                return config.wordLength // 2, self.intermediateVarScales[varName] + config.wordLength // 2 + self.demotedVarsOffsets[varName]
+                return bitwidth, self.intermediateVarScales[varName] + config.wordLength // 2 + self.demotedVarsOffsets[varName]
             else:
-                return config.wordLength, self.intermediateVarScales[varName]
+                return bitwidth, self.intermediateVarScales[varName]
         else:
             assert False, "No root found"
 
@@ -3730,3 +3735,4 @@ class IRBuilderPosit(IRBuilder):
                 return "posit%d_t"%(bitwidth)
             else:
                 return "quire%d_t"%(bitwidth)
+    

@@ -107,7 +107,7 @@ class X86Posit(X86):
                 continue
             bw = self.varsForBitwidth[var] if config.vbwEnabled else config.positBitwidth
             if var[-3:] == 'idx':
-                typ_str = "int%d_t"%bw
+                typ_str = "int%d_t"%getIdxBitwidth(bw)
             else:
                 typ_str = self.getPositType(bw)
             bitwidth_PX2_suffix = self.getPX2Suffix(bw)
@@ -336,9 +336,7 @@ class X86Posit(X86):
             self.printLocalVarDecls(ir)
             self.out.printf("%s(" % (ir.name), indent=True)
             keys = list(ir.argList)
-            if config.positBitwidth not in [8, 16, 32]:
-                keys.append(IR.Int(config.positBitwidth))
-        
+            
             for i in range(len(keys)):
                 arg = keys[i]
                 if isinstance(arg, IR.Var) and (arg.idf in self.decls.keys() or arg.idf in self.localDecls.keys()) and not arg.idf == 'X':
@@ -353,7 +351,7 @@ class X86Posit(X86):
                 else:
                     x = 0
                 if isinstance(arg, IR.Var) and arg.idf[-3:] == 'idx': 
-                    typeCast = "(int%d_t*)" % self.varsForBitwidth[arg.idf] if x > 0 else ""
+                    typeCast = "(int%d_t*)" % getIdxBitwidth(self.varsForBitwidth[arg.idf]) if x > 0 else ""
                 else:
                     typeCast = "(%s*)" % self.getPositType(self.varsForBitwidth[arg.idf]) if x > 0 else ""
                 self.out.printf(typeCast)
@@ -404,7 +402,7 @@ class X86Posit(X86):
         self.out.printf("{\n", indent=True)
         self.out.increaseIndent()
         self.printLocalVarDecls(ir)
-        self.out.printf("%s(" % self.processFuncName(ir.name), indent=True)
+        self.out.printf("%s(" % (ir.name), indent=True)
         keys = list(ir.argList)
         if config.positBitwidth not in [8, 16, 32]:
             keys.append(IR.Int(config.positBitwidth))

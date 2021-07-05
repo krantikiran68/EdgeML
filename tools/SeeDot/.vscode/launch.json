@@ -14,11 +14,11 @@
             "console": "integratedTerminal",
             "args": [
                 "-a",
-                "fastgrnn",
+                "protonn",
                 "-e",
                 "posit",
                 "-d",
-                "cifar-multiclass",
+                "usps-binary",
                 "-m",
                 "red_disagree",
                 "-t",

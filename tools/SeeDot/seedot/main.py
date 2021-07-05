@@ -188,7 +188,7 @@ class Main:
         self.allScales = dict(obj.varScales)
         if encoding == config.Encoding.floatt:
             self.variableSubstitutions = obj.substitutions
-            self.variableToBitwidthMap = dict.fromkeys(obj.independentVars, config.wordLength)
+            self.variableToBitwidthMap = dict.fromkeys(obj.independentVars, config.wordLength if config.wordLength == config.positBitwidth else config.positBitwidth) 
             self.varSizes = obj.varSizes
 
         self.problemType = obj.problemType

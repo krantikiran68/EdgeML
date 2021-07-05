@@ -233,7 +233,7 @@ inline void InvSqrtQuantizedMultiplier(InputType input, InputType* output_inv_sq
 		input /= 4;
 		++*shift;
 	}
-	const unsigned max_left_shift_bits;
+	unsigned max_left_shift_bits;
 	if (std::is_same<InputType, std::int32_t>::value) {
 		max_left_shift_bits = CountLeadingZeros(static_cast<uint32_t>(input)) - 1;
 	} else if (std::is_same<InputType, std::int64_t>::value) {
@@ -243,8 +243,6 @@ inline void InvSqrtQuantizedMultiplier(InputType input, InputType* output_inv_sq
 	const unsigned left_shift_bit_pairs = max_left_shift_bit_pairs - 1;
 	*shift -= left_shift_bit_pairs;
 	input <<= 2 * left_shift_bit_pairs;
-	// TFLITE_DCHECK_GE(input, (1 << 27));
-	// TFLITE_DCHECK_LT(input, (1 << 29));
 	using gemmlowp::FixedPoint;
 	using gemmlowp::Rescale;
 	using gemmlowp::SaturatingRoundingMultiplyByPOT;
@@ -333,6 +331,32 @@ void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, float scal
 
 			TypeAc c = MulQuantMultiplier<TypeAc>(a + b, shrC, nC);
 			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + c, clamp_min, clamp_max);
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeAc, class TypeX>
+void MatAdd4(TypeA* A, TypeB* B, TypeX* X, MYITE N, MYITE H, MYITE W, MYITE C, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroX, TypeAc shrX, MYITE nX, TypeAc clamp_min, TypeAc clamp_max) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					TypeAc a = A[n * H * W * C + h * W * C + w * C + c];
+					TypeAc b = B[n * H * W * C + h * W * C + w * C + c];
+
+					a += zeroA;
+					b += zeroB;
+					a *= TypeAc(1LL << left_shift);
+					b *= TypeAc(1LL << left_shift);
+
+					a = MulQuantMultiplier<TypeAc>(a, shrA, nA);
+					b = MulQuantMultiplier<TypeAc>(b, shrB, nB);
+
+					TypeAc x = MulQuantMultiplier<TypeAc>(a + b, shrX, nX);
+					X[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeAc, TypeX>(zeroX + x, clamp_min, clamp_max);
+				}
+			}
 		}
 	}
 	return;
@@ -883,7 +907,7 @@ void AddOrSubCir2D(TypeA* A, TypeB* B, TypeC* X, MYITE H, MYITE W, float scaleA,
 }
 
 template<class TypeA, class TypeAc>
-void Relu4D(TypeA* A, MYITE N, MYITE H, MYITE W, MYITE C, TypeAc zeroA, TypeAc zeroOut, TypeAc M0, MYITE N0, TypeAc clamp_min, TypeAc clamp_max) {
+void Relu4D(TypeA* A, MYITE N, MYITE H, MYITE W, MYITE C, float scale_in, float scale_out, TypeAc zeroA, TypeAc zeroOut, TypeAc M0, MYITE N0, TypeAc clamp_min, TypeAc clamp_max) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -897,7 +921,7 @@ void Relu4D(TypeA* A, MYITE N, MYITE H, MYITE W, MYITE C, TypeAc zeroA, TypeAc z
 }
 
 template<class TypeA, class TypeAc>
-void Relu2D(TypeA* A, MYITE H, MYITE W, TypeAc zeroA, TypeAc zeroOut, TypeAc M0, MYITE N0, TypeAc clamp_min, TypeAc clamp_max) {
+void Relu2D(TypeA* A, MYITE H, MYITE W, float scale_in, float scale_out, TypeAc zeroA, TypeAc zeroOut, TypeAc M0, MYITE N0, TypeAc clamp_min, TypeAc clamp_max) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			A[h * W + w] = AdjustScaleZero<TypeA, TypeAc, TypeA>(A[h * W + w], zeroA, zeroOut, M0, N0, clamp_min, clamp_max);
@@ -907,7 +931,7 @@ void Relu2D(TypeA* A, MYITE H, MYITE W, TypeAc zeroA, TypeAc zeroOut, TypeAc M0,
 }
 
 template<class TypeA, class TypeAc, class TypeB>
-void Relu6(TypeA* A, TypeB* B, MYITE N, MYITE H, MYITE W, MYITE C, TypeAc zeroA, TypeAc zeroOut, TypeAc M0, MYITE N0, TypeAc clamp_min, TypeAc clamp_max) {
+void Relu6(TypeA* A, TypeB* B, MYITE N, MYITE H, MYITE W, MYITE C, float scale_in, float scale_out, TypeAc zeroA, TypeAc zeroOut, TypeAc M0, MYITE N0, TypeAc clamp_min, TypeAc clamp_max) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -956,8 +980,8 @@ void Convolution(TypeA* A, const TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, 
 	}
 }
 
-template<class TypeA, class TypeF1, class TypeB1W, class TypeB1B, class TypeF2, class TypeB2W, class TypeB2B, class TypeF3, class TypeB3W, class TypeB3B, class TypeC, class TypeX, class TypeT, class TypeAc>
-void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, TypeB2W* BN2W, TypeB2B* BN2B, TypeF3* F3, TypeB3W* BN3W, TypeB3B* BN3B, TypeC* C, TypeX* X, TypeT* T, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, float scaleA, float scaleB, float scaleC, TypeAc zeroA, TypeAc zeroF1, TypeAc zeroF2, TypeAc zeroF3, TypeAc zeroX, TypeAc zeroT, TypeAc zeroC, TypeAc M0, MYITE N0, TypeAc M1, MYITE N1, TypeAc M2, MYITE N2, TypeAc clamp_min_X, TypeAc clamp_max_X, TypeAc clamp_min_T, TypeAc clamp_max_T, TypeAc clamp_min_C, TypeAc clamp_max_C) {
+template<class TypeA, class TypeF1, class TypeB1W, class TypeB1B, class TypeF2, class TypeB2W, class TypeB2B, class TypeF3, class TypeB3W, class TypeB3B, class TypeC, class TypeX, class TypeT, class TypeUB1W, class TypeUB2W, class TypeUB3W, class TypeAc>
+void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, TypeB2W* BN2W, TypeB2B* BN2B, TypeF3* F3, TypeB3W* BN3W, TypeB3B* BN3B, TypeC* C, TypeX* X, TypeT* T, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, TypeAc zeroA, TypeAc zeroF1, TypeUB1W zeroBN1W, TypeUB1W zeroBN1B, TypeAc zeroF2, TypeUB2W zeroBN2W, TypeUB2W zeroBN2B, TypeAc zeroF3, TypeUB3W zeroBN3W, TypeUB3W zeroBN3B, TypeUB3W zeroC, TypeUB1W zeroX, TypeUB2W zeroT, MYITE left_shift1, MYITE left_shift2, MYITE left_shift3, TypeAc M11, MYITE N11, TypeUB1W M12, MYITE N12, TypeUB1W M13, MYITE N13, TypeUB1W M14, MYITE N14, TypeUB1W M15, MYITE N15, TypeAc M21, MYITE N21, TypeUB2W M22, MYITE N22, TypeUB2W M23, MYITE N23, TypeUB2W M24, MYITE N24, TypeUB2W M25, MYITE N25, TypeAc M31, MYITE N31, TypeUB3W M32, MYITE N32, TypeUB3W M33, MYITE N33, TypeUB3W M34, MYITE N34, TypeUB3W M35, MYITE N35, TypeUB1W clamp_min_X, TypeUB1W clamp_max_X, TypeUB2W clamp_min_T, TypeUB2W clamp_max_T, TypeUB3W clamp_min_C, TypeUB3W clamp_max_C) {
 	MYITE HOffsetL = (HF / 2) - HPADL;
 	MYITE WOffsetL = (WF / 2) - WPADL;
 	MYITE HOffsetR = (HF / 2) - HPADR;
@@ -976,9 +1000,22 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 						sum += (a + zeroA) * (f + zeroF1);
 					}
 
-					TypeAc x = (sum + BN1B[k]) * BN1W[k];
-					x = MulQuantMultiplier<TypeAc>(x + zeroX, M0, N0);
-					X[i * W * Ct + j * Ct + k] = Saturate<TypeAc, TypeX>(x, clamp_min_X, clamp_max_X);
+					sum = MulQuantMultiplier<TypeAc>(sum, M11, N11);
+					sum *= TypeAc(1LL << left_shift1);
+					sum = MulQuantMultiplier<TypeUB1W>(sum, M12, N12);
+
+					TypeUB1W b = BN1B[k];
+					b += zeroBN1B;
+					b *= TypeUB1W(1LL << left_shift1);
+					b = MulQuantMultiplier<TypeUB1W>(b, M13, N13);
+
+					TypeUB1W c = MulQuantMultiplier<TypeUB1W>(sum + b, M14, N14);
+
+					TypeUB1W w = BN1W[k];
+					w += zeroBN1W;
+					TypeUB1W x = MulQuantMultiplier<TypeUB1W>(c * w, M15, N15);
+
+					X[i * W * Ct + j * Ct + k] = Saturate<TypeUB1W, TypeX>(x + zeroX, clamp_min_X, clamp_max_X);
 				}
 			}
 		}
@@ -998,9 +1035,22 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 							sum += (a + zeroA) * (f + zeroF1);
 						}
 
-						TypeAc x = (sum + BN1B[k]) * BN1W[k];
-						x = MulQuantMultiplier<TypeAc>(x + zeroX, M0, N0);
-						X[iRed * W * Ct + j * Ct + k] = Saturate<TypeAc, TypeX>(x, clamp_min_X, clamp_max_X);
+						sum = MulQuantMultiplier<TypeAc>(sum, M11, N11);
+						sum *= TypeAc(1LL << left_shift1);
+						sum = MulQuantMultiplier<TypeUB1W>(sum, M12, N12);
+
+						TypeUB1W b = BN1B[k];
+						b += zeroBN1B;
+						b *= TypeUB1W(1LL << left_shift1);
+						b = MulQuantMultiplier<TypeUB1W>(b, M13, N13);
+
+						TypeUB1W c = MulQuantMultiplier<TypeUB1W>(sum + b, M14, N14);
+
+						TypeUB1W w = BN1W[k];
+						w += zeroBN1W;
+						TypeUB1W x = MulQuantMultiplier<TypeUB1W>(c * w, M15, N15);
+
+						X[iRed * W * Ct + j * Ct + k] = Saturate<TypeUB1W, TypeX>(x + zeroX, clamp_min_X, clamp_max_X);
 					}
 				}
 			}
@@ -1012,13 +1062,26 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 						for (MYITE wf = -(WF / 2); wf <= (WF / 2); wf++) {
 							TypeAc x = (((h + hf) < 0) || ((h + hf) >= H) || ((w + wf) < 0) || ((w + wf) >= W)) ? -zeroX : X[((h + hf) % HF) * W * Ct + (w + wf) * Ct + g];
 							TypeAc f = F2[g * HF * WF + (hf + HF / 2) * WF + (wf + WF / 2)];
-							sum += (x + zeroX) * (f + zeroF2);
+							sum += (x - zeroX) * (f + zeroF2);
 						}
 					}
 
-					TypeAc t = (sum + BN2B[g]) * BN2W[g];
-					t = MulQuantMultiplier<TypeAc>(t + zeroT, M1, N1);
-					T[g] = Saturate<TypeAc, TypeT>(t, clamp_min_T, clamp_max_T);
+					sum = MulQuantMultiplier<TypeAc>(sum, M21, N21);
+					sum *= TypeAc(1LL << left_shift2);
+					sum = MulQuantMultiplier<TypeUB2W>(sum, M22, N22);
+
+					TypeUB2W b = BN2B[g];
+					b += zeroBN2B;
+					b *= TypeUB2W(1LL << left_shift2);
+					b = MulQuantMultiplier<TypeUB2W>(b, M23, N23);
+
+					TypeUB2W c = MulQuantMultiplier<TypeUB2W>(sum + b, M24, N24);
+
+					TypeUB2W w = BN2W[g];
+					w += zeroBN2W;
+					TypeUB2W t = MulQuantMultiplier<TypeUB2W>(c * w, M25, N25);
+
+					T[g] = Saturate<TypeUB2W, TypeT>(t + zeroT, clamp_min_T, clamp_max_T);
 				}
 
 				for (MYITE i = 0; i < Cout; i++) {
@@ -1026,12 +1089,25 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 					for (MYITE g = 0; g < Ct; g++) {
 						TypeAc t = T[g];
 						TypeAc f = F3[g * Cout + i];
-						sum += (t + zeroT) * (f + zeroF3);
+						sum += (t - zeroT) * (f + zeroF3);
 					}
 
-					TypeAc c = (sum + BN3B[i]) * BN3W[i];
-					c = MulQuantMultiplier<TypeAc>(c + zeroC, M2, N2);
-					C[n * Hout * Wout * Cout + hout * Wout * Cout + wout * Cout + i] = Saturate<TypeAc, TypeC>(c, clamp_min_C, clamp_max_C);
+					sum = MulQuantMultiplier<TypeAc>(sum, M31, N31);
+					sum *= TypeAc(1LL << left_shift3);
+					sum = MulQuantMultiplier<TypeUB3W>(sum, M32, N32);
+
+					TypeUB3W b = BN3B[i];
+					b += zeroBN3B;
+					b *= TypeUB3W(1LL << left_shift3);
+					b = MulQuantMultiplier<TypeUB3W>(b, M33, N33);
+
+					TypeUB3W c = MulQuantMultiplier<TypeUB3W>(sum + b, M34, N34);
+
+					TypeUB3W w = BN3W[i];
+					w += zeroBN3W;
+					c = MulQuantMultiplier<TypeUB3W>(c * w, M35, N35);
+
+					C[n * Hout * Wout * Cout + hout * Wout * Cout + wout * Cout + i] = Saturate<TypeUB3W, TypeT>(c + zeroC, clamp_min_C, clamp_max_C);
 				}
 			}
 		}
@@ -1039,7 +1115,7 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 }
 
 template<class TypeA, class TypeAc>
-void NormaliseL2(TypeA* A, TypeA* B, MYITE N, MYITE H, MYITE W, MYITE C, TypeAc zeroA) {
+void NormaliseL2(TypeA* A, TypeA* B, MYITE N, MYITE H, MYITE W, MYITE C, float scale_in, float scale_out, TypeAc zeroA, TypeAc zeroOut, TypeAc clamp_min, TypeAc clamp_max) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -1057,9 +1133,10 @@ void NormaliseL2(TypeA* A, TypeA* B, MYITE N, MYITE H, MYITE W, MYITE C, TypeAc 
 				for (MYITE c = 0; c < C; c++) {
 					TypeAc a = A[n * H * W * C + h * W * C + w * C + c];
 					a += zeroA;
+					a <<= 7;
 
-					TypeAc a_rescaled = MulQuantMultiplier<TypeAc>(a, norm_multiplier, norm_shift + 7);
-					B[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeAc, TypeA>(a_rescaled, std::numeric_limits<TypeA>::min(), std::numeric_limits<TypeA>::max());
+					TypeAc a_rescaled = MulQuantMultiplier<TypeAc>(a, norm_multiplier, norm_shift);
+					B[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeAc, TypeA>(a_rescaled + zeroOut, clamp_min, clamp_max);
 				}
 			}
 		}

@@ -5,6 +5,7 @@ import antlr4 as antlr
 import argparse
 import os
 import pickle
+import math
 
 import seedot
 
@@ -189,6 +190,13 @@ class CompilerZeroSkew(Compiler):
                 entries = line.strip().split(",")
                 var, m, M = entries
                 m, M = float(m), float(M)
+
+                if m == M:
+                    scale = math.fabs(1.0 / M) if (M > 1.0) else math.fabs(M)
+                    zero = 0
+                    tempScales[var] = scale, zero
+                    continue
+
                 zero = -m
                 m = m + zero
                 M = M + zero

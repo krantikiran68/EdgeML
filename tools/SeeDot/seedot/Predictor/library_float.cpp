@@ -528,6 +528,7 @@ void MBConv(float* A, const float* F1, const float* BN1W, const float* BN1B, con
 					Profile2(&ar, 1, 1, name + "t1");
 					X[i * W * Ct + j * Ct + k] = X[i * W * Ct + j * Ct + k] < 0.0 ? 0.0 : X[i * W * Ct + j * Ct + k];
 					X[i * W * Ct + j * Ct + k] = X[i * W * Ct + j * Ct + k] > 6.0 ? 6.0 : X[i * W * Ct + j * Ct + k];
+					Profile2(&X[i * W * Ct + j * Ct + k], 1, 1, name + "x1");
 				}
 			}
 		}
@@ -567,6 +568,7 @@ void MBConv(float* A, const float* F1, const float* BN1W, const float* BN1B, con
 						Profile2(&ar, 1, 1, name + "t1");
 						X[iRed * W * Ct + j * Ct + k] = X[iRed * W * Ct + j * Ct + k] < 0.0 ? 0.0 : X[iRed * W * Ct + j * Ct + k];
 						X[iRed * W * Ct + j * Ct + k] = X[iRed * W * Ct + j * Ct + k] > 6.0 ? 6.0 : X[iRed * W * Ct + j * Ct + k];
+						Profile2(&X[iRed * W * Ct + j * Ct + k], 1, 1, name + "x1");
 					}
 				}
 			}
@@ -606,6 +608,7 @@ void MBConv(float* A, const float* F1, const float* BN1W, const float* BN1B, con
 					Profile2(&ar, 1, 1, name + "t3");
 					T[g] = T[g] < 0.0 ? 0.0 : T[g];
 					T[g] = T[g] > 6.0 ? 6.0 : T[g];
+					Profile2(&T[g], 1, 1, name + "x3");
 				}
 
 				for (MYITE i = 0; i < Cout; i++) {
@@ -923,7 +926,7 @@ void NormaliseL2(float* A, float* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT s
 
 				// Multiply all elements by the 1 / sqrt(sumSquare).
 				for (MYITE c = 0; c < C; c++) {
-					B[n * H * W * C + h * W * C + w * C + c]  = A[n * H * W * C + h * W * C + w * C + c]  * inverseNorm;
+					B[n * H * W * C + h * W * C + w * C + c] = A[n * H * W * C + h * W * C + w * C + c]  * inverseNorm;
 				}
 			}
 		}

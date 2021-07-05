@@ -2234,7 +2234,7 @@ class IRBuilder(ASTVisitor):
 
         # scale_out = scale_in + bw_in/2 + y_scale
         # since we assume y_scale = (bw_in/2 - 1)
-        scale_out = scale_in + 1 
+        scale_out = scale_in + 1
 
         # We propagate the demotion of bit-width.
         if forFixed() and bw_out != config.wordLength:
@@ -2272,12 +2272,21 @@ class IRBuilder(ASTVisitor):
         else:
             assert False, "inverseL2Norm only supports 4D tensors."
 
+        profile = IR.FuncCall("Profile4", {
+            expr_out: "Var",
+            IR.Int(N): "I",
+            IR.Int(H): "J",
+            IR.Int(W): "K",
+            IR.Int(C): "L",
+            IR.String(expr_out): "VarName"
+        })
+
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
         self.setMemorySharableVariables(expr_in, expr_out)
 
-        prog_func = IR.Prog([comment, funcCall])
+        prog_func = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_func)
 

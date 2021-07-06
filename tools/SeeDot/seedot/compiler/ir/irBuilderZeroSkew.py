@@ -407,7 +407,7 @@ class IRBuilderZeroSkew(IRBuilder):
             return new_scale, new_zero
         else: # 16-bit to 8-bit
             new_scale = (scale * config.maxVar16Bit) / config.maxVar8Bit
-            new_zero = int(zero*  scale / new_scale)
+            new_zero = int(zero * scale / new_scale)
             return new_scale, new_zero
     
     def getScaleAndZero(self, minVal, maxVal, bw=config.wordLength, decl=False, varName = None):
@@ -1143,7 +1143,747 @@ class IRBuilderZeroSkew(IRBuilder):
 
 
         return (prog_out, expr_out)
-    
+
+    # out = mbconv(A, filters, weights, biases, <params>)
+    # This is a specialised implementation of mobilenet conv layers which prevent excessive memory bloat during intermediate computations.
+    def visitMbconv(self, node: AST.MBConv):
+        if not (config.ddsEnabled and config.vbwEnabled):
+            assert False, "MBConv is currently only supported if VBW and DDS modes are switched on"
+
+        assert forX86(), "MBConv not implemented for Arduino devices"
+
+        # Process all inputs for MBConv.
+        (prog_in_A, expr_in_A) = self.visit(node.expr1)
+        (prog_in_F1, expr_in_F1) = self.visit(node.exprF1)
+        (prog_in_W1, expr_in_W1) = self.visit(node.exprW1)
+        (prog_in_B1, expr_in_B1) = self.visit(node.exprB1)
+        (prog_in_F2, expr_in_F2) = self.visit(node.exprF2)
+        (prog_in_W2, expr_in_W2) = self.visit(node.exprW2)
+        (prog_in_B2, expr_in_B2) = self.visit(node.exprB2)
+        (prog_in_F3, expr_in_F3) = self.visit(node.exprF3)
+        (prog_in_W3, expr_in_W3) = self.visit(node.exprW3)
+        (prog_in_B3, expr_in_B3) = self.visit(node.exprB3)
+
+        [expr_treeSum, expr_out] = self.getTempVars(2)
+        [expr_bufX, expr_bufT] = self.getTempVars(2)
+
+        [N, H, W, Cin] = node.expr1.type.shape
+        [_, _, _, _, Ct] = node.exprF1.type.shape
+        [_, Hf, Wf, _, _] = node.exprF2.type.shape
+        [_, _, _, _, Cout] = node.exprF3.type.shape
+
+        # type_treeSum = Type.Tensor([np.max((Hf * Wf, Ct, Cin))])
+        type_out = node.type
+        type_bufX = Type.Tensor([Hf, W, Ct])
+        type_bufT = Type.Tensor([Ct])
+
+        # Process bit-width and scales for all inputs.
+        bitwidth_in_A, scale_in_A, zero_in_A = self.getBitwidthScaleZeros(expr_in_A.idf)
+        bitwidth_in_F1, scale_in_F1, zero_in_F1 = self.getBitwidthScaleZeros(expr_in_F1.idf)
+        bitwidth_in_W1, scale_in_W1, zero_in_W1 = self.getBitwidthScaleZeros(expr_in_W1.idf)
+        bitwidth_in_X, scale_in_X, zero_in_X = self.getBitwidthScaleZeros(expr_out.idf + "x1")
+        bitwidth_in_X = np.max((bitwidth_in_A, bitwidth_in_F1, bitwidth_in_W1))
+        bitwidth_in_B1, scale_in_B1, zero_in_B1 = self.getBitwidthScaleZeros(expr_in_B1.idf)
+        bitwidth_in_F2, scale_in_F2, zero_in_F2 = self.getBitwidthScaleZeros(expr_in_F2.idf)
+        bitwidth_in_W2, scale_in_W2, zero_in_W2 = self.getBitwidthScaleZeros(expr_in_W2.idf)
+        bitwidth_in_T, scale_in_T, zero_in_T = self.getBitwidthScaleZeros(expr_out.idf + "x3")
+        bitwidth_in_T = np.max((bitwidth_in_X, bitwidth_in_F2, bitwidth_in_W2))
+        bitwidth_in_B2, scale_in_B2, zero_in_B2 = self.getBitwidthScaleZeros(expr_in_B2.idf)
+        bitwidth_in_F3, scale_in_F3, zero_in_F3 = self.getBitwidthScaleZeros(expr_in_F3.idf)
+        bitwidth_in_W3, scale_in_W3, zero_in_W3 = self.getBitwidthScaleZeros(expr_in_W3.idf)
+        bitwidth_in_B3, scale_in_B3, zero_in_B3 = self.getBitwidthScaleZeros(expr_in_B3.idf)
+        bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf)
+
+        # Compute intermediate scales and scaling factors for all operations which are included in MBConv.
+        # Stage 1 Step 1: Multiplication
+        bitwidth_temp1 = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_F1, "mul", bitwidth_in_X)
+        M11, N11 = self.getMatMulShrAndN(scale_in_A, scale_in_F1, scale_in_X, zero_in_A, zero_in_F1, zero_in_X, bitwidth_in_A, bitwidth_in_F1, bitwidth_temp1, bitwidth_in_X)
+
+        # Stage 1 Step 2: Batch Normalisation and ReLU6
+        bitwidth_temp_ub1 = self.getTempBitwidth(bitwidth_in_X, bitwidth_in_W1, "mul", bitwidth_in_X)
+        (left_shift1, M12, N12, M13, N13, M14, N14) = self.getScaleAndZeroForAddAndSub(scale_in_X, zero_in_X, scale_in_B1, zero_in_B1, scale_in_X, zero_in_X, bitwidth_in_X, bitwidth_in_B1, bitwidth_temp_ub1, bitwidth_in_X, operator.add)
+        # bitwidth_temp = self.getTempBitwidth(bitwidth_in_X, bitwidth_in_W1, "mul", bitwidth_in_X)
+        M15, N15 = self.getMatMulShrAndN(scale_in_X, scale_in_W1, scale_in_X, zero_in_X, zero_in_W1, zero_in_X, bitwidth_in_X, bitwidth_in_W1, bitwidth_temp_ub1, bitwidth_in_X)
+        clamp_min_X, clamp_max_X = self.getClampValues(bitwidth_in_X)
+
+        # Stage 2 Step 1: Multiplication
+        bitwidth_temp2 = self.getTempBitwidth(bitwidth_in_X, bitwidth_in_F2, "mul", bitwidth_in_T)
+        M21, N21 = self.getMatMulShrAndN(scale_in_X, scale_in_F2, scale_in_T, zero_in_X, zero_in_F2, zero_in_T, bitwidth_in_X, bitwidth_in_F2, bitwidth_temp2, bitwidth_in_T)
+
+        # Stage 2 Step 2: Batch Normalisation and ReLU6
+        bitwidth_temp_ub2 = self.getTempBitwidth(bitwidth_in_T, bitwidth_in_W2, "mul", bitwidth_in_T)
+        (left_shift2, M22, N22, M23, N23, M24, N24) = self.getScaleAndZeroForAddAndSub(scale_in_T, zero_in_T, scale_in_B2, zero_in_B2, scale_in_T, zero_in_T, bitwidth_in_T, bitwidth_in_B2, bitwidth_temp_ub2, bitwidth_in_T, operator.add)
+        # bitwidth_temp = self.getTempBitwidth(bitwidth_in_T, bitwidth_in_W2, "mul", bitwidth_in_T)
+        M25, N25 = self.getMatMulShrAndN(scale_in_T, scale_in_W2, scale_in_T, zero_in_T, zero_in_W2, zero_in_T, bitwidth_in_T, bitwidth_in_W2, bitwidth_temp_ub2, bitwidth_in_T)
+        clamp_min_T, clamp_max_T = self.getClampValues(bitwidth_in_T)
+
+        # Stage 3 Step 1: Multiplication
+        bitwidth_temp3 = self.getTempBitwidth(bitwidth_in_T, bitwidth_in_F3, "mul", bitwidth_out)
+        M31, N31 = self.getMatMulShrAndN(scale_in_T, scale_in_F3, scale_out, zero_in_T, zero_in_F3, zero_out, bitwidth_in_T, bitwidth_in_F3, bitwidth_temp3, bitwidth_out)
+
+        # Stage 3 Step 2: Batch Normalisation
+        bitwidth_temp_ub3 = self.getTempBitwidth(bitwidth_out, bitwidth_in_W3, "mul", bitwidth_out)
+        (left_shift3, M32, N32, M33, N33, M34, N34) = self.getScaleAndZeroForAddAndSub(scale_out, zero_out, scale_in_B3, zero_in_B3, scale_out, zero_out, bitwidth_out, bitwidth_in_B3, bitwidth_temp_ub3, bitwidth_out, operator.add)
+        # bitwidth_temp = self.getTempBitwidth(bitwidth_out, bitwidth_in_W3, "mul", bitwidth_out)
+        M35, N35 = self.getMatMulShrAndN(scale_out, scale_in_W3, scale_out, zero_out, zero_in_W3, zero_out, bitwidth_out, bitwidth_in_W3, bitwidth_temp_ub3, bitwidth_out)
+        clamp_min_C, clamp_max_C = self.getClampValues(bitwidth_out)
+
+        expr_in_A.inputVar = False
+        expr_in_F1.inputVar = False
+        expr_in_W1.inputVar = False
+        expr_in_B1.inputVar = False
+        expr_in_F2.inputVar = False
+        expr_in_W2.inputVar = False
+        expr_in_B2.inputVar = False
+        expr_in_F3.inputVar = False
+        expr_in_W3.inputVar = False
+        expr_in_B3.inputVar = False
+        expr_out.inputVar = False
+        expr_bufX.inputVar = False
+        expr_bufT.inputVar = False
+
+        bitwidth_temp = np.max((bitwidth_temp1, bitwidth_temp2, bitwidth_temp3))
+
+        # Setting metadata.
+        self.varsForBitwidth[expr_bufX.idf] = bitwidth_in_X
+        self.varsForBitwidth[expr_bufT.idf] = bitwidth_in_T
+
+        comment = IR.Comment('MBconv(%s)' %(expr_in_A.idf), self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
+        argMap = {
+            expr_in_A: "A",
+            expr_in_F1: "F1",
+            expr_in_W1: "BN1W",
+            expr_in_B1: "BN1B",
+            expr_in_F2: "F2",
+            expr_in_W2: "BN2W",
+            expr_in_B2: "BN2B",
+            expr_in_F3: "F3",
+            expr_in_W3: "BN3W",
+            expr_in_B3: "BN3B",
+            expr_out: "C",
+            expr_bufX: "X",
+            expr_bufT: "T",
+            IR.Int(N): "N",
+            IR.Int(H): "H",
+            IR.Int(W): "W",
+            IR.Int(Cin): "Cin",
+            IR.Int(Ct): "Ct",
+            IR.Int(Hf): "HF",
+            IR.Int(Wf): "WF",
+            IR.Int(Cout): "Cout",
+            IR.Int(type_out.shape[1]): "Hout",
+            IR.Int(type_out.shape[2]): "Wout",
+            IR.Int(node.padding[0]): "HPADL",
+            IR.Int(node.padding[1]): "HPADR",
+            IR.Int(node.padding[2]): "WPADL",
+            IR.Int(node.padding[3]): "WPADR",
+            IR.Int(node.stride[0]): "HSTR",
+            IR.Int(node.stride[1]): "WSTR",
+            IR.Int(-zero_in_A): "zeroA",
+            IR.Int(-zero_in_F1): "zeroF1",
+            IR.Int(-zero_in_W1): "zeroBN1W",
+            IR.Int(-zero_in_B1): "zeroBN1B",
+            IR.Int(-zero_in_F2): "zeroF2",
+            IR.Int(-zero_in_W2): "zeroBN2W",
+            IR.Int(-zero_in_B2): "zeroBN2B",
+            IR.Int(-zero_in_F3): "zeroF3",
+            IR.Int(-zero_in_W3): "zeroBN3W",
+            IR.Int(-zero_in_B3): "zeroBN3B",
+            IR.Int(zero_out): "zeroC",
+            IR.Int(zero_in_X): "zeroX",
+            IR.Int(zero_in_T): "zeroT",
+            IR.Int(left_shift1): "left_shift1",
+            IR.Int(left_shift2): "left_shift2",
+            IR.Int(left_shift3): "left_shift3",
+            IR.Int(M11): "M11",
+            IR.Int(-N11): "N11",
+            IR.Int(M12): "M12",
+            IR.Int(-N12): "N12",
+            IR.Int(M13): "M13",
+            IR.Int(-N13): "N13",
+            IR.Int(M14): "M14",
+            IR.Int(-N14): "N14",
+            IR.Int(M15): "M15",
+            IR.Int(-N15): "N15",
+            IR.Int(M21): "M21",
+            IR.Int(-N21): "N21",
+            IR.Int(M22): "M22",
+            IR.Int(-N22): "N22",
+            IR.Int(M23): "M23",
+            IR.Int(-N23): "N23",
+            IR.Int(M24): "M24",
+            IR.Int(-N24): "N24",
+            IR.Int(M25): "M25",
+            IR.Int(-N25): "N25",
+            IR.Int(M31): "M31",
+            IR.Int(-N31): "N31",
+            IR.Int(M32): "M32",
+            IR.Int(-N32): "N32",
+            IR.Int(M33): "M33",
+            IR.Int(-N33): "N33",
+            IR.Int(M34): "M34",
+            IR.Int(-N34): "N34",
+            IR.Int(M35): "M35",
+            IR.Int(-N35): "N35",
+            IR.Int(clamp_min_X): "clamp_min_X",
+            IR.Int(clamp_max_X): "clamp_max_X",
+            IR.Int(clamp_min_T): "clamp_min_T",
+            IR.Int(clamp_max_T): "clamp_max_T",
+            IR.Int(clamp_min_C): "clamp_min_C",
+            IR.Int(clamp_max_C): "clamp_max_C"
+        }
+
+        # Generating the argument map which is used in the codegen.
+        templateArgs = ("<uint%s_t" + (", uint%s_t" * 12) + ", int%s_t, int%s_t, int%s_t, int%s_t>") % (bitwidth_in_A, bitwidth_in_F1, bitwidth_in_W1, bitwidth_in_B1, bitwidth_in_F2, bitwidth_in_W2, bitwidth_in_B2, bitwidth_in_F3, bitwidth_in_W3, bitwidth_in_B3, bitwidth_out, bitwidth_in_X, bitwidth_in_T, bitwidth_temp_ub1, bitwidth_temp_ub2, bitwidth_temp_ub3, bitwidth_temp)
+        funcCall = IR.FuncCall("MBConv" + templateArgs, argMap)
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in_A, expr_in_F1, expr_in_F2, expr_in_F3, expr_in_W1, expr_in_W2, expr_in_W3, expr_in_B1, expr_in_B2, expr_in_B3, expr_out, expr_bufX, expr_bufT])
+
+        prog_mbconv = IR.Prog([comment, funcCall])
+        prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_F1, prog_in_W1, prog_in_B1, prog_in_F2, prog_in_W2, prog_in_B2, prog_in_F3, prog_in_W3, prog_in_B3, prog_mbconv)
+
+        # Update metadata.
+        self.varDeclarations[expr_out.idf] = type_out
+        self.varDeclarations[expr_bufX.idf] = type_bufX
+        self.varDeclarations[expr_bufT.idf] = type_bufT
+
+        self.varScales[expr_out.idf] = scale_out
+        self.varScales[expr_bufX.idf] = scale_in_X
+        self.varScales[expr_bufT.idf] = scale_in_T
+
+        self.varZeros[expr_out.idf] = zero_out
+        self.varZeros[expr_bufX.idf] = zero_in_X
+        self.varZeros[expr_bufT.idf] = zero_in_T
+
+        # Intervals not needed necesarily for the compiler to run, updating this variable for being compatible with old SeeDot (PLDI '19).
+        self.varIntervals[expr_out.idf] = (0, 0)
+        self.varIntervals[expr_bufX.idf] = (0, 0)
+        self.varIntervals[expr_bufT.idf] = (0, 0)
+
+        # Printing log.
+        self.log.print(comment.msg)
+        self.log.print("\tInput1: scale = %d, zero = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_in_A.idf],) + (self.varZeros[expr_in_A.idf],) + self.varIntervals[expr_in_A.idf]))
+        self.log.print("\tOutput: scale = %d, zero = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf],) + self.varIntervals[expr_out.idf]))
+
+        return (prog_out, expr_out)
+
+    # out = conv(A, B, <params>)
+    def visitConvolution(self, node: AST.Convolution):
+        (prog_in_A, expr_in_A) = self.visit(node.expr1)
+        (prog_in_B, expr_in_B) = self.visit(node.expr2)
+
+        [expr_treeSum, expr_out] = self.getTempVars(2)
+
+        [N, H, W, Cin] = node.expr1.type.shape
+        [G, Hf, Wf, CinF, CoutF] = node.expr2.type.shape
+
+        # type_treeSum = Type.Tensor([Hf * Wf * CinF])
+        type_out = node.type
+
+        # Read input scales.
+        bitwidth_in_A, scale_in_A, zero_in_A = self.getBitwidthScaleZeros(expr_in_A.idf)
+        bitwidth_in_B, scale_in_B, zero_in_B = self.getBitwidthScaleZeros(expr_in_B.idf)
+        # Read output scales.
+        bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf)
+
+        intv_out = (0, 0)
+        clamp_min, clamp_max = self.getClampValues(bitwidth_out)
+
+        bitwidth_temp = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul", bitwidth_out)
+
+        # Compute scaling hyperparameters given input and output scales. If static scaling of old SeeDot is used, also compute the output scale and bit-width.
+        M0, N0 = self.getMatMulShrAndN(scale_in_A, scale_in_B, scale_out, zero_in_A, zero_in_B, zero_out, bitwidth_in_A, bitwidth_in_B, bitwidth_temp, bitwidth_out)
+
+        expr_in_A.inputVar = False
+        expr_in_B.inputVar = False
+        expr_out.inputVar = False
+
+        comment = IR.Comment('conv(%s, %s)' %(expr_in_A.idf, expr_in_B.idf), self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
+        argMap = {
+            expr_in_A: "A",
+            expr_in_B: "B",
+            expr_out: "C",
+            IR.Int(N): "N",
+            IR.Int(H): "H",
+            IR.Int(W): "W",
+            IR.Int(Cin): "CIN",
+            IR.Int(Hf): "HF",
+            IR.Int(Wf): "WF",
+            IR.Int(CinF): "CINF",
+            IR.Int(CoutF): "COUTF",
+            IR.Int(type_out.shape[1]): "HOUT",
+            IR.Int(type_out.shape[2]): "WOUT",
+            IR.Int(node.padding[0]): "HPADL",
+            IR.Int(node.padding[1]): "HPADR",
+            IR.Int(node.padding[2]): "WPADL",
+            IR.Int(node.padding[3]): "WPADR",
+            IR.Int(node.stride[0]): "HSTR",
+            IR.Int(node.stride[1]): "WSTR",
+            IR.Int(node.dilation[0]): "HDL",
+            IR.Int(node.dilation[1]): "WDL",
+            IR.Int(G): "G",
+            IR.Float(scale_in_A): "scale_in_A",
+            IR.Float(scale_in_B): "scale_in_B",
+            IR.Float(scale_out): "scale_out",
+            IR.Int(-1*zero_in_A): "zero_A",
+            IR.Int(-zero_in_B): "zero_B",
+            IR.Int(zero_out): "zero_C",
+            IR.Int(M0): "M0",
+            IR.Int(-N0): "N",
+            IR.Int(clamp_min): "clamp_min",
+            IR.Int(clamp_max): "clamp_max",
+        }
+
+        if not self.vbwEnabled:
+            funcCall = IR.FuncCall("Convolution", argMap)
+        else:
+            funcCall = IR.FuncCall("Convolution" + ("<uint%d_t, uint%d_t, int%d_t, uint%d_t>"%(bitwidth_in_A, bitwidth_in_B, bitwidth_temp, bitwidth_out)), argMap)
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
+
+        if Hf == Wf == CinF == CoutF == 1 and bitwidth_in_A == bitwidth_out:
+            self.setMemorySharableVariables(expr_in_A, expr_out)
+
+        debugPrint = []
+        if config.zeroSkewDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(N): "I",
+                IR.Int(type_out.shape[1]): "J",
+                IR.Int(type_out.shape[2]): "K",
+                IR.Int(CoutF * G): "L",
+                IR.String(expr_out): "VarName"
+            }))
+
+        prog_conv = IR.Prog([comment, funcCall] + (debugPrint if config.zeroSkewDebug else []))
+        prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_conv)
+
+        # Update context for output variable.
+        self.varDeclarations[expr_out.idf] = type_out
+        self.varScales[expr_out.idf] = scale_out
+        self.varZeros[expr_out.idf] = zero_out
+        self.varIntervals[expr_out.idf] = intv_out
+
+        # Print log.
+        self.log.print(comment.msg)
+        self.log.print("\tInput1: scale = %f, zero = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_in_A.idf],) + (self.varZeros[expr_in_A.idf],) + self.varIntervals[expr_in_A.idf]))
+        self.log.print("\tInput2: scale = %f, zero = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_in_B.idf],) + (self.varZeros[expr_in_B.idf],) + self.varIntervals[expr_in_B.idf]))
+        self.log.print("\tOutput: scale = %f, zero = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf],) + self.varIntervals[expr_out.idf]))
+
+        return (prog_out, expr_out)
+
+    # out = in_A <+-> in_B
+    def visitBopAddOrSubCir(self, node: AST.Bop1):
+        (prog_in_A, expr_in_A) = self.visit(node.expr1)
+        (prog_in_B, expr_in_B) = self.visit(node.expr2)
+
+        type_out = node.type
+
+        if node.op == SeeDotParser.ADDCIR:
+            (op_ir, op_fn) = (IR.Op.Op['+'], operator.add)
+            add = True
+        elif node.op == SeeDotParser.SUBCIR:
+            (op_ir, op_fn) = (IR.Op.Op['-'], operator.sub)
+            add = False
+
+        assert op_fn == operator.add, "Compiler currently does not support convolution-like subtraction."
+
+        expr_out = self.getTempVar()
+
+        # Read input scales and bit-widths.
+        bitwidth_in_A, scale_in_A, zero_in_A = self.getBitwidthScaleZeros(expr_in_A.idf)
+        bitwidth_in_B, scale_in_B, zero_in_B = self.getBitwidthScaleZeros(expr_in_B.idf)
+        # Read output scales and bit-widths.
+        bitwidth_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf)
+
+        clamp_min, clamp_max = self.getClampValues(bitwidth_out)
+
+        # Compute scaling hyperparameters given input and output scales. If static scaling of old SeeDot is used, also compute the output scale and bit-width.
+        bitwidth_temp = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "add", bitwidth_out)
+        (left_shift, shrA, nA, shrB, nB, shrC, nC) = self.getScaleAndZeroForAddAndSub(scale_in_A, zero_in_A, scale_in_B, zero_in_B, scale_out, zero_out, bitwidth_in_A, bitwidth_in_B, bitwidth_temp, bitwidth_out, op_fn)
+
+        expr_in_A.inputVar = False
+        expr_in_B.inputVar = False
+        expr_out.inputVar = False
+
+        comment = IR.Comment(expr_in_A.idf + " <" +
+                             op_ir.name + "> " + expr_in_B.idf, self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
+        # Generate function call for the output code depending on whether the input is 2-D or 4-D.
+        if type_out.dim == 4:
+            [N, H, W, C] = type_out.shape
+            funcCall = IR.FuncCall("AddOrSubCir4D", {
+                expr_in_A: "A",
+                expr_in_B: "B",
+                expr_out: "X",
+                IR.Int(N): "N",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Int(C): "C",
+                IR.Float(scale_in_A): "scale_in_A",
+                IR.Float(scale_in_B): "scale_in_B",
+                IR.Float(scale_out): "scale_out",
+                IR.Int(left_shift): "left_shift",
+                IR.Int(-zero_in_A): "zero_in_A",
+                IR.Int(shrA): "shrA",
+                IR.Int(-nA): "nA",
+                IR.Int(-zero_in_B): "zero_in_B",
+                IR.Int(shrB): "shrB",
+                IR.Int(-nB): "nB",
+                IR.Int(zero_out): "zero_out",
+                IR.Int(shrC): "shrC",
+                IR.Int(-nC): "nC",
+                IR.Int(clamp_min): "clamp_min",
+                IR.Int(clamp_max): "clamp_max",
+                IR.Bool(add): "add"
+            }) if not self.vbwEnabled else IR.FuncCall("AddOrSubCir4D" + ("<uint%d_t, uint%d_t, int%d_t, uint%d_t>" % (bitwidth_in_A, bitwidth_in_B, bitwidth_temp, bitwidth_out)), {
+                expr_in_A: "A",
+                expr_in_B: "B",
+                expr_out: "X",
+                IR.Int(N): "N",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Int(C): "C",
+                IR.Float(scale_in_A): "scale_in_A",
+                IR.Float(scale_in_B): "scale_in_B",
+                IR.Float(scale_out): "scale_out",
+                IR.Int(left_shift): "left_shift",
+                IR.Int(-zero_in_A): "zero_in_A",
+                IR.Int(shrA): "shrA",
+                IR.Int(-nA): "nA",
+                IR.Int(-zero_in_B): "zero_in_B",
+                IR.Int(shrB): "shrB",
+                IR.Int(-nB): "nB",
+                IR.Int(zero_out): "zero_out",
+                IR.Int(shrC): "shrC",
+                IR.Int(-nC): "nC",
+                IR.Int(clamp_min): "clamp_min",
+                IR.Int(clamp_max): "clamp_max",
+                IR.Bool(add): "add"
+            })
+            debugPrint = IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(N): "N",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Int(C): "C",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
+                IR.String(expr_out): "varName"
+            })
+        elif type_out.dim == 2:
+            [H, W] = type_out.shape
+            funcCall = IR.FuncCall("AddOrSubCir2D", {
+                expr_in_A: "A",
+                expr_in_B: "B",
+                expr_out: "X",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Float(scale_in_A): "scale_in_A",
+                IR.Float(scale_in_B): "scale_in_B",
+                IR.Float(scale_out): "scale_out",
+                IR.Int(left_shift): "left_shift",
+                IR.Int(-zero_in_A): "zero_in_A",
+                IR.Int(shrA): "shrA",
+                IR.Int(-nA): "nA",
+                IR.Int(-zero_in_B): "zero_in_B",
+                IR.Int(shrB): "shrB",
+                IR.Int(-nB): "nB",
+                IR.Int(zero_out): "zero_out",
+                IR.Int(shrC): "shrC",
+                IR.Int(-nC): "nC",
+                IR.Int(clamp_min): "clamp_min",
+                IR.Int(clamp_max): "clamp_max",
+                IR.Bool(add): "add"
+            }) if not self.vbwEnabled else IR.FuncCall("AddOrSubCir2D" + ("<uint%d_t, uint%d_t, int%d_t, uint%d_t>" % (bitwidth_in_A, bitwidth_in_B, bitwidth_temp, bitwidth_out)), {
+                expr_in_A: "A",
+                expr_in_B: "B",
+                expr_out: "X",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Float(scale_in_A): "scale_in_A",
+                IR.Float(scale_in_B): "scale_in_B",
+                IR.Float(scale_out): "scale_out",
+                IR.Int(left_shift): "left_shift",
+                IR.Int(-zero_in_A): "zero_in_A",
+                IR.Int(shrA): "shrA",
+                IR.Int(-nA): "nA",
+                IR.Int(-zero_in_B): "zero_in_B",
+                IR.Int(shrB): "shrB",
+                IR.Int(-nB): "nB",
+                IR.Int(zero_out): "zero_out",
+                IR.Int(shrC): "shrC",
+                IR.Int(-nC): "nC",
+                IR.Int(clamp_min): "clamp_min",
+                IR.Int(clamp_max): "clamp_max",
+                IR.Bool(add): "add"
+            })
+            debugPrint = IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
+                IR.String(expr_out): "varName"
+            })
+        else:
+            assert False, "AddCir only supports 2D and 4D tensors."
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
+
+        if bitwidth_in_A == bitwidth_out:
+            self.setMemorySharableVariables(expr_in_A, expr_out)
+
+        prog_cir = IR.Prog([comment, funcCall] + ([debugPrint] if config.zeroSkewDebug else []))
+
+        prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_cir)
+
+        # Update metadata.
+        self.varDeclarations[expr_out.idf] = type_out
+        self.varScales[expr_out.idf] = scale_out
+        self.varZeros[expr_out.idf] = zero_out
+        self.varIntervals[expr_out.idf] = (0,0)
+
+        # Print log.
+        self.log.print(comment.msg)
+        self.log.print("\tInput1: scale = %f, zero = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_in_A.idf],) + (self.varZeros[expr_in_A.idf],) + self.varIntervals[expr_in_A.idf]))
+        self.log.print("\tInput2: scale = %f, zero = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_in_B.idf],) + (self.varZeros[expr_in_B.idf],) + self.varIntervals[expr_in_B.idf]))
+        self.log.print("\tOutput: scale = %f, zero = %d, interval = [%d, %d]" % (
+            (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf],) + self.varIntervals[expr_out.idf]))
+
+        return (prog_out, expr_out)
+
+    def visitNormaliseL2(self, node:AST.Func):
+        (prog_in, expr_in) = self.visit(node.expr)
+        intv_out = (0, 0)
+
+        expr_out = self.getTempVar()
+        bw_in, scale_in, zero_in = self.getBitwidthScaleZeros(expr_in.idf)
+        bw_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf)
+
+        bw_temp = 32 if bw_in == 8 else 64
+        # bw_out = bw_in
+
+        # We propagate the demotion of bit-width.
+        if bw_out != config.wordLength:
+            self.demotedVarsList.append(expr_out.idf)
+        self.varsForBitwidth[expr_out.idf] = bw_out
+
+        zero_out = 128 if bw_out == 8 else 32768
+        clamp_min, clamp_max = self.getClampValues(bw_out)
+
+        expr_in.inputVar = False
+
+        comment = IR.Comment("normaliseL2(" + expr_in.idf + ")", self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
+        # Since NormaliseL2 does not get profiled now. We do not demote the output.
+        if node.type.dim == 4:
+            [N, H, W, C] = node.type.shape
+            funcCall = IR.FuncCall("NormaliseL2", {
+                expr_in: "A",
+                expr_out: "B",
+                IR.Int(N): "N",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Int(C): "C",
+                IR.Float(scale_in): "scale_in",
+                IR.Float(scale_out): "scale_out",
+                IR.Int(-1*zero_in): "zero_in",
+                IR.Int(zero_out): "zero_out",
+                IR.Int(clamp_min): "clamp_min",
+                IR.Int(clamp_max): "clamp_max"
+            }) if not self.vbwEnabled else IR.FuncCall("NormaliseL2<uint%d_t, int%d_t>"%(bw_in, bw_temp), {
+                expr_in: "A",
+                expr_out: "B",
+                IR.Int(N): "N",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Int(C): "C",
+                IR.Float(scale_in): "scale_in",
+                IR.Float(scale_out): "scale_out",
+                IR.Int(-1*zero_in): "zero_in",
+                IR.Int(zero_out): "zero_out",
+                IR.Int(clamp_min): "clamp_min",
+                IR.Int(clamp_max): "clamp_max"
+            })
+        else:
+            assert False, "inverseL2Norm only supports 4D tensors."
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in, expr_out])
+
+        self.setMemorySharableVariables(expr_in, expr_out)
+
+        prog_func = IR.Prog([comment, funcCall])
+
+        prog_out = IRUtil.concatPrograms(prog_in, prog_func)
+
+        self.varDeclarations[expr_out.idf] = node.type
+        self.varScales[expr_out.idf] = scale_out
+        self.varZeros[expr_out.idf] = zero_out
+        self.varIntervals[expr_out.idf] = (0, 0)
+
+        return (prog_out, expr_out)
+
+    # out = relu(in)
+    def visitRelu(self, node: AST.Func):
+        (prog_in, expr_in) = self.visit(node.expr)
+        intv_out = (0, 0)
+
+        bitwidth_in_A, scale_in_A, zero_in_A = self.getBitwidthScaleZeros(expr_in.idf)
+        m, M = self.getIntervalFromScaleZero(bitwidth_in_A, scale_in_A, zero_in_A)
+        scale_out, zero_out = self.getScaleAndZero(0, M, bw=bitwidth_in_A)
+
+        bitwidth_temp = 32
+        clamp_min, clamp_max = self.getClampValues(bitwidth_in_A)
+        M0, N0 = self.getMatMulShrAndN(scale_in_A, 1.0, scale_out, zero_in_A, 0, zero_out, bitwidth_in_A, bitwidth_in_A, bitwidth_temp, bitwidth_in_A)
+
+        expr_in.inputVar = False
+
+        comment = IR.Comment("relu(" + expr_in.idf + ")", self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
+        if node.type.dim == 4:
+            [N, H, W, C] = node.type.shape
+            funcCall = IR.FuncCall("Relu4D", {
+                expr_in: "A",
+                IR.Int(N): "N",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Int(C): "C",
+                IR.Float(scale_in_A): "scale_in",
+                IR.Float(scale_out): "scale_out",
+                IR.Int(-1*zero_in_A): "zero_A",
+                IR.Int(zero_out): "zero_Out",
+                IR.Int(M0): "M0",
+                IR.Int(-N0): "N",
+                IR.Int(clamp_min): "clamp_min",
+                IR.Int(clamp_max): "clamp_max"
+            })
+        elif node.type.dim == 2:
+            [H, W] = node.type.shape
+            funcCall = IR.FuncCall("Relu2D", {
+                expr_in: "A",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Float(scale_in_A): "scale_in_A",
+                IR.Float(scale_out): "scale_out",
+                IR.Int(-1*zero_in_A): "zero_A",
+                IR.Int(zero_out): "zero_Out",
+                IR.Int(M0): "M0",
+                IR.Int(-N0): "N",
+                IR.Int(clamp_min): "clamp_min",
+                IR.Int(clamp_max): "clamp_max"
+            })
+        else:
+            assert False, "Relu operator currently only supports 2D and 4D tensors."
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in])
+
+        prog_relu = IR.Prog([comment, funcCall])
+
+        prog_out = IRUtil.concatPrograms(prog_in, prog_relu)
+
+        self.varIntervals[expr_in.idf] = intv_out
+        self.varScales[expr_in.idf] = scale_out
+        self.varZeros[expr_in.idf] = zero_out
+
+        return (prog_out, expr_in)
+
+    # out = relu(in)
+    def visitRelu6(self, node: AST.Func):
+        (prog_in, expr_in) = self.visit(node.expr)
+        intv_out = (0, 0)
+
+        type_in = node.expr.type
+
+        expr_out = self.getTempVar()
+
+        # Read input scale and bit-width. Output scale and bit-width are the same as input.
+        bitwidth_in_A, scale_in_A, zero_in_A = self.getBitwidthScaleZeros(expr_in.idf)
+        scale_out, zero_out = self.getScaleAndZero(0, 6, bw=bitwidth_in_A)
+
+        bitwidth_temp = 32
+        clamp_min, clamp_max = self.getClampValues(bitwidth_in_A)
+        M0, N0 = self.getMatMulShrAndN(scale_in_A, 1.0, scale_out, zero_in_A, 0, zero_out, bitwidth_in_A, bitwidth_in_A, bitwidth_temp, bitwidth_in_A)
+
+        # If input variable is demoted to 8 bits, demote the output variable to 8 bits too.
+        if expr_in.idf in self.demotedVarsList:
+            self.demotedVarsList.append(expr_out.idf)
+            self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
+
+        expr_in.inputVar = False
+        expr_out.inputVar = False
+
+        comment = IR.Comment("relu6(" + expr_in.idf + ")", self.counter_inst+1)
+        self.allDepths[self.counter_inst+1] = self.curDepth
+
+        assert node.type.dim == 4, "Relu6 only implemented for 4 dimensional tensors"
+        [N, H, W, C] = node.type.shape
+        funcCall = IR.FuncCall("Relu6", {
+            expr_in: "A",
+            expr_out: "B",
+            IR.Int(N): "N",
+            IR.Int(H): "H",
+            IR.Int(W): "W",
+            IR.Int(C): "C",
+            IR.Float(scale_in_A): "scale_in",
+            IR.Float(scale_out): "scale_out",
+            IR.Int(-1*zero_in_A): "zero_A",
+            IR.Int(zero_out): "zero_Out",
+            IR.Int(M0): "M0",
+            IR.Int(-N0): "N",
+            IR.Int(clamp_min): "clamp_min",
+            IR.Int(clamp_max): "clamp_max",
+        }) if not self.vbwEnabled else IR.FuncCall("Relu6<uint%d_t, int%d_t, uint%d_t>" % (bitwidth_in_A, bitwidth_temp, bitwidth_in_A), {
+            expr_in: "A",
+            expr_out: "B",
+            IR.Int(N): "N",
+            IR.Int(H): "H",
+            IR.Int(W): "W",
+            IR.Int(C): "C",
+            IR.Float(scale_in_A): "scale_in",
+            IR.Float(scale_out): "scale_out",
+            IR.Int(-1*zero_in_A): "zero_A",
+            IR.Int(zero_out): "zero_Out",
+            IR.Int(M0): "M0",
+            IR.Int(-N0): "N",
+            IR.Int(clamp_min): "clamp_min",
+            IR.Int(clamp_max): "clamp_max",
+        })
+
+        self.counter_inst += 1
+        self.updateLiveRange([expr_in, expr_out])
+
+        prog_relu = IR.Prog([comment, funcCall])
+
+        prog_out = IRUtil.concatPrograms(prog_in, prog_relu)
+
+        # Update metadata.
+        self.varIntervals[expr_out.idf] = intv_out
+        self.varDeclarations[expr_out.idf] = type_in
+        self.varZeros[expr_out.idf] = zero_out
+        self.varScales[expr_out.idf] = scale_out
+
+        return (prog_out, expr_out)
+
     # out = in_A 'op' in_B
     def visitBop2(self, node: AST.Bop2):
         (prog_in_A, expr_in_A) = self.visit(node.expr1)
@@ -1328,16 +2068,29 @@ class IRBuilderZeroSkew(IRBuilder):
                     # irdemote: "demote"
                 })
 
-            debugPrint = IR.FuncCall("debugPrint", {
-                expr_out: "expr",
-                # expr_temp: "T",
-                IR.Int(I): "I",
-                IR.Int(J): "J",
-                IR.Float(scale_out): "scale",
-                IR.Int(zero_out): "zero",
-                IR.String(expr_out): "varName"
-            })
-
+            debugPrint = 0
+            if type_out.dim == 2:
+                debugPrint = IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    # expr_temp: "T",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.Float(scale_out): "scale",
+                    IR.Int(zero_out): "zero",
+                    IR.String(expr_out): "varName"
+                })
+            else:
+                debugPrint = IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    # expr_temp: "T",
+                    IR.Int(N): "N",
+                    IR.Int(H): "H",
+                    IR.Int(W): "W",
+                    IR.Int(C): "C",
+                    IR.Float(scale_out): "scale",
+                    IR.Int(zero_out): "zero",
+                    IR.String(expr_out): "varName"
+                })
 
             self.counter_inst += 1
             self.updateLiveRange([expr_in_A, expr_in_B, expr_out])

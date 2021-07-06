@@ -215,6 +215,63 @@ inline InputType MulQuantMultiplierGTO(InputType x, InputType multiplier, MYITE 
 	return gemmlowp::SaturatingRoundingDoublingHighMul(x * InputType(1LL << left_shift), multiplier);
 }
 
+template <typename T>
+int CountLeadingZeros(T integer_input) {
+	return integer_input ? __builtin_clz(integer_input) : std::numeric_limits<T>::digits;
+}
+
+template<typename InputType>
+inline void InvSqrtQuantizedMultiplier(InputType input, InputType* output_inv_sqrt, MYITE* shift) {
+	if (input <= 1) {
+		*output_inv_sqrt = std::numeric_limits<InputType>::max();
+		*shift = 0;
+		return;
+	}
+
+	*shift = 11;
+	while (input >= (1 << 29)) {
+		input /= 4;
+		++*shift;
+	}
+	unsigned max_left_shift_bits;
+	if (std::is_same<InputType, std::int32_t>::value) {
+		max_left_shift_bits = CountLeadingZeros(static_cast<uint32_t>(input)) - 1;
+	} else if (std::is_same<InputType, std::int64_t>::value) {
+		max_left_shift_bits = CountLeadingZeros(static_cast<uint64_t>(input)) - 1;
+	}
+	const unsigned max_left_shift_bit_pairs = max_left_shift_bits / 2;
+	const unsigned left_shift_bit_pairs = max_left_shift_bit_pairs - 1;
+	*shift -= left_shift_bit_pairs;
+	input <<= 2 * left_shift_bit_pairs;
+	using gemmlowp::FixedPoint;
+	using gemmlowp::Rescale;
+	using gemmlowp::SaturatingRoundingMultiplyByPOT;
+	// Using 3 integer bits gives us enough room for the internal arithmetic in
+	// this Newton-Raphson iteration.
+	using F3 = FixedPoint<int32_t, 3>;
+	using F0 = FixedPoint<int32_t, 0>;
+	const F3 fixedpoint_input = F3::FromRaw(input >> 1);
+	const F3 fixedpoint_half_input = SaturatingRoundingMultiplyByPOT<-1>(fixedpoint_input);
+	const F3 fixedpoint_half_three = GEMMLOWP_CHECKED_FIXEDPOINT_CONSTANT(F3, (1 << 28) + (1 << 27), 1.5);
+	// Newton-Raphson iteration
+	// Naive unoptimized starting guess: x = 1
+	F3 x = F3::One();
+	// Naive unoptimized number of iterations: 5
+	for (int i = 0; i < 5; i++) {
+		const F3 x3 = Rescale<3>(x * x * x);
+		x = Rescale<3>(fixedpoint_half_three * x - fixedpoint_half_input * x3);
+	}
+	const F0 fixedpoint_half_sqrt_2 = GEMMLOWP_CHECKED_FIXEDPOINT_CONSTANT(F0, 1518500250, std::sqrt(2.) / 2.);
+	x = x * fixedpoint_half_sqrt_2;
+	*output_inv_sqrt = x.raw();
+	if (*shift < 0) {
+		*output_inv_sqrt <<= -*shift;
+		*shift = 0;
+	}
+	// Convert right shift (right is positive) to left shift.
+	*shift *= -1;
+}
+
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
 void MatAdd(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, float scaleA, float scaleB, float scaleC, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max) {
 	for (MYITE i = 0; i < I; i++) {
@@ -274,6 +331,32 @@ void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, float scal
 
 			TypeAc c = MulQuantMultiplier<TypeAc>(a + b, shrC, nC);
 			C[i * J + j] = Saturate<TypeAc, TypeC>(zeroC + c, clamp_min, clamp_max);
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeAc, class TypeX>
+void MatAdd4(TypeA* A, TypeB* B, TypeX* X, MYITE N, MYITE H, MYITE W, MYITE C, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroX, TypeAc shrX, MYITE nX, TypeAc clamp_min, TypeAc clamp_max) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					TypeAc a = A[n * H * W * C + h * W * C + w * C + c];
+					TypeAc b = B[n * H * W * C + h * W * C + w * C + c];
+
+					a += zeroA;
+					b += zeroB;
+					a *= TypeAc(1LL << left_shift);
+					b *= TypeAc(1LL << left_shift);
+
+					a = MulQuantMultiplier<TypeAc>(a, shrA, nA);
+					b = MulQuantMultiplier<TypeAc>(b, shrB, nB);
+
+					TypeAc x = MulQuantMultiplier<TypeAc>(a + b, shrX, nX);
+					X[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeAc, TypeX>(zeroX + x, clamp_min, clamp_max);
+				}
+			}
 		}
 	}
 	return;
@@ -761,4 +844,302 @@ TypeA UnaryNegate(TypeA A, TypeAc zeroA, TypeAc zeroOut, TypeAc clamp_min, TypeA
 	a += zeroA;
 	a *= -1;
 	return Saturate<TypeAc, TypeA> (a + zeroOut, clamp_min, clamp_max);
+}
+
+template<class TypeA, class TypeB, class TypeAc, class TypeC>
+void AddOrSubCir4D(TypeA* A, TypeB* B, TypeC* X, MYITE N, MYITE H, MYITE W, MYITE C, float scaleA, float scaleB, float scaleC, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max, bool add) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					TypeAc a = A[n * H * W * C + h * W * C + w * C + c];
+					TypeAc b = B[c];
+
+					a += zeroA;
+					b += zeroB;
+					a *= TypeAc(1LL << left_shift);
+					b *= TypeAc(1LL << left_shift);
+
+					a = MulQuantMultiplier<TypeAc>(a, shrA, nA);
+					b = MulQuantMultiplier<TypeAc>(b, shrB, nB);
+
+					TypeAc res;
+					if (add) {
+						res = MulQuantMultiplier<TypeAc>(a + b, shrC, nC);
+					} else {
+						res = MulQuantMultiplier<TypeAc>(a - b, shrC, nC);
+					}
+
+					X[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeAc, TypeC>(zeroC + res, clamp_min, clamp_max);
+				}
+			}
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeAc, class TypeC>
+void AddOrSubCir2D(TypeA* A, TypeB* B, TypeC* X, MYITE H, MYITE W, float scaleA, float scaleB, float scaleC, MYITE left_shift, TypeAc zeroA, TypeAc shrA, MYITE nA, TypeAc zeroB, TypeAc shrB, MYITE nB, TypeAc zeroC, TypeAc shrC, MYITE nC, TypeAc clamp_min, TypeAc clamp_max, bool add) {
+	for (MYITE h = 0; h < H; h++) {
+		for (MYITE w = 0; w < W; w++) {
+			TypeAc a = A[h * W + w];
+			TypeAc b = B[w];
+
+			a += zeroA;
+			b += zeroB;
+			a *= TypeAc(1LL << left_shift);
+			b *= TypeAc(1LL << left_shift);
+
+			a = MulQuantMultiplier<TypeAc>(a, shrA, nA);
+			b = MulQuantMultiplier<TypeAc>(b, shrB, nB);
+
+			TypeAc res;
+			if (add) {
+				res = MulQuantMultiplier<TypeAc>(a + b, shrC, nC);
+			} else {
+				res = MulQuantMultiplier<TypeAc>(a - b, shrC, nC);
+			}
+
+			X[h * W  + w] = Saturate<TypeAc, TypeC>(zeroC + res, clamp_min, clamp_max);
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeAc>
+void Relu4D(TypeA* A, MYITE N, MYITE H, MYITE W, MYITE C, float scale_in, float scale_out, TypeAc zeroA, TypeAc zeroOut, TypeAc M0, MYITE N0, TypeAc clamp_min, TypeAc clamp_max) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					A[n * H * W * C + h * W * C + w * C + c] = AdjustScaleZero<TypeA, TypeAc, TypeA>(A[n * H * W * C + h * W * C + w * C + c], zeroA, zeroOut, M0, N0, clamp_min, clamp_max);
+				}
+			}
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeAc>
+void Relu2D(TypeA* A, MYITE H, MYITE W, float scale_in, float scale_out, TypeAc zeroA, TypeAc zeroOut, TypeAc M0, MYITE N0, TypeAc clamp_min, TypeAc clamp_max) {
+	for (MYITE h = 0; h < H; h++) {
+		for (MYITE w = 0; w < W; w++) {
+			A[h * W + w] = AdjustScaleZero<TypeA, TypeAc, TypeA>(A[h * W + w], zeroA, zeroOut, M0, N0, clamp_min, clamp_max);
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeAc, class TypeB>
+void Relu6(TypeA* A, TypeB* B, MYITE N, MYITE H, MYITE W, MYITE C, float scale_in, float scale_out, TypeAc zeroA, TypeAc zeroOut, TypeAc M0, MYITE N0, TypeAc clamp_min, TypeAc clamp_max) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					B[n * H * W * C + h * W * C + w * C + c] = AdjustScaleZero<TypeA, TypeAc, TypeB>(A[n * H * W * C + h * W * C + w * C + c], zeroA, zeroOut, M0, N0, clamp_min, clamp_max);
+				}
+			}
+		}
+	}
+	return;
+}
+
+template<class TypeA, class TypeB, class TypeAc, class TypeC>
+void Convolution(TypeA* A, const TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, float scaleA, float scaleB, float scaleC, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N0, TypeAc clamp_min, TypeAc clamp_max) {
+	MYITE HOffsetL = HDL*(HF/2) - HPADL;
+	MYITE WOffsetL = WDL*(WF/2) - WPADL;
+	MYITE HOffsetR = HDL*(HF/2) - HPADR;
+	MYITE WOffsetR = WDL*(WF/2) - WPADR;
+
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = HOffsetL, hout = 0; h < H - HOffsetR; h += HSTR, hout++) {
+			for (MYITE w = WOffsetL, wout = 0; w < W - WOffsetR; w += WSTR, wout++) {
+				for (MYITE g = 0; g < G; g++) {
+					for (MYITE co = 0; co < COUTF; co++) {
+
+						TypeAc sum = 0;
+						for (MYITE hf = -(HF / 2); hf <= HF / 2; hf++) {
+							for (MYITE wf = -(WF / 2); wf <= WF / 2; wf++) {
+								for (MYITE ci = 0; ci < CINF; ci++) {
+
+									TypeAc a = (TypeAc) (((h + HDL * hf) < 0) || ((h + HDL * hf) >= H) || ((w + WDL * wf) < 0) || ((w + WDL * wf) >= W)) ? -zeroA : A[n * H * W * CIN + (h + HDL * hf) * W * CIN + (w + WDL * wf) * CIN + (ci + g * CINF)];
+
+									TypeAc b = (TypeAc) B[g * HF * WF * CINF * COUTF + (hf + HF / 2) * WF * CINF * COUTF + (wf + WF / 2) * CINF * COUTF + ci * COUTF + co];
+
+									sum += (a + zeroA) * (b + zeroB);
+								}
+							}
+						}
+
+						sum = MulQuantMultiplier<TypeAc>(sum, M0, N0);
+						C[n * HOUT * WOUT * (COUTF * G) + hout * WOUT * (COUTF * G) + wout * (COUTF * G) + (co + g * COUTF)] = Saturate<TypeAc, TypeC>(zeroC + sum, clamp_min, clamp_max);
+					}
+				}
+			}
+		}
+	}
+}
+
+template<class TypeA, class TypeF1, class TypeB1W, class TypeB1B, class TypeF2, class TypeB2W, class TypeB2B, class TypeF3, class TypeB3W, class TypeB3B, class TypeC, class TypeX, class TypeT, class TypeUB1W, class TypeUB2W, class TypeUB3W, class TypeAc>
+void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, TypeB2W* BN2W, TypeB2B* BN2B, TypeF3* F3, TypeB3W* BN3W, TypeB3B* BN3B, TypeC* C, TypeX* X, TypeT* T, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, TypeAc zeroA, TypeAc zeroF1, TypeUB1W zeroBN1W, TypeUB1W zeroBN1B, TypeAc zeroF2, TypeUB2W zeroBN2W, TypeUB2W zeroBN2B, TypeAc zeroF3, TypeUB3W zeroBN3W, TypeUB3W zeroBN3B, TypeUB3W zeroC, TypeUB1W zeroX, TypeUB2W zeroT, MYITE left_shift1, MYITE left_shift2, MYITE left_shift3, TypeAc M11, MYITE N11, TypeUB1W M12, MYITE N12, TypeUB1W M13, MYITE N13, TypeUB1W M14, MYITE N14, TypeUB1W M15, MYITE N15, TypeAc M21, MYITE N21, TypeUB2W M22, MYITE N22, TypeUB2W M23, MYITE N23, TypeUB2W M24, MYITE N24, TypeUB2W M25, MYITE N25, TypeAc M31, MYITE N31, TypeUB3W M32, MYITE N32, TypeUB3W M33, MYITE N33, TypeUB3W M34, MYITE N34, TypeUB3W M35, MYITE N35, TypeUB1W clamp_min_X, TypeUB1W clamp_max_X, TypeUB2W clamp_min_T, TypeUB2W clamp_max_T, TypeUB3W clamp_min_C, TypeUB3W clamp_max_C) {
+	MYITE HOffsetL = (HF / 2) - HPADL;
+	MYITE WOffsetL = (WF / 2) - WPADL;
+	MYITE HOffsetR = (HF / 2) - HPADR;
+	MYITE WOffsetR = (WF / 2) - WPADR;
+
+	for (MYITE n = 0; n < N; n++) {
+		MYITE margin = HOffsetL + (HF / 2 + 1) - HSTR > 0 ? HOffsetL + (HF / 2 + 1) - HSTR : 0;
+		MYITE nstart = HOffsetL - (HF / 2) < 0 ? 0 : HOffsetL - (HF / 2);
+		for (MYITE i = nstart; i < margin; i++) {
+			for (MYITE j = 0; j < W; j++) {
+				for (MYITE k = 0; k < Ct; k++) {
+					TypeAc sum = 0;
+					for (MYITE l = 0; l < Cin; l++) {
+						TypeAc a = A[n * H * W * Cin + i * W * Cin + j * Cin + l];
+						TypeAc f = F1[l * Ct + k];
+						sum += (a + zeroA) * (f + zeroF1);
+					}
+
+					sum = MulQuantMultiplier<TypeAc>(sum, M11, N11);
+					sum *= TypeAc(1LL << left_shift1);
+					sum = MulQuantMultiplier<TypeUB1W>(sum, M12, N12);
+
+					TypeUB1W b = BN1B[k];
+					b += zeroBN1B;
+					b *= TypeUB1W(1LL << left_shift1);
+					b = MulQuantMultiplier<TypeUB1W>(b, M13, N13);
+
+					TypeUB1W c = MulQuantMultiplier<TypeUB1W>(sum + b, M14, N14);
+
+					TypeUB1W w = BN1W[k];
+					w += zeroBN1W;
+					TypeUB1W x = MulQuantMultiplier<TypeUB1W>(c * w, M15, N15);
+
+					X[i * W * Ct + j * Ct + k] = Saturate<TypeUB1W, TypeX>(x + zeroX, clamp_min_X, clamp_max_X);
+				}
+			}
+		}
+
+		for (MYITE h = HOffsetL, hout = 0; h < H - HOffsetR; hout++, h += HSTR) {
+
+			for (MYITE i = 0; i < HSTR; i++) {
+				for (MYITE j = 0; j < W; j++) {
+					for (MYITE k = 0; k < Ct; k++) {
+						MYITE iRed = (i + margin + hout * HSTR) % HF, iFull = i + margin + hout * HSTR;
+						X[iRed * W * Ct + j * Ct + k] = 0;
+						TypeAc sum = 0;
+						for (MYITE l = 0; l < Cin; l++) {
+							TypeAc a = iFull < H ? A[n * H * W * Cin + iFull * W * Cin + j * Cin + l] : -zeroA;
+							TypeAc f = F1[l * Ct + k];
+
+							sum += (a + zeroA) * (f + zeroF1);
+						}
+
+						sum = MulQuantMultiplier<TypeAc>(sum, M11, N11);
+						sum *= TypeAc(1LL << left_shift1);
+						sum = MulQuantMultiplier<TypeUB1W>(sum, M12, N12);
+
+						TypeUB1W b = BN1B[k];
+						b += zeroBN1B;
+						b *= TypeUB1W(1LL << left_shift1);
+						b = MulQuantMultiplier<TypeUB1W>(b, M13, N13);
+
+						TypeUB1W c = MulQuantMultiplier<TypeUB1W>(sum + b, M14, N14);
+
+						TypeUB1W w = BN1W[k];
+						w += zeroBN1W;
+						TypeUB1W x = MulQuantMultiplier<TypeUB1W>(c * w, M15, N15);
+
+						X[iRed * W * Ct + j * Ct + k] = Saturate<TypeUB1W, TypeX>(x + zeroX, clamp_min_X, clamp_max_X);
+					}
+				}
+			}
+
+			for (MYITE w = WOffsetL, wout = 0; w < W - WOffsetR; w += WSTR, wout++) {
+				for (MYITE g = 0; g < Ct; g++) {
+					TypeAc sum = 0;
+					for (MYITE hf = -(HF / 2); hf <= (HF / 2); hf++) {
+						for (MYITE wf = -(WF / 2); wf <= (WF / 2); wf++) {
+							TypeAc x = (((h + hf) < 0) || ((h + hf) >= H) || ((w + wf) < 0) || ((w + wf) >= W)) ? -zeroX : X[((h + hf) % HF) * W * Ct + (w + wf) * Ct + g];
+							TypeAc f = F2[g * HF * WF + (hf + HF / 2) * WF + (wf + WF / 2)];
+							sum += (x - zeroX) * (f + zeroF2);
+						}
+					}
+
+					sum = MulQuantMultiplier<TypeAc>(sum, M21, N21);
+					sum *= TypeAc(1LL << left_shift2);
+					sum = MulQuantMultiplier<TypeUB2W>(sum, M22, N22);
+
+					TypeUB2W b = BN2B[g];
+					b += zeroBN2B;
+					b *= TypeUB2W(1LL << left_shift2);
+					b = MulQuantMultiplier<TypeUB2W>(b, M23, N23);
+
+					TypeUB2W c = MulQuantMultiplier<TypeUB2W>(sum + b, M24, N24);
+
+					TypeUB2W w = BN2W[g];
+					w += zeroBN2W;
+					TypeUB2W t = MulQuantMultiplier<TypeUB2W>(c * w, M25, N25);
+
+					T[g] = Saturate<TypeUB2W, TypeT>(t + zeroT, clamp_min_T, clamp_max_T);
+				}
+
+				for (MYITE i = 0; i < Cout; i++) {
+					TypeAc sum = 0;
+					for (MYITE g = 0; g < Ct; g++) {
+						TypeAc t = T[g];
+						TypeAc f = F3[g * Cout + i];
+						sum += (t - zeroT) * (f + zeroF3);
+					}
+
+					sum = MulQuantMultiplier<TypeAc>(sum, M31, N31);
+					sum *= TypeAc(1LL << left_shift3);
+					sum = MulQuantMultiplier<TypeUB3W>(sum, M32, N32);
+
+					TypeUB3W b = BN3B[i];
+					b += zeroBN3B;
+					b *= TypeUB3W(1LL << left_shift3);
+					b = MulQuantMultiplier<TypeUB3W>(b, M33, N33);
+
+					TypeUB3W c = MulQuantMultiplier<TypeUB3W>(sum + b, M34, N34);
+
+					TypeUB3W w = BN3W[i];
+					w += zeroBN3W;
+					c = MulQuantMultiplier<TypeUB3W>(c * w, M35, N35);
+
+					C[n * Hout * Wout * Cout + hout * Wout * Cout + wout * Cout + i] = Saturate<TypeUB3W, TypeT>(c + zeroC, clamp_min_C, clamp_max_C);
+				}
+			}
+		}
+	}
+}
+
+template<class TypeA, class TypeAc>
+void NormaliseL2(TypeA* A, TypeA* B, MYITE N, MYITE H, MYITE W, MYITE C, float scale_in, float scale_out, TypeAc zeroA, TypeAc zeroOut, TypeAc clamp_min, TypeAc clamp_max) {
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				TypeAc sum = 0;
+				for (MYITE c = 0; c < C; c++) {
+					TypeAc a = A[n * H * W * C + h * W * C + w * C + c];
+					a += zeroA;
+					sum += a * a;
+				}
+
+				TypeAc norm_multiplier;
+				MYITE norm_shift;
+				InvSqrtQuantizedMultiplier<TypeAc>(sum, &norm_multiplier, &norm_shift);
+
+				for (MYITE c = 0; c < C; c++) {
+					TypeAc a = A[n * H * W * C + h * W * C + w * C + c];
+					a += zeroA;
+					a <<= 7;
+
+					TypeAc a_rescaled = MulQuantMultiplier<TypeAc>(a, norm_multiplier, norm_shift);
+					B[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeAc, TypeA>(a_rescaled + zeroOut, clamp_min, clamp_max);
+				}
+			}
+		}
+	}
+	return;
 }

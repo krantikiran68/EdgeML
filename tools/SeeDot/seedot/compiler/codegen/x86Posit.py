@@ -297,6 +297,9 @@ class X86Posit(X86):
         else:
             assert False, "Illegal type of program output"
 
+        if config.printPositDebug:
+            self.out.printf("debugPrint(\"**********\");\n", indent=True)
+
         self.out.decreaseIndent()
         self.out.printf('}\n', indent=True)
 

@@ -368,6 +368,14 @@ quire32_t positFMA(quire32_t q, posit32_t a, posit32_t b, int bw);
 void debugPrint(posit8_t* A, int I, int J, std::string varName, int bw=8);
 void debugPrint(posit16_t* A, int I, int J, std::string varName, int bw=16);
 void debugPrint(posit32_t* A, int I, int J, std::string varName, int bw=32);
+void debugPrint(posit_2_t* A, int I, int J, std::string varName, int bw=16);
+
+void debugPrint(posit8_t* A, int I, int J, int K, int L, std::string varName, int bw=8);
+void debugPrint(posit16_t* A, int I, int J, int K, int L, std::string varName, int bw=16);
+void debugPrint(posit32_t* A, int I, int J, int K, int L, std::string varName, int bw=32);
+void debugPrint(posit_2_t* A, int I, int J, int K, int L, std::string varName, int bw=16);
+
+void debugPrint(std::string str);
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 void MatAdd(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, int bwB, int bwTemp, int bwC) {

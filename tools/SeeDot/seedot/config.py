@@ -66,7 +66,7 @@ min_gcc_version = 8
 
 printFloatDebug = False
 
-printPositDebug = False
+printPositDebug = True
 
 # Following classes are used sanity checks for arguments passed to the compiler, to prevent unexpected arguments being passed.
 # These lists should be updated as the compiler is expanded to multiple algorithms and datasets.

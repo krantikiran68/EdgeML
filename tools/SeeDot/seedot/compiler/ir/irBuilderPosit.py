@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT license.
 
+from logging import debug
 import numpy as np
 import operator
 
@@ -432,6 +433,7 @@ class IRBuilderPosit(IRBuilder):
         if bw_in != config.wordLength:
             self.demotedVarsList.append(expr_out.idf)
             self.demotedVarsOffsets[expr_out.idf] = 0
+            assert False, "Undefined case reached in MaxPool"
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
         comment = IR.Comment(
@@ -474,10 +476,22 @@ class IRBuilderPosit(IRBuilder):
             IR.Int(bw_out): "bw_out"
         })
 
+        debugPrint = []
+        if config.printPositDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(N): "N",
+                IR.Int(H // stride[0]): "H",
+                IR.Int(W // stride[1]): "W",
+                IR.Int(C): "C",
+                IR.String(expr_out): "varName", 
+                IR.Int(bw_out): "bw_out"
+            }))
+
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        prog_maxpool = IR.Prog([comment, funcCall])
+        prog_maxpool = IR.Prog([comment, funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_maxpool)
 
@@ -811,7 +825,8 @@ class IRBuilderPosit(IRBuilder):
                 expr_out: "expr",
                 IR.Int(I): "I",
                 IR.Int(J): "J",
-                IR.String(expr_out): "varName"
+                IR.String(expr_out): "varName", 
+                IR.Int(bitwidth_out): "bw_out"
             }))
         
         prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else ([comment, funcCall] + debugPrint))
@@ -949,7 +964,8 @@ class IRBuilderPosit(IRBuilder):
                 expr_out: "expr",
                 IR.Int(I): "I",
                 IR.Int(K): "J",
-                IR.String(expr_out): "varName"
+                IR.String(expr_out): "varName", 
+                IR.Int(bitwidth_out): "bw_out"
             }))
         prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else ([comment, funcCall] + debugPrint))
 
@@ -1067,7 +1083,8 @@ class IRBuilderPosit(IRBuilder):
                 expr_out: "expr",
                 IR.Int(P): "I",
                 IR.Int(R): "J",
-                IR.String(expr_out): "varName"
+                IR.String(expr_out): "varName", 
+                IR.Int(bitwidth_out): "bw_out"
             }))
 
         self.counter_inst += 1
@@ -1201,8 +1218,16 @@ class IRBuilderPosit(IRBuilder):
         })
         if forFloat():
             self.independentVars.append(expr_out.idf)
-
-        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall] )
+        debugPrint = []
+        if config.printPositDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(I): "N",
+                IR.Int(J): "C",
+                IR.String(expr_out): "varName", 
+                IR.Int(bitwidth_out): "bw_out"
+            }))
+        prog_mul = IR.Prog([comment, funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -1431,11 +1456,9 @@ class IRBuilderPosit(IRBuilder):
 
         # Generating the argument map which is used in the codegen.
         localVarMap = {expr_treeSum.idf: type_treeSum, expr_bufX.idf: type_bufX, expr_bufT.idf: type_bufT}
-        if forFloat():
-            funcCall = IR.FuncCall("MBConv", argMap) 
-        else:
-            templateArgs = ("<posit%s_t" + (", posit%s_t" * 13) + ", quire%s_t" + (", posit%s_t" * 3) + ">") % (bitwidth_in_A, bitwidth_in_F1, bitwidth_in_W1, bitwidth_in_B1, bitwidth_in_F2, bitwidth_in_W2, bitwidth_in_B2, bitwidth_in_F3, bitwidth_in_W3, bitwidth_in_B3, bitwidth_out, bitwidth_x, bitwidth_t, bitwidth_u, bitwidth_u, bitwidth_mul1_code, bitwidth_mul2_code, bitwidth_mul3_code)
-            funcCall = IR.FuncCall("MBConv" + templateArgs, argMap)
+        
+        templateArgs = ("<posit%s_t" + (", posit%s_t" * 13) + ", quire%s_t" + (", posit%s_t" * 3) + ">") % (bitwidth_in_A, bitwidth_in_F1, bitwidth_in_W1, bitwidth_in_B1, bitwidth_in_F2, bitwidth_in_W2, bitwidth_in_B2, bitwidth_in_F3, bitwidth_in_W3, bitwidth_in_B3, bitwidth_out, bitwidth_x, bitwidth_t, bitwidth_u, bitwidth_u, bitwidth_mul1_code, bitwidth_mul2_code, bitwidth_mul3_code)
+        funcCall = IR.FuncCall("MBConv" + templateArgs, argMap)
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_F1, expr_in_F2, expr_in_F3, expr_in_W1, expr_in_W2, expr_in_W3, expr_in_B1, expr_in_B2, expr_in_B3, expr_out, expr_treeSum, expr_bufX, expr_bufT])
@@ -1452,7 +1475,18 @@ class IRBuilderPosit(IRBuilder):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mbconv = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        debugPrint = []
+        if config.printPositDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(N): "I",
+                IR.Int(type_out.shape[1]): "J",
+                IR.Int(type_out.shape[2]): "K",
+                IR.Int(Cout): "L",
+                IR.String(expr_out): "varName", 
+                IR.Int(bitwidth_out): "bw_out"
+            }))
+        prog_mbconv = IR.Prog([comment, funcCall] + debugPrint)
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_F1, prog_in_W1, prog_in_B1, prog_in_F2, prog_in_W2, prog_in_B2, prog_in_F3, prog_in_W3, prog_in_B3, prog_mbconv)
 
         # Update metadata.
@@ -1581,7 +1615,18 @@ class IRBuilderPosit(IRBuilder):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_conv = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        debugPrint = []
+        if config.printPositDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(N): "I",
+                IR.Int(type_out.shape[1]): "J",
+                IR.Int(type_out.shape[2]): "K",
+                IR.Int(CoutF * G): "L",
+                IR.String(expr_out): "varName", 
+                IR.Int(bitwidth_out): "bw_out"
+            }))
+        prog_conv = IR.Prog([comment, funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_conv)
 
@@ -1726,6 +1771,27 @@ class IRBuilderPosit(IRBuilder):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
+        debugPrint = []
+        if type_out.dim == 4:
+            if config.printPositDebug:
+                debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(N): "I",
+                    IR.Int(H): "J",
+                    IR.Int(W): "K",
+                    IR.Int(C): "L",
+                    IR.String(expr_out): "varName",
+                    IR.Int(bitwidth_out): "bw_out"
+                }))
+        else:
+            if config.printPositDebug:
+                debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(H): "J",
+                    IR.Int(W): "K",
+                    IR.String(expr_out): "varName",
+                    IR.Int(bitwidth_out): "bw_out"
+                }))
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
 
@@ -1737,7 +1803,7 @@ class IRBuilderPosit(IRBuilder):
         # TODO: Introduce a post-processing pass to merge consecutive scale adjustments hence generated.
         adjust = []
 
-        prog_cir = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall] )
+        prog_cir = IR.Prog([comment, funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_cir)
 
@@ -1916,14 +1982,16 @@ class IRBuilderPosit(IRBuilder):
                         expr_out: "expr",
                         IR.Int(I): "I",
                         IR.Int(J): "J",
-                        IR.String(expr_out): "varName"
+                        IR.String(expr_out): "varName",
+                        IR.Int(bitwidth_out): "bw_out"
                     }))
                 else:
                     debugPrint.append(IR.FuncCall("debugPrint", {
                         expr_out: "expr",
                         IR.Int(N*H*W): "I",
                         IR.Int(C): "J",
-                        IR.String(expr_out): "varName"
+                        IR.String(expr_out): "varName",
+                        IR.Int(bitwidth_out): "bw_out"
                     }))
 
             self.counter_inst += 1
@@ -2060,7 +2128,7 @@ class IRBuilderPosit(IRBuilder):
                 IR.Int(W): "W",
                 IR.Int(C): "C",
                 IR.Int(bw_in): "bwA",
-            }) if not self.vbwEnabled else IR.FuncCall("NormaliseL2<posit%d_t>"%(bw_in), {
+            }) if not self.vbwEnabled else IR.FuncCall("NormaliseL2<%s>"%(self.getPositType(expr_in, bw_in)), {
                 expr_in: "A",
                 expr_out: "B",
                 IR.Int(N): "N",
@@ -2074,10 +2142,20 @@ class IRBuilderPosit(IRBuilder):
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
-
+        debugPrint = []
+        if config.printPositDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(N): "I",
+                IR.Int(H): "J",
+                IR.Int(W): "K",
+                IR.Int(C): "L",
+                IR.String(expr_out): "varName", 
+                IR.Int(bw_in): "bw_out"
+            }))
         self.setMemorySharableVariables(expr_in, expr_out)
 
-        prog_func = IR.Prog([comment, funcCall])
+        prog_func = IR.Prog([comment, funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_func)
 
@@ -2124,7 +2202,27 @@ class IRBuilderPosit(IRBuilder):
         self.counter_inst += 1
         self.updateLiveRange([expr_in])
 
-        prog_relu = IR.Prog([comment, funcCall])
+        debugPrint = []
+        if config.printPositDebug:
+            if node.type.dim == 4:
+                debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_in: "expr",
+                    IR.Int(N): "I",
+                    IR.Int(H): "J",
+                    IR.Int(W): "K",
+                    IR.Int(C): "L",
+                    IR.String(expr_in): "varName",
+                    IR.Int(bitwidth_in_A): "bwA"
+                }))
+            else:
+                debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_in: "expr",
+                    IR.Int(H): "J",
+                    IR.Int(W): "K",
+                    IR.String(expr_in): "varName",
+                    IR.Int(bitwidth_in_A): "bwA"
+                }))
+        prog_relu = IR.Prog([comment, funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_relu)
 
@@ -2184,7 +2282,19 @@ class IRBuilderPosit(IRBuilder):
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        prog_relu = IR.Prog([comment, funcCall])
+        debugPrint = []
+        if config.printPositDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(N): "I",
+                IR.Int(H): "J",
+                IR.Int(W): "K",
+                IR.Int(C): "L",
+                IR.String(expr_out): "varName", 
+                IR.Int(bitwidth_out): "bw_out"
+            }))
+
+        prog_relu = IR.Prog([comment, funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_relu)
 
@@ -2282,8 +2392,18 @@ class IRBuilderPosit(IRBuilder):
         })
         if forFloat():
             self.independentVars.append(expr_out.idf)
+        
+        debugPrint = []
+        if config.printPositDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(I): "I",
+                IR.Int(J): "L",
+                IR.String(expr_out): "varName", 
+                IR.Int(bitwidth_out): "bw_out"
+            }))
 
-        prog_exp = IR.Prog([cmd0, rangeCheck, funcCall, profile] if forFloat() and self.ddsEnabled else [cmd0, funcCall])
+        prog_exp = IR.Prog([cmd0, funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_exp)
 
@@ -2525,8 +2645,16 @@ class IRBuilderPosit(IRBuilder):
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
-
-        prog_tanh = IR.Prog([comment, funcCall])
+        debugPrint = []
+        if config.printPositDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(I): "I",
+                IR.Int(J): "J",
+                IR.String(expr_out): "varName", 
+                IR.Int(bitwidth_in): "bw_out"
+            }))
+        prog_tanh = IR.Prog([comment, funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_tanh)
 
@@ -2678,8 +2806,17 @@ class IRBuilderPosit(IRBuilder):
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
+        debugPrint = []
+        if config.printPositDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(I): "I",
+                IR.Int(J): "J",
+                IR.String(expr_out): "varName", 
+                IR.Int(bitwidth_out): "bw_out"
+            }))
 
-        prog_sigmoid = IR.Prog([comment, funcCall])
+        prog_sigmoid = IR.Prog([comment, funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_sigmoid)
 
@@ -2948,7 +3085,8 @@ class IRBuilderPosit(IRBuilder):
                 expr_out: "expr",
                 IR.Int(type_out.shape[0]): "I",
                 IR.Int(type_out.shape[1]): "J",
-                IR.String(expr_out): "varName"
+                IR.String(expr_out): "varName", 
+                IR.Int(bitwidth_out): "bw_out"
             }))
         
         # Final program to sum output of each iteration.

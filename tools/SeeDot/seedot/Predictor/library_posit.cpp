@@ -4500,3 +4500,96 @@ void debugPrint(posit32_t* A, int I, int J, std::string varName)
 	f.close();
 	#endif
 }
+
+void debugPrint(posit_2_t* A, int I, int J, std::string varName, int bw)
+{
+	#ifdef DEBUG
+	std::ofstream f("debugLog", std::ios::app);
+	
+	f << varName<<std::endl;
+	for(int i=0;i<I;i++)
+	{
+		for(int j=0;j<J;j++)
+		{
+			float a = convertPositToDouble(A[i*J + j], bw);
+			f<< a << " ";
+		}
+	}
+	f<<std::endl<<std::endl;
+	f.close();
+	#endif
+}
+
+void debugPrint(posit8_t* A, int I, int J, int K, int L, std::string varName)
+{
+	#ifdef DEBUG
+	std::ofstream f("debugLog", std::ios::app);
+	
+	f << varName<<std::endl;
+	for(int i=0;i<I*J*K*L;i++)
+	{
+		float a = convertP8ToDouble(A[i*J + j]);
+		f<< a << " ";
+	}
+	f<<std::endl<<std::endl;
+	f.close();
+	#endif
+}
+
+void debugPrint(posit16_t* A, int I, int J, int K, int L, std::string varName)
+{
+	#ifdef DEBUG
+	std::ofstream f("debugLog", std::ios::app);
+	
+	f << varName<<std::endl;
+	for(int i=0;i<I*J*K*L;i++)
+	{
+		float a = convertP16ToDouble(A[i*J + j]);
+		f<< a << " ";
+	}
+	f<<std::endl<<std::endl;
+	f.close();
+	#endif
+}
+
+void debugPrint(posit32_t* A, int I, int J, int K, int L, std::string varName)
+{
+	#ifdef DEBUG
+	std::ofstream f("debugLog", std::ios::app);
+	
+	f << varName<<std::endl;
+	for(int i=0;i<I*J*K*L;i++)
+	{
+		float a = convertP32ToDouble(A[i*J + j]);
+		f<< a << " ";
+	}
+	f<<std::endl<<std::endl;
+	f.close();
+	#endif
+}
+
+void debugPrint(posit_2_t* A, int I, int J, int K, int L, std::string varName, int bw)
+{
+	#ifdef DEBUG
+	std::ofstream f("debugLog", std::ios::app);
+	
+	f << varName<<std::endl;
+	for(int i=0;i<I*J*K*L;i++)
+	{
+		float a = convertPositToDouble(A[i*J + j], bw);
+		f<< a << " ";
+	}
+	f<<std::endl<<std::endl;
+	f.close();
+	#endif
+}
+
+void debugPrint(std::string str)
+{
+	#ifdef DEBUG
+	std::ofstream f("debugLog", std::ios::app);
+	f << str;
+	f<<std::endl<<std::endl;
+	f.close();
+	#endif	
+}

@@ -20,7 +20,7 @@ The accuracy and other statistics are written to the output file specified.
 
 class Predictor:
 
-    def __init__(self, algo, encoding, datasetType, outputDir, scaleForX, scalesForX, scaleForY, scalesForY, problemType, numOutputs):
+    def __init__(self, algo, encoding, datasetType, outputDir, scaleForX, scalesForX, scaleForY, scalesForY, problemType, numOutputs, shadow = False):
         self.algo, self.encoding, self.datasetType = algo, encoding, datasetType
 
         self.outputDir = outputDir
@@ -33,6 +33,8 @@ class Predictor:
 
         self.problemType = problemType
         self.numOutputs = numOutputs
+
+        self.shadow = shadow
 
         self.genHeaderFile()
 
@@ -123,7 +125,7 @@ class Predictor:
         gcc_version = int(gcc_version.read().split('\n')[0])
         assert gcc_version >= config.min_gcc_version, "Minimum GCC Version >= %d required."%(config.min_gcc_version)
 
-        args = ["make"]
+        args = ["make", "DEBUG=%s"%("True" if self.shadow else "False")]
 
         logFile = os.path.join(self.outputDir, "build.txt")
         with open(logFile, 'w') as file:
@@ -167,7 +169,7 @@ class Predictor:
         Util.getLogger().debug("Execution...")
 
         exeFile = os.path.join("./Predictor")
-        args = [exeFile, self.encoding, self.datasetType, self.problemType, str(self.numOutputs)]
+        args = [exeFile, self.encoding, self.datasetType, self.problemType, str(self.numOutputs), str("True"), str(self.shadow)]
 
         logFile = os.path.join(self.outputDir, "exec.txt")
         with open(logFile, 'w') as file:

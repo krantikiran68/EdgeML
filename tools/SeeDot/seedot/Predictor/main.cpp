@@ -191,6 +191,14 @@ int main(int argc, char* argv[]) {
 
 	int numOutputs = atoi(argv[4]);
 
+	bool serialExecution = false;
+	bool heatMap = false;
+	if (argc == 7 && string(argv[6]) == "True")
+	{
+		serialExecution = true;
+		heatMap = true;
+	}
+
 	// Reading the dataset.
 	string inputDir = "input/";
 
@@ -361,12 +369,19 @@ int main(int argc, char* argv[]) {
 					}
 				}
 				// Launching one thread which processes one datapoint.
-				if (threads.size() < 64) {
-					threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_posit_res.back(), vector_int_resV.back(), vector_posit_resV.back(), encoding));
-				} else {
-					threads.front().join();
-					threads.pop_front();
-					threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_posit_res.back(), vector_int_resV.back(), vector_posit_resV.back(), encoding));
+				if(serialExecution)
+				{
+					launchThread(features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_posit_res.back(), vector_int_resV.back(), vector_posit_resV.back(), encoding);
+				}
+				else
+				{
+					if (threads.size() < 64) {
+						threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_posit_res.back(), vector_int_resV.back(), vector_posit_resV.back(), encoding));
+					} else {
+						threads.front().join();
+						threads.pop_front();
+						threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_posit_res.back(), vector_int_resV.back(), vector_posit_resV.back(), encoding));
+					}
 				}
 			} else if (encoding == Float) {
 				float_res = new float[numOutputs];

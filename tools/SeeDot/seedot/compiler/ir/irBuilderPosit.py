@@ -171,7 +171,6 @@ class IRBuilderPosit(IRBuilder):
             self.varsForBitwidth[expr_out.idf] = bw_out
             if bw_out != config.wordLength:
                 self.demotedVarsList.append(expr_out.idf)
-                self.demotedVarsOffsets[expr_out.idf] = self.getOffsetForDemotedVariable(expr_in.idf)
 
         funcCall = IR.FuncCall("Transpose", {
             expr_in: "A",
@@ -225,7 +224,6 @@ class IRBuilderPosit(IRBuilder):
             self.varsForBitwidth[expr_out.idf] = bw_out
             if self.varsForBitwidth[expr_out.idf] != config.wordLength:
                 self.demotedVarsList.append(expr_out.idf)
-                self.demotedVarsOffsets[expr_out.idf] = self.getOffsetForDemotedVariable(expr_in.idf)
 
         # Computing loop iterators for LHS and RHS.
         iters_in = self.getTempIterators(type_in.dim)
@@ -330,7 +328,6 @@ class IRBuilderPosit(IRBuilder):
             self.varsForBitwidth[expr_out.idf] = bw_out
             if self.varsForBitwidth[expr_out.idf] != config.wordLength:
                 self.demotedVarsList.append(expr_out.idf)
-                self.demotedVarsOffsets[expr_out.idf] = self.getOffsetForDemotedVariable(expr_in.idf)
 
         iters_in = self.getTempIterators(type_in.dim)
         iters_out = self.getTempVars(type_out.dim)
@@ -432,7 +429,6 @@ class IRBuilderPosit(IRBuilder):
         # If the input variable is demoted to lower bit-width, demote the output as well as no extra information can be stored in the extra bits.
         if bw_in != config.wordLength:
             self.demotedVarsList.append(expr_out.idf)
-            self.demotedVarsOffsets[expr_out.idf] = 0
             assert False, "Undefined case reached in MaxPool"
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
@@ -607,7 +603,6 @@ class IRBuilderPosit(IRBuilder):
             self.varsForBitwidth[expr_out.idf] = bw_out
             if self.varsForBitwidth[expr_out.idf] != config.wordLength:
                 self.demotedVarsList.append(expr_out.idf)
-                self.demotedVarsOffsets[expr_out.idf] = self.getOffsetForDemotedVariable(expr_in.idf)
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
@@ -657,7 +652,6 @@ class IRBuilderPosit(IRBuilder):
             self.varsForBitwidth[expr_out.idf] = bitwidth_out
             if bitwidth_out != config.wordLength:
                 self.demotedVarsList.append(expr_out.idf)
-                self.demotedVarsOffsets[expr_out.idf] = self.demotedVarsOffsets[expr_in.idf]
             
             (m, M) = self.varIntervals[expr_in.idf]
             intv_out = (-M, -m)
@@ -2109,7 +2103,6 @@ class IRBuilderPosit(IRBuilder):
         # We propagate the demotion of bit-width.
         if forFixed() and bw_out != config.wordLength:
             self.demotedVarsList.append(expr_out.idf)
-            self.demotedVarsOffsets[expr_out.idf] = 0
         self.varsForBitwidth[expr_out.idf] = bw_out
 
         expr_in.inputVar = False
@@ -2246,7 +2239,6 @@ class IRBuilderPosit(IRBuilder):
         # If input variable is demoted to 8 bits, demote the output variable to 8 bits too.
         if expr_in.idf in self.demotedVarsList:
             self.demotedVarsList.append(expr_out.idf)
-            self.demotedVarsOffsets[expr_out.idf] = 0
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
         # Scaling hyperparameters in the fixed-point code.
@@ -2607,7 +2599,6 @@ class IRBuilderPosit(IRBuilder):
         # If input is demoted to lower bit-width, demote the output to lower bit-width as well.
         if expr_in.idf in self.demotedVarsList:
             self.demotedVarsList.append(expr_out.idf)
-            self.demotedVarsOffsets[expr_out.idf] = 0
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
         tanh_intv = self.getInterval(
@@ -2683,7 +2674,6 @@ class IRBuilderPosit(IRBuilder):
         # If the input is demoted to 8 bits, demote the output to the lower bit-width as well.
         if bitwidth_in_raw != config.wordLength:
             self.demotedVarsList.append(expr_out.idf)
-            self.demotedVarsOffsets[expr_out.idf] = 0
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
         # Reading / Computing output bit-width.
@@ -2746,7 +2736,6 @@ class IRBuilderPosit(IRBuilder):
         # If input is demoted to lower bit-width, demote the output variable to lower bit-width as well.
         if expr_in.idf in self.demotedVarsList:
             self.demotedVarsList.append(expr_out.idf)
-            self.demotedVarsOffsets[expr_out.idf] = 0
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
         # Scale sigmoid limit and other constants.
@@ -2763,7 +2752,7 @@ class IRBuilderPosit(IRBuilder):
 
         intv_out = (m_new, M_new)
 
-        scale_out = self.getScale(1.5) + ((config.wordLength // 2 + self.demotedVarsOffsets[expr_in.idf]) if expr_in.idf in self.demotedVarsList else 0)
+        scale_out = self.getScale(1.5) + ((config.wordLength // 2 ) if expr_in.idf in self.demotedVarsList else 0)
 
         # Computing hyperparameters for linear approximation of Sigmoid.
         max_val = max(abs(m_new), abs(M_new))
@@ -2813,7 +2802,7 @@ class IRBuilderPosit(IRBuilder):
                 IR.Int(I): "I",
                 IR.Int(J): "J",
                 IR.String(expr_out): "varName", 
-                IR.Int(bitwidth_out): "bw_out"
+                IR.Int(bitwidth_in): "bw_out"
             }))
 
         prog_sigmoid = IR.Prog([comment, funcCall] + debugPrint)
@@ -2852,7 +2841,6 @@ class IRBuilderPosit(IRBuilder):
         # If input variable is demoted to lower bit-width, demote the output variable to lower bit-width as well.
         if bitwidth_in_raw != config.wordLength:
             self.demotedVarsList.append(expr_out.idf)
-            self.demotedVarsOffsets[expr_out.idf] = 0
             self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
 
         # Compute / Read output scale and bit-width.
@@ -3307,14 +3295,13 @@ class IRBuilderPosit(IRBuilder):
         # e1 : Tensor{(),(..)}
         else:
             # Compute the scale of the LHS variable. RHS/decl may have a different bit-width, hence the scale of LHS has to be adjusted accordingly.
-            self.varScales[idf] = self.varScales[expr_decl.idf] + (config.wordLength//2 + self.demotedVarsOffsets.get(idf, 0) if idf in self.demotedVarsList else 0)
+            self.varScales[idf] = self.varScales[expr_decl.idf] + (config.wordLength//2 if idf in self.demotedVarsList else 0)
             self.varIntervals[idf] = self.varIntervals[expr_decl.idf]
 
             # If LHS is demoted to lower bit-width, the RHS should also be in a lower bit-width, so scale of RHS is also adjusted.
             if idf in self.demotedVarsList:
-                self.varScales[expr_decl.idf] += self.demotedVarsOffsets[idf] + config.wordLength // 2
+                self.varScales[expr_decl.idf] += config.wordLength // 2
                 self.demotedVarsList.append(expr_decl.idf)
-                self.demotedVarsOffsets[expr_decl.idf] = self.demotedVarsOffsets[idf]
                 self.varsForBitwidth[expr_decl.idf] = config.wordLength // 2
             else:
                 if expr_decl.idf not in self.varsForBitwidth:
@@ -3322,7 +3309,7 @@ class IRBuilderPosit(IRBuilder):
 
             # For input X, scale is computed as follows.
             if idf == "X" and self.scaleForX is not None:
-                self.varScales[idf] = self.scaleForX + (config.wordLength // 2 + self.demotedVarsOffsets.get("X", 0) if 'X' in self.demotedVarsList else 0)
+                self.varScales[idf] = self.scaleForX + (config.wordLength // 2 if 'X' in self.demotedVarsList else 0)
 
             # If the let statement is a model parameter declaration, then the following is invoked.
             if isinstance(node.decl, AST.Decl):
@@ -3349,11 +3336,11 @@ class IRBuilderPosit(IRBuilder):
                 # Read profiled scale of the LHS (profile assumes 16-bit variables) and compute final scale depending on actual bitwidth of LHS.
                 if self.ddsEnabled:
                     _, raw_new_scale = self.getBitwidthAndScale(idfs)
-                    new_scale = raw_new_scale + (config.wordLength // 2 + self.demotedVarsOffsets[idfs] if idfs in self.demotedVarsList else 0)
+                    new_scale = raw_new_scale + (config.wordLength // 2 if idfs in self.demotedVarsList else 0)
                     new_intv = (0, 0)
                 else:
                     [minVal, maxVal] = self.mutableVarsProfile[0] # TODO: This function may not work for multiple loops in a code.
-                    new_scale = self.getScale(max(abs(minVal), abs(maxVal))) + (config.wordLength // 2 + self.demotedVarsOffsets[idfs] if idfs in self.demotedVarsList else 0)
+                    new_scale = self.getScale(max(abs(minVal), abs(maxVal))) + (config.wordLength // 2 if idfs in self.demotedVarsList else 0)
                     new_intv = self.getInterval(new_scale, minVal, maxVal)
 
                 diff_scale = 2 ** (curr_scale - new_scale) if curr_scale > new_scale else 2 ** (new_scale - curr_scale)
@@ -3395,7 +3382,7 @@ class IRBuilderPosit(IRBuilder):
                     idfs = self.substitutions[idfs]
                 if self.ddsEnabled:
                     _, raw_new_scale = self.getBitwidthAndScale(idfs)
-                    new_scale = raw_new_scale + (config.wordLength // 2 + self.demotedVarsOffsets[idfs] if idfs in self.demotedVarsList else 0)
+                    new_scale = raw_new_scale + (config.wordLength // 2 if idfs in self.demotedVarsList else 0)
                     new_intv = (0, 0)
                 else:
                     [minVal, maxVal] = self.mutableVarsProfile[0]
@@ -3791,18 +3778,6 @@ class IRBuilderPosit(IRBuilder):
         assert shr_A >= 0 and shr_B >= 0, "Invalid state"
         return shr_A, shr_B, H1, height - H1, demote, scale_out
 
-    # If a variable is demoted, get its scale offset.
-    def getOffsetForDemotedVariable(self, varName):
-        if forFloat():
-            return 0
-        if self.ddsEnabled:
-            while varName not in self.independentBitwidthVars:
-                if varName in self.substitutions:
-                    varName = self.substitutions[varName]
-                else:
-                    break
-        return self.demotedVarsOffsets.get(varName, 0)
-
     # For any variable, get its bitwidth and scale given the bitwidth assignment.
     def getBitwidthAndScale(self, varName, native=False):
         if forFloat():
@@ -3824,7 +3799,7 @@ class IRBuilderPosit(IRBuilder):
                 return bitwidth, self.varScales[varName]
         elif varName in self.intermediateVarScales.keys(): # This will be populated for DDS mode.
             if varName in self.demotedVarsList and native == False:
-                return bitwidth, self.intermediateVarScales[varName] + config.wordLength // 2 + self.demotedVarsOffsets[varName]
+                return bitwidth, self.intermediateVarScales[varName] + config.wordLength // 2
             else:
                 return bitwidth, self.intermediateVarScales[varName]
         else:

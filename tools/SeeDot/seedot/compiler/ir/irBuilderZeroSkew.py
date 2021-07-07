@@ -1402,6 +1402,7 @@ class IRBuilderZeroSkew(IRBuilder):
         expr_in_A.inputVar = False
         expr_in_B.inputVar = False
         expr_out.inputVar = False
+        expr_treeSum.inputVar = False
 
         comment = IR.Comment('conv(%s, %s)' %(expr_in_A.idf, expr_in_B.idf), self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
@@ -1432,7 +1433,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Float(scale_in_A): "scale_in_A",
             IR.Float(scale_in_B): "scale_in_B",
             IR.Float(scale_out): "scale_out",
-            IR.Int(-1*zero_in_A): "zero_A",
+            IR.Int(-zero_in_A): "zero_A",
             IR.Int(-zero_in_B): "zero_B",
             IR.Int(zero_out): "zero_C",
             IR.Int(M0): "M0",
@@ -1456,10 +1457,12 @@ class IRBuilderZeroSkew(IRBuilder):
         if config.zeroSkewDebug:
             debugPrint.append(IR.FuncCall("debugPrint", {
                 expr_out: "expr",
-                IR.Int(N): "I",
-                IR.Int(type_out.shape[1]): "J",
-                IR.Int(type_out.shape[2]): "K",
-                IR.Int(CoutF * G): "L",
+                IR.Int(N): "N",
+                IR.Int(type_out.shape[1]): "H",
+                IR.Int(type_out.shape[2]): "W",
+                IR.Int(CoutF * G): "C",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
                 IR.String(expr_out): "VarName"
             }))
 
@@ -1769,7 +1772,7 @@ class IRBuilderZeroSkew(IRBuilder):
                 IR.Int(C): "C",
                 IR.Float(scale_in_A): "scale_in",
                 IR.Float(scale_out): "scale_out",
-                IR.Int(-1*zero_in_A): "zero_A",
+                IR.Int(zero_in_A): "zero_A",
                 IR.Int(zero_out): "zero_Out",
                 IR.Int(M0): "M0",
                 IR.Int(-N0): "N",
@@ -1784,7 +1787,7 @@ class IRBuilderZeroSkew(IRBuilder):
                 IR.Int(W): "W",
                 IR.Float(scale_in_A): "scale_in_A",
                 IR.Float(scale_out): "scale_out",
-                IR.Int(-1*zero_in_A): "zero_A",
+                IR.Int(zero_in_A): "zero_A",
                 IR.Int(zero_out): "zero_Out",
                 IR.Int(M0): "M0",
                 IR.Int(-N0): "N",
@@ -1846,7 +1849,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(C): "C",
             IR.Float(scale_in_A): "scale_in",
             IR.Float(scale_out): "scale_out",
-            IR.Int(-1*zero_in_A): "zero_A",
+            IR.Int(zero_in_A): "zero_A",
             IR.Int(zero_out): "zero_Out",
             IR.Int(M0): "M0",
             IR.Int(-N0): "N",
@@ -1861,7 +1864,7 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(C): "C",
             IR.Float(scale_in_A): "scale_in",
             IR.Float(scale_out): "scale_out",
-            IR.Int(-1*zero_in_A): "zero_A",
+            IR.Int(zero_in_A): "zero_A",
             IR.Int(zero_out): "zero_Out",
             IR.Int(M0): "M0",
             IR.Int(-N0): "N",
@@ -2997,9 +3000,9 @@ class IRBuilderZeroSkew(IRBuilder):
         self.log.print("\tInput1: scale = %f, zero = %d, interval = [%d, %d]" % (
             (self.varScales[expr_in_A.idf],) + (self.varZeros[expr_in_A.idf],) + self.varIntervals[expr_in_A.idf]))
         self.log.print("\tInput2: scale = %f, zero = %d, interval = [%d, %d]" % (
-            (self.varScales[expr_in_B.idf],) + (self.varZeros[expr_in_A.idf],) + self.varIntervals[expr_in_B.idf]))
+            (self.varScales[expr_in_B.idf],) + (self.varZeros[expr_in_B.idf],) + self.varIntervals[expr_in_B.idf]))
         self.log.print("\tOutput: scale = %f, zero = %d, interval = [%d, %d]" % (
-            (self.varScales[expr_out.idf],) + (self.varZeros[expr_in_A.idf],) + self.varIntervals[expr_out.idf]))
+            (self.varScales[expr_out.idf],) + (self.varZeros[expr_out.idf],) + self.varIntervals[expr_out.idf]))
 
         return (prog_out, expr_out)
     

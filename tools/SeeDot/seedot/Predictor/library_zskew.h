@@ -165,6 +165,7 @@ inline OutputType Saturate(InputType inp, InputType min_value, InputType max_val
 }
 
 void debugPrint(MYINT* A, int I, int J, float scale, int zero, std::string varName);
+void debugPrint(MYINT* A, int N, int H, int W, int C, float scale, int zero, std::string varName);
 
 // template <typename IntegerType>
 // IntegerType SaturatingRoundingDoublingHighMul(IntegerType a, IntegerType b) {

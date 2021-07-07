@@ -314,3 +314,24 @@ void debugPrint(MYINT* A, int I, int J, float scale, int zero, std::string varNa
 	f.close();
 	#endif
 }
+
+void debugPrint(MYINT* A, int N, int H, int W, int C, float scale, int zero, std::string varName)
+{
+	#ifdef DEBUG
+	std::ofstream f("debugLog", std::ios::app);
+
+	f << varName<<std::endl;
+	for (int n = 0; n < N; n++) {
+		for (int h = 0; h < H; h++) {
+			for (int w = 0; w < W; w++) {
+				for (int c = 0; c < C; c++) {
+					float a = A[n * H * W * C + h * W * C + w * C + c];
+					f << scale * (a - zero) << " ";
+				}
+			}
+		}
+	}
+	f<<std::endl<<std::endl;
+	f.close();
+	#endif
+}

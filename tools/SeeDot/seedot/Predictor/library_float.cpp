@@ -980,13 +980,31 @@ void AdjustScaleShl(float* A, MYINT I, MYINT J, MYINT scale) {
 void debugPrint(float *A, MYINT I, MYINT J, std::string varName)
 {
 	#ifdef DEBUG
-	std::ofstream f("debugLog", std::ios::app);
+	std::ofstream f("debugLog2", std::ios::app);
 	f<<varName<<std::endl;
 	for(int i=0;i<I;i++)
 	{
 		for(int j=0;j<J;j++)
 		{
 			f<<A[i * J + j] << " ";
+		}
+	}
+	f<<std::endl<<std::endl;
+	#endif
+}
+
+void debugPrint(float *A, MYINT N, MYINT H, MYINT W, MYINT C, std::string varName)
+{
+	#ifdef DEBUG
+	std::ofstream f("debugLog2", std::ios::app);
+	f<<varName<<std::endl;
+	for (MYITE n = 0; n < N; n++) {
+		for (MYITE h = 0; h < H; h++) {
+			for (MYITE w = 0; w < W; w++) {
+				for (MYITE c = 0; c < C; c++) {
+					f << A[n * H * W * C + h * W * C + w * C + c] << " ";
+				}
+			}
 		}
 	}
 	f<<std::endl<<std::endl;

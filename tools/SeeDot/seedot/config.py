@@ -65,9 +65,9 @@ maxVar16Bit = 65535
 # Minimum version of gcc required for compilation
 min_gcc_version = 8
 
-printFloatDebug = False
+printFloatDebug = True
 
-zeroSkewDebug = False
+zeroSkewDebug = True
 # Following classes are used sanity checks for arguments passed to the compiler, to prevent unexpected arguments being passed.
 # These lists should be updated as the compiler is expanded to multiple algorithms and datasets.
 

@@ -2986,7 +2986,6 @@ class IRBuilderPosit(IRBuilder):
             idfs = idf
             while idfs in self.substitutions.keys():
                 idfs = self.substitutions[idfs]
-            scale += config.wordLength // 2 + self.demotedVarsOffsets[idfs]
         self.varScales[idf] = scale
         self.varIntervals[idf] = intv
 
@@ -3675,10 +3674,10 @@ class IRBuilderPosit(IRBuilder):
             while varName in self.substitutions:
                 varName = self.substitutions[varName]
         
-        bitwidth = self.varsForBitwidth[varName]
-
-        if bitwidth == None:
-            return config.positBitwidth
+        if varName in self.varsForBitwidth.keys():
+            bitwidth = self.varsForBitwidth[varName]
+        else:
+            bitwidth = config.positBitwidth
 
         if varName in self.varScales.keys(): # Function has been called on this variable or scale has been manually computed.
             if varName in self.demotedVarsList:

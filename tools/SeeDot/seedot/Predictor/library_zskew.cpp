@@ -274,7 +274,7 @@ void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, float scale_in,  ACINT zeroA,
 }
 
 // index = argmax(A)
-void ArgMax(MYINT* A, MYINT I, MYINT J, float scale_in, MYINT zero_in, int* index) {
+void ArgMax(MYINT* A, MYITE I, MYITE J, float scale_in, MYINT zero_in, int* index) {
 	ACINT a = A[0];
 	a += zero_in;
 	float max = a * scale_in;

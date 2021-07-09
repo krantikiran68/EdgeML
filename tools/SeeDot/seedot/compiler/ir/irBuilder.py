@@ -1581,10 +1581,21 @@ class IRBuilder(ASTVisitor):
             IR.Int(Cout): "L",
             IR.String(expr_out): "VarName"
         })
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "Var",
+                    IR.Int(N): "I",
+                    IR.Int(type_out.shape[1]): "J",
+                    IR.Int(type_out.shape[2]): "K",
+                    IR.Int(Cout): "L",
+                    IR.String(expr_out): "VarName"
+                }))
+
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mbconv = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        prog_mbconv = IR.Prog([comment, funcCall, profile] + debugPrint if forFloat() and self.ddsEnabled else [comment, funcCall])
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_F1, prog_in_W1, prog_in_B1, prog_in_F2, prog_in_W2, prog_in_B2, prog_in_F3, prog_in_W3, prog_in_B3, prog_mbconv)
 
         # Update metadata.
@@ -2320,12 +2331,23 @@ class IRBuilder(ASTVisitor):
             IR.String(expr_out): "VarName"
         })
 
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(N): "I",
+                    IR.Int(H): "J",
+                    IR.Int(W): "K",
+                    IR.Int(C): "L",
+                    IR.String(expr_out): "varName"
+                }))
+
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
         self.setMemorySharableVariables(expr_in, expr_out)
 
-        prog_func = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        prog_func = IR.Prog(([comment, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else [comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_func)
 
@@ -2427,10 +2449,21 @@ class IRBuilder(ASTVisitor):
             IR.Int(divide): "div"
         })
 
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(N): "N",
+                    IR.Int(H): "H",
+                    IR.Int(W): "W",
+                    IR.Int(C): "C",
+                    IR.String(expr_out): "varName"
+                }))
+
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        prog_relu = IR.Prog([comment, funcCall])
+        prog_relu = IR.Prog(([comment, funcCall] + debugPrint) if forFloat() and self.ddsEnabled else [comment, funcCall])
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_relu)
 

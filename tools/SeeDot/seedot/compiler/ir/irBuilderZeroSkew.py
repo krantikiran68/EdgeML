@@ -196,7 +196,6 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(-N): "N",
             IR.Int(clamp_min): "clamp_min",
             IR.Int(clamp_max): "clamp_max",
-            # IR.Int(demote): "demote"
         })
 
         debugPrint = []
@@ -212,7 +211,6 @@ class IRBuilderZeroSkew(IRBuilder):
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
-
         
         prog_mul = IR.Prog([comment, funcCall] + (debugPrint if config.zeroSkewDebug else []))
 
@@ -417,10 +415,12 @@ class IRBuilderZeroSkew(IRBuilder):
         #     zero = 0
         #     scale = (maxVal - minVal)/(2 * maxVar)
         #     return scale, int(zero)
-        
+
         if maxVal == minVal:
             scale = math.fabs(1.0/maxVal) if (maxVal > 1.0) else math.fabs(maxVal)
             zero = 0
+            if scale < 1e-9:
+                scale = 1.0
             return scale, zero
         zero = -minVal
 
@@ -1202,7 +1202,6 @@ class IRBuilderZeroSkew(IRBuilder):
         # Stage 1 Step 2: Batch Normalisation and ReLU6
         bitwidth_temp_ub1 = self.getTempBitwidth(bitwidth_in_X, bitwidth_in_W1, "mul", bitwidth_in_X)
         (left_shift1, M12, N12, M13, N13, M14, N14) = self.getScaleAndZeroForAddAndSub(scale_in_X, zero_in_X, scale_in_B1, zero_in_B1, scale_in_X, zero_in_X, bitwidth_in_X, bitwidth_in_B1, bitwidth_temp_ub1, bitwidth_in_X, operator.add)
-        # bitwidth_temp = self.getTempBitwidth(bitwidth_in_X, bitwidth_in_W1, "mul", bitwidth_in_X)
         M15, N15 = self.getMatMulShrAndN(scale_in_X, scale_in_W1, scale_in_X, zero_in_X, zero_in_W1, zero_in_X, bitwidth_in_X, bitwidth_in_W1, bitwidth_temp_ub1, bitwidth_in_X)
         clamp_min_X, clamp_max_X = self.getClampValues(bitwidth_in_X)
 
@@ -1213,7 +1212,6 @@ class IRBuilderZeroSkew(IRBuilder):
         # Stage 2 Step 2: Batch Normalisation and ReLU6
         bitwidth_temp_ub2 = self.getTempBitwidth(bitwidth_in_T, bitwidth_in_W2, "mul", bitwidth_in_T)
         (left_shift2, M22, N22, M23, N23, M24, N24) = self.getScaleAndZeroForAddAndSub(scale_in_T, zero_in_T, scale_in_B2, zero_in_B2, scale_in_T, zero_in_T, bitwidth_in_T, bitwidth_in_B2, bitwidth_temp_ub2, bitwidth_in_T, operator.add)
-        # bitwidth_temp = self.getTempBitwidth(bitwidth_in_T, bitwidth_in_W2, "mul", bitwidth_in_T)
         M25, N25 = self.getMatMulShrAndN(scale_in_T, scale_in_W2, scale_in_T, zero_in_T, zero_in_W2, zero_in_T, bitwidth_in_T, bitwidth_in_W2, bitwidth_temp_ub2, bitwidth_in_T)
         clamp_min_T, clamp_max_T = self.getClampValues(bitwidth_in_T)
 
@@ -1224,7 +1222,6 @@ class IRBuilderZeroSkew(IRBuilder):
         # Stage 3 Step 2: Batch Normalisation
         bitwidth_temp_ub3 = self.getTempBitwidth(bitwidth_out, bitwidth_in_W3, "mul", bitwidth_out)
         (left_shift3, M32, N32, M33, N33, M34, N34) = self.getScaleAndZeroForAddAndSub(scale_out, zero_out, scale_in_B3, zero_in_B3, scale_out, zero_out, bitwidth_out, bitwidth_in_B3, bitwidth_temp_ub3, bitwidth_out, operator.add)
-        # bitwidth_temp = self.getTempBitwidth(bitwidth_out, bitwidth_in_W3, "mul", bitwidth_out)
         M35, N35 = self.getMatMulShrAndN(scale_out, scale_in_W3, scale_out, zero_out, zero_in_W3, zero_out, bitwidth_out, bitwidth_in_W3, bitwidth_temp_ub3, bitwidth_out)
         clamp_min_C, clamp_max_C = self.getClampValues(bitwidth_out)
 
@@ -1342,7 +1339,20 @@ class IRBuilderZeroSkew(IRBuilder):
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_F1, expr_in_F2, expr_in_F3, expr_in_W1, expr_in_W2, expr_in_W3, expr_in_B1, expr_in_B2, expr_in_B3, expr_out, expr_bufX, expr_bufT])
 
-        prog_mbconv = IR.Prog([comment, funcCall])
+        debugPrint = []
+        if config.zeroSkewDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "Var",
+                IR.Int(N): "N",
+                IR.Int(type_out.shape[1]): "H",
+                IR.Int(type_out.shape[2]): "W",
+                IR.Int(Cout): "C",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
+                IR.String(expr_out): "VarName"
+            }))
+
+        prog_mbconv = IR.Prog([comment, funcCall] + (debugPrint if config.zeroSkewDebug else []))
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_F1, prog_in_W1, prog_in_B1, prog_in_F2, prog_in_W2, prog_in_B2, prog_in_F3, prog_in_W3, prog_in_B3, prog_mbconv)
 
         # Update metadata.
@@ -1687,10 +1697,12 @@ class IRBuilderZeroSkew(IRBuilder):
             self.demotedVarsList.append(expr_out.idf)
         self.varsForBitwidth[expr_out.idf] = bw_out
 
-        zero_out = 128 if bw_out == 8 else 32768
+        # zero_out = 128 if bw_out == 8 else 32768
         clamp_min, clamp_max = self.getClampValues(bw_out)
+        M0, N0 = self.getMatMulShrAndN(scale_in, 1.0, scale_out, zero_in, 0, zero_out, bw_in, bw_in, bw_temp, bw_out)
 
         expr_in.inputVar = False
+        expr_out.inputVar = False
 
         comment = IR.Comment("normaliseL2(" + expr_in.idf + ")", self.counter_inst+1)
         self.allDepths[self.counter_inst+1] = self.curDepth
@@ -1707,8 +1719,10 @@ class IRBuilderZeroSkew(IRBuilder):
                 IR.Int(C): "C",
                 IR.Float(scale_in): "scale_in",
                 IR.Float(scale_out): "scale_out",
-                IR.Int(-1*zero_in): "zero_in",
+                IR.Int(zero_in): "zero_in",
                 IR.Int(zero_out): "zero_out",
+                IR.Int(M0): "M0",
+                IR.Int(-N0): "N0",
                 IR.Int(clamp_min): "clamp_min",
                 IR.Int(clamp_max): "clamp_max"
             }) if not self.vbwEnabled else IR.FuncCall("NormaliseL2<uint%d_t, int%d_t>"%(bw_in, bw_temp), {
@@ -1720,20 +1734,33 @@ class IRBuilderZeroSkew(IRBuilder):
                 IR.Int(C): "C",
                 IR.Float(scale_in): "scale_in",
                 IR.Float(scale_out): "scale_out",
-                IR.Int(-1*zero_in): "zero_in",
+                IR.Int(zero_in): "zero_in",
                 IR.Int(zero_out): "zero_out",
+                IR.Int(M0): "M0",
+                IR.Int(-N0): "N0",
                 IR.Int(clamp_min): "clamp_min",
                 IR.Int(clamp_max): "clamp_max"
             })
         else:
             assert False, "inverseL2Norm only supports 4D tensors."
 
+        debugPrint = IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(N): "N",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Int(C): "C",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
+                IR.String(expr_out): "varName"
+            })
+
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
         self.setMemorySharableVariables(expr_in, expr_out)
 
-        prog_func = IR.Prog([comment, funcCall])
+        prog_func = IR.Prog([comment, funcCall] + ([debugPrint] if config.zeroSkewDebug else []))
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_func)
 
@@ -1872,10 +1899,23 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(clamp_max): "clamp_max",
         })
 
+        debugPrint = []
+        if config.zeroSkewDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                expr_out: "expr",
+                IR.Int(N): "N",
+                IR.Int(H): "H",
+                IR.Int(W): "W",
+                IR.Int(C): "C",
+                IR.Float(scale_out): "scale",
+                IR.Int(zero_out): "zero",
+                IR.String(expr_out): "varName"
+            }))
+
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        prog_relu = IR.Prog([comment, funcCall])
+        prog_relu = IR.Prog([comment, funcCall] + (debugPrint if config.zeroSkewDebug else []))
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_relu)
 
@@ -2596,6 +2636,14 @@ class IRBuilderZeroSkew(IRBuilder):
         bw_in, scale_in, zero_in = self.getBitwidthScaleZeros(expr_in.idf)
         bw_out, scale_out, zero_out = self.getBitwidthScaleZeros(expr_out.idf)
 
+        bitwidth_temp = self.getTempBitwidth(bw_in, bw_in, "mul", bw_out)
+        m1, n1 = self.getMatMulShrAndN(scale_in, 1.0, scale_out, zero_in, 0, 
+                zero_out, bw_in, bw_in, bitwidth_temp, bw_out)
+        funcName = "AdjustScaleZero(" if not config.vbwEnabled else \
+                    "AdjustScaleZero<uint%d_t, int%d_t, uint%d_t>("%(bw_in, bitwidth_temp, bw_out)
+
+        clamp_min, clamp_max = self.getClampValues(bw_out)
+
         loop_dim = len(node.sizes)
 
         # Computing indices on LHS and RHS in for loop.
@@ -2612,11 +2660,12 @@ class IRBuilderZeroSkew(IRBuilder):
 
         expr_in_idx = IRUtil.addIndex(expr_in, iters_in)
         expr_out_idx = IRUtil.addIndex(expr_out, iters_out)
+        true_expr = IRUtil.addStrPrefixAndSuffix(funcName, expr_in_idx, ", %d, %d, %d, %d, %d, %d)"%(zero_in, zero_out, m1, -n1, clamp_min, clamp_max), bw_in)
 
         # Adjusting scale in the input and output code will be done in a single command at the end
 
         if math.fabs(scale_in - scale_out) > 0.000001 or (zero_in != zero_out):
-            cmd2 = IR.Assn(expr_out_idx, self.scale_adjust(expr_in_idx, scale_in, scale_out, zero_in, zero_out))
+            cmd2 = IR.Assn(expr_out_idx, true_expr)
         else:
             cmd2 = IR.Assn(expr_out_idx, expr_in_idx)
 

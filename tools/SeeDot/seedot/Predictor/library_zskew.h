@@ -153,7 +153,7 @@ void Sigmoid(MYINT* A, MYINT* B, MYITE I, MYITE J, float scale_in, ACINT zeroA, 
  */
 void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, ACINT zeroA, ACINT shrA, MYITE nA, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius);
 void TanH(MYINT* A, MYINT* B, MYITE I, MYITE J, float scale_in, ACINT zeroA, ACINT shrA, MYITE nA, float scale_out, ACINT zeroB, ACINT shrB, MYITE nB, ACINT clamp_radius);
-void ArgMax(MYINT* A, MYINT I, MYINT J, float scale_in, MYINT zero_in, int* index);
+void ArgMax(MYINT* A, MYITE I, MYITE J, float scale_in, MYINT zero_in, int* index);
 
 
 //Templated Operations: For cases when Variable BitWidth is enabled.
@@ -816,7 +816,7 @@ void Exp(TypeA* A, TypeB* B, MYITE I, MYITE J, float scale_in, float scale_out, 
 }
 
 template<class TypeA>
-void Transpose(TypeA* A, TypeA* B, MYINT I, MYINT J) {
+void Transpose(TypeA* A, TypeA* B, MYITE I, MYITE J) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			B[i * J + j] = A[j * I + i];
@@ -826,11 +826,11 @@ void Transpose(TypeA* A, TypeA* B, MYINT I, MYINT J) {
 }
 
 template<class TypeA>
-void Reverse2(TypeA* A, MYINT axis, MYINT I, MYINT J, TypeA* B) {
+void Reverse2(TypeA* A, MYITE axis, MYITE I, MYITE J, TypeA* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			MYINT i_prime = (axis == 0 ? (I-1-i) : i);
-			MYINT j_prime = (axis == 1 ? (J-1-j) : j);
+			MYITE i_prime = (axis == 0 ? (I-1-i) : i);
+			MYITE j_prime = (axis == 1 ? (J-1-j) : j);
 
 			B[i * J + j] = A[i_prime*J + j_prime];
 		}
@@ -946,7 +946,7 @@ void Relu6(TypeA* A, TypeB* B, MYITE N, MYITE H, MYITE W, MYITE C, float scale_i
 }
 
 template<class TypeA, class TypeB, class TypeAc, class TypeC>
-void Convolution(TypeA* A, const TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, float scaleA, float scaleB, float scaleC, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N0, TypeAc clamp_min, TypeAc clamp_max) {
+void Convolution(TypeA* A, const TypeB* B, TypeC* C, MYITE N, MYITE H, MYITE W, MYITE CIN, MYITE HF, MYITE WF, MYITE CINF, MYITE COUTF, MYITE HOUT, MYITE WOUT, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE HDL, MYITE WDL, MYITE G, float scaleA, float scaleB, float scaleC, TypeAc zeroA, TypeAc zeroB, TypeAc zeroC, TypeAc M0, MYITE N0, TypeAc clamp_min, TypeAc clamp_max) {
 	MYITE HOffsetL = HDL*(HF/2) - HPADL;
 	MYITE WOffsetL = WDL*(WF/2) - WPADL;
 	MYITE HOffsetR = HDL*(HF/2) - HPADR;
@@ -1116,28 +1116,39 @@ void MBConv(TypeA* A, TypeF1* F1, TypeB1W* BN1W, TypeB1B* BN1B, TypeF2* F2, Type
 }
 
 template<class TypeA, class TypeAc>
-void NormaliseL2(TypeA* A, TypeA* B, MYITE N, MYITE H, MYITE W, MYITE C, float scale_in, float scale_out, TypeAc zeroA, TypeAc zeroOut, TypeAc clamp_min, TypeAc clamp_max) {
+void NormaliseL2(TypeA* A, TypeA* B, MYITE N, MYITE H, MYITE W, MYITE C, float scale_in, float scale_out, TypeAc zeroA, TypeAc zeroOut, TypeAc M0, MYITE N0, TypeAc clamp_min, TypeAc clamp_max) {
+	// for (MYITE n = 0; n < N; n++) {
+	// 	for (MYITE h = 0; h < H; h++) {
+	// 		for (MYITE w = 0; w < W; w++) {
+	// 			TypeAc sum = 0;
+	// 			for (MYITE c = 0; c < C; c++) {
+	// 				TypeAc a = A[n * H * W * C + h * W * C + w * C + c];
+	// 				a += zeroA;
+	// 				sum += a * a;
+	// 			}
+
+	// 			TypeAc norm_multiplier;
+	// 			MYITE norm_shift;
+	// 			InvSqrtQuantizedMultiplier<TypeAc>(sum, &norm_multiplier, &norm_shift);
+
+	// 			for (MYITE c = 0; c < C; c++) {
+	// 				TypeAc a = A[n * H * W * C + h * W * C + w * C + c];
+	// 				a += zeroA;
+	// 				a <<= 7;
+
+	// 				TypeAc a_rescaled = MulQuantMultiplier<TypeAc>(a, norm_multiplier, norm_shift);
+	// 				B[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeAc, TypeA>(a_rescaled + zeroOut, clamp_min, clamp_max);
+	// 			}
+	// 		}
+	// 	}
+	// }
+	// return;
+
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
-				TypeAc sum = 0;
 				for (MYITE c = 0; c < C; c++) {
-					TypeAc a = A[n * H * W * C + h * W * C + w * C + c];
-					a += zeroA;
-					sum += a * a;
-				}
-
-				TypeAc norm_multiplier;
-				MYITE norm_shift;
-				InvSqrtQuantizedMultiplier<TypeAc>(sum, &norm_multiplier, &norm_shift);
-
-				for (MYITE c = 0; c < C; c++) {
-					TypeAc a = A[n * H * W * C + h * W * C + w * C + c];
-					a += zeroA;
-					a <<= 7;
-
-					TypeAc a_rescaled = MulQuantMultiplier<TypeAc>(a, norm_multiplier, norm_shift);
-					B[n * H * W * C + h * W * C + w * C + c] = Saturate<TypeAc, TypeA>(a_rescaled + zeroOut, clamp_min, clamp_max);
+					B[n * H * W * C + h * W * C + w * C + c] = AdjustScaleZero<TypeA, TypeAc, TypeA>(A[n * H * W * C + h * W * C + w * C + c], zeroA, zeroOut, M0, N0, clamp_min, clamp_max);
 				}
 			}
 		}

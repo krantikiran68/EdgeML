@@ -109,8 +109,15 @@ void populateZeroSkewVector(MYINT** features_int, vector<string> features, float
 
 	for (int i = 0; i < features_size; i++) {
 		double f = (double)(atof(features.at(i).c_str()));
-		double f_int = (f / scale) + zero; 
-		features_int[i][0] = (MYINT)(f_int);
+		double f_int = (f / scale) + zero;
+		MYINT f_quantized = f_int;
+		if (f_int < (double)std::numeric_limits<MYINT>::min()) {
+			f_quantized = std::numeric_limits<MYINT>::min();
+		}
+		if (f_int > (double)std::numeric_limits<MYINT>::max()) {
+			f_quantized = std::numeric_limits<MYINT>::max();
+		}
+		features_int[i][0] = f_quantized;
 	}
 
 	return;

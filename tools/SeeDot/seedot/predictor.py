@@ -169,7 +169,7 @@ class Predictor:
         Util.getLogger().debug("Execution...")
 
         exeFile = os.path.join("./Predictor")
-        args = [exeFile, self.encoding, self.datasetType, self.problemType, str(self.numOutputs), str("True"), str(self.shadow)]
+        args = [exeFile, self.encoding, self.datasetType, self.problemType, str(self.numOutputs), str("True"), str(self.shadow)] + ([str(config.testPointsForHeatMap)] if self.shadow else [])
 
         logFile = os.path.join(self.outputDir, "exec.txt")
         with open(logFile, 'w') as file:

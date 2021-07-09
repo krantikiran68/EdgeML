@@ -870,7 +870,7 @@ class IRBuilderPosit(IRBuilder):
 
         [I, J] = type_in_A.shape
         [J, K] = type_in_B.shape
-        type_treeSum = Type.Tensor([])
+        type_treeSum = Type.Tensor([1])
 
         intv_in_A, intv_in_B = self.varIntervals[expr_in_A.idf], self.varIntervals[expr_in_B.idf]
 
@@ -905,9 +905,8 @@ class IRBuilderPosit(IRBuilder):
         # Bit-width for temporary variables.
         bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
         
-        self.varsForBitwidth[expr_treeSum.idf] = bitwidth_mul
-        # The temp array in Posits shoudn't be counted in the scratch
-        self.notScratch.append(expr_treeSum.idf)
+        self.varsForBitwidth[expr_treeSum.idf] = 128 if bitwidth_mul >= 16 else 64
+
         # If one variable is already used as a sparse matrix, prevent further use as a dense matrix.
         assert expr_in_A.idf + "idx" not in self.sparseMatrixSizes.keys(), "Cannot use same matrix %s for both sparse and dense multiplication" % expr_in_A.idf
         templateArgs = "<%s, %s, %s, %s, %s>"%(self.getPositType(expr_in_A, bitwidth_in_A), self.getPositType(expr_in_A, bitwidth_in_B), self.getPositType(None, bitwidth_mul, isTemp=True), \
@@ -2597,9 +2596,7 @@ class IRBuilderPosit(IRBuilder):
         intv_in = self.varIntervals[expr_in.idf]
 
         # If input is demoted to lower bit-width, demote the output to lower bit-width as well.
-        if expr_in.idf in self.demotedVarsList:
-            self.demotedVarsList.append(expr_out.idf)
-            self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
+        self.varsForBitwidth[expr_out.idf] = bitwidth_in
 
         tanh_intv = self.getInterval(
             scale_in, config.tanhLimit, config.tanhLimit)
@@ -2734,9 +2731,7 @@ class IRBuilderPosit(IRBuilder):
         intv_in = self.varIntervals[expr_in.idf]
 
         # If input is demoted to lower bit-width, demote the output variable to lower bit-width as well.
-        if expr_in.idf in self.demotedVarsList:
-            self.demotedVarsList.append(expr_out.idf)
-            self.varsForBitwidth[expr_out.idf] = config.wordLength // 2
+        self.varsForBitwidth[expr_out.idf] = bitwidth_in
 
         # Scale sigmoid limit and other constants.
         addition_int = self.getNumInFixedPoint(addition, scale_in)

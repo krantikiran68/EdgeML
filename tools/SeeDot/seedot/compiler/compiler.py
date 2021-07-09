@@ -131,6 +131,8 @@ class Compiler:
             assert False
 
         codegen.printAll(*res)
+        
+        return res, state 
 
     def compile(self, ast):
         return self.genCodeWithFuncCalls(ast)

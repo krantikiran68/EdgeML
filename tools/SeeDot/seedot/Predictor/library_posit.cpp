@@ -4528,7 +4528,7 @@ void debugPrint(posit8_t* A, int I, int J, int K, int L, std::string varName)
 	f << varName<<std::endl;
 	for(int i=0;i<I*J*K*L;i++)
 	{
-		float a = convertP8ToDouble(A[i*J + j]);
+		float a = convertP8ToDouble(A[i]);
 		f<< a << " ";
 	}
 	f<<std::endl<<std::endl;
@@ -4544,7 +4544,7 @@ void debugPrint(posit16_t* A, int I, int J, int K, int L, std::string varName)
 	f << varName<<std::endl;
 	for(int i=0;i<I*J*K*L;i++)
 	{
-		float a = convertP16ToDouble(A[i*J + j]);
+		float a = convertP16ToDouble(A[i]);
 		f<< a << " ";
 	}
 	f<<std::endl<<std::endl;
@@ -4560,7 +4560,7 @@ void debugPrint(posit32_t* A, int I, int J, int K, int L, std::string varName)
 	f << varName<<std::endl;
 	for(int i=0;i<I*J*K*L;i++)
 	{
-		float a = convertP32ToDouble(A[i*J + j]);
+		float a = convertP32ToDouble(A[i]);
 		f<< a << " ";
 	}
 	f<<std::endl<<std::endl;
@@ -4576,7 +4576,7 @@ void debugPrint(posit_2_t* A, int I, int J, int K, int L, std::string varName, i
 	f << varName<<std::endl;
 	for(int i=0;i<I*J*K*L;i++)
 	{
-		float a = convertPositToDouble(A[i*J + j], bw);
+		float a = convertPositToDouble(A[i], bw);
 		f<< a << " ";
 	}
 	f<<std::endl<<std::endl;

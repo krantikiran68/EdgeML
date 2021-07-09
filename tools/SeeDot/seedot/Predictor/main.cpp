@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <thread>
 #include <algorithm>
+#include <random>
 
 #include "datatypes.h"
 #include "predictors.h"
@@ -193,10 +194,14 @@ int main(int argc, char* argv[]) {
 
 	bool serialExecution = false;
 	bool heatMap = false;
-	if (argc == 7 && string(argv[6]) == "True")
+
+	int numExecPoints = -1;
+	if (argc == 8 && string(argv[6]) == "True")
 	{
 		serialExecution = true;
 		heatMap = true;
+		numExecPoints = atoi(argv[7]);
+
 	}
 
 	// Reading the dataset.
@@ -256,6 +261,15 @@ int main(int argc, char* argv[]) {
 
 	// Each iteration takes care of one datapoint.
 	while (getline(featuresFile, line1) && getline(lablesFile, line2)) {
+
+		// if(numExecPoints != -1)
+		// {
+		// 	int randomNum = rand() % 100;
+		// 	if(randomNum > 30)
+		// 	{
+		// 		continue;
+		// 	}
+		// }
 		// Read the feature vector and class ID.
 		vector<string> features = getFeatures(line1);
 		vector<string> labelString = getLabel(line2);
@@ -405,6 +419,14 @@ int main(int argc, char* argv[]) {
 
 		flushProfile();
 		counter++;
+
+		if(numExecPoints != -1)
+		{
+			if(counter == numExecPoints)
+			{
+				break;
+			}
+		}
 	}
 
 	for (list<thread>::iterator it = threads.begin(); it != threads.end(); it++) {

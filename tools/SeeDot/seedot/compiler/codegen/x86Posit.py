@@ -142,6 +142,13 @@ class X86Posit(X86):
                 for i in range(len(size)):
                     self.out.decreaseIndent()
                     self.out.printf("}\n", indent = True)
+                typeCast = "(%s*)" % self.getPositType(self.varsForBitwidth[var])
+                if len(size) == 2:
+                    self.out.printf("debugPrint(%s%s, %d, %d, \"%s\", %d);\n"\
+                        , typeCast, var, size[0], size[1], var, bw, indent=True)
+                else:
+                    self.out.printf("debugPrint(%s%s, %d, %d, %d, %d, \"%s\", %d);\n"\
+                        , typeCast, var, size[0], size[1], size[2], size[3], var, bw, indent=True)
 
     def printVarDecls(self, globalVarDecl=True):
         if self.generateAllFiles:
@@ -467,19 +474,8 @@ class X86Posit(X86):
         return float_val
     
     def getPX2Suffix(self, bw):
-        if config.positBitwidth != 16:
-            bw = config.positBitwidth
-        if config.useUnverified:
-            return ", %d"%(config.positBitwidth)
-        if bw == 8:
-            return ""
-        if bw == 16:
-            return ""
-        if bw == 32:
-            return ""
-        return ", %d"%(config.positBitwidth)
-
-
+        return ", %d"%(bw)
+        
     def printMemset(self, ir):
         self.out.printf('memset(', indent=True)
         # If a memory optimized mapping is available for a variable, use that else use original variable name.

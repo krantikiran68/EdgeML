@@ -12,7 +12,7 @@
 // This file contains floating point implementations of operations supported by SeeDot.
 
 // C = A + B
-void MatAddNN(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddNN(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit8_t a = A[i * J + j];
@@ -27,7 +27,7 @@ void MatAddNN(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shr
 }
 
 // C = A + B
-void MatAddCN(const posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddCN(const posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit8_t a = A[i * J + j];
@@ -42,7 +42,7 @@ void MatAddCN(const posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYI
 }
 
 // C = A + B
-void MatAddNC(posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddNC(posit8_t* A, const posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit8_t a = A[i * J + j];
@@ -57,7 +57,7 @@ void MatAddNC(posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYI
 }
 
 // C = A + B
-void MatAddCC(const posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddCC(const posit8_t* A, const posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit8_t a = A[i * J + j];
@@ -72,7 +72,7 @@ void MatAddCC(const posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT 
 }
 
 // C = a + B
-void MatAddBroadCastA(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddBroadCastA(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit8_t a = *A;
@@ -87,7 +87,7 @@ void MatAddBroadCastA(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, M
 }
 
 // C = A + b
-void MatAddBroadCastB(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddBroadCastB(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit8_t a = A[i * J + j];
@@ -102,7 +102,7 @@ void MatAddBroadCastB(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, M
 }
 
 // C = A + B
-void MatAdd4(posit8_t* A, posit8_t* B, posit8_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAdd4(posit8_t* A, posit8_t* B, posit8_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -121,7 +121,7 @@ void MatAdd4(posit8_t* A, posit8_t* B, posit8_t* X, MYINT N, MYINT H, MYINT W, M
 }
 
 // C = A - B
-void MatSub(posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatSub(posit8_t* A, const posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit8_t a = A[i * J + j];
@@ -136,7 +136,7 @@ void MatSub(posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT
 }
 
 // C = a - B
-void MatSubBroadCastA(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatSubBroadCastA(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit8_t a = *A;
@@ -151,7 +151,7 @@ void MatSubBroadCastA(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, M
 }
 
 // C = A - b
-void MatSubBroadCastB(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatSubBroadCastB(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit8_t a = A[i * J + j];
@@ -166,7 +166,7 @@ void MatSubBroadCastB(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, M
 }
 
 // C = A * B
-void MatMulNN(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulNN(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	quire8_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -214,7 +214,7 @@ void MatMulNN(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYINT J, 
 }
 
 // C = A * B
-void MatMulCN(const posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulCN(const posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	quire8_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -262,7 +262,7 @@ void MatMulCN(const posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYI
 }
 
 // C = A * B
-void MatMulNC(posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulNC(posit8_t* A, const posit8_t* B, posit8_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	quire8_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -310,7 +310,7 @@ void MatMulNC(posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYI
 }
 
 // C = A * B
-void MatMulCC(const posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulCC(const posit8_t* A, const posit8_t* B, posit8_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	quire8_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -407,7 +407,7 @@ void SparseMatMul(const MYINT* Aidx, const posit8_t* Aval, posit8_t* B, posit8_t
 }
 
 // C = A <*> B
-void MulCir(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB) {
+void MulCir(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit8_t a = A[i * J + j];
@@ -420,7 +420,7 @@ void MulCir(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA,
 }
 
 // A = tanh(A)
-void TanH(posit8_t* A, MYINT I, MYINT J, float scale_in, float scale_out, posit8_t* B) {
+void TanH(posit8_t* A, MYITE I, MYITE J, float scale_in, float scale_out, posit8_t* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			double x = convertP8ToDouble(A[i * J + j]), y;
@@ -439,11 +439,11 @@ void TanH(posit8_t* A, MYINT I, MYINT J, float scale_in, float scale_out, posit8
 }
 
 // B = reverse(A, axis)
-void Reverse2(posit8_t* A, MYINT axis, MYINT I, MYINT J, posit8_t* B) {
+void Reverse2(posit8_t* A, MYITE axis, MYITE I, MYITE J, posit8_t* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			MYINT i_prime = (axis == 0 ? (I - 1 - i) : i);
-			MYINT j_prime = (axis == 1 ? (J - 1 - j) : j);
+			MYITE i_prime = (axis == 0 ? (I - 1 - i) : i);
+			MYITE j_prime = (axis == 1 ? (J - 1 - j) : j);
 
 			B[i * J + j] = A[i_prime*J + j_prime];
 		}
@@ -452,7 +452,7 @@ void Reverse2(posit8_t* A, MYINT axis, MYINT I, MYINT J, posit8_t* B) {
 }
 
 // index = argmax(A)
-void ArgMax(posit8_t* A, MYINT I, MYINT J, int* index) {
+void ArgMax(posit8_t* A, MYITE I, MYITE J, int* index) {
 	posit8_t max = A[0];
 	MYITE maxIndex = 0, counter = 0;
 	for (MYITE i = 0; i < I; i++) {
@@ -471,7 +471,7 @@ void ArgMax(posit8_t* A, MYINT I, MYINT J, int* index) {
 }
 
 // A = A^T
-void Transpose(posit8_t* A, posit8_t* B, MYINT I, MYINT J) {
+void Transpose(posit8_t* A, posit8_t* B, MYITE I, MYITE J) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			B[i * J + j] = A[j * I + i];
@@ -481,7 +481,7 @@ void Transpose(posit8_t* A, posit8_t* B, MYINT I, MYINT J) {
 }
 
 // C = a * B
-void ScalarMul(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB) {
+void ScalarMul(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB) {
 	posit8_t a = *A;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -651,7 +651,7 @@ void MBConv(posit8_t* A, const posit8_t* F1, const posit8_t* BN1W, const posit8_
 
 // C = conv(A, B, <params>)
 // A[N][H][W][CIN], B[G][HF][WF][CINF][COUTF], C[N][HOUT][WOUT][COUTF*G]
-void Convolution(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void Convolution(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CIN, MYITE HF, MYITE WF, MYITE CINF, MYITE COUTF, MYITE HOUT, MYITE WOUT, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE HDL, MYITE WDL, MYITE G, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	MYITE HOffsetL = HDL * (HF / 2) - HPADL;
 	MYITE WOffsetL = WDL * (WF / 2) - WPADL;
 	MYITE HOffsetR = HDL * (HF / 2) - HPADR;
@@ -716,7 +716,7 @@ void Convolution(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYI
 
 // C = A # B
 // A[N][H][W][CI], B[HF][WF][CI][CO], C[N][H][W][CO]
-void Conv(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void Conv(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CI, MYITE HF, MYITE WF, MYITE CO, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	MYITE padH = (HF - 1) / 2;
 	MYITE padW = (WF - 1) / 2;
 
@@ -779,7 +779,7 @@ void Conv(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT N, M
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir4D(posit8_t* A, const posit8_t* B, posit8_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
+void AddOrSubCir4D(posit8_t* A, const posit8_t* B, posit8_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -804,7 +804,7 @@ void AddOrSubCir4D(posit8_t* A, const posit8_t* B, posit8_t* X, MYINT N, MYINT H
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir2D(posit8_t* A, const posit8_t* B, posit8_t* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
+void AddOrSubCir2D(posit8_t* A, const posit8_t* B, posit8_t* X, MYITE H, MYITE W, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			posit8_t a = A[h * W + w];
@@ -825,7 +825,7 @@ void AddOrSubCir2D(posit8_t* A, const posit8_t* B, posit8_t* X, MYINT H, MYINT W
 
 // A = relu(A)
 // A[N][H][W][C]
-void Relu4D(posit8_t* A, MYINT N, MYINT H, MYINT W, MYINT C) {
+void Relu4D(posit8_t* A, MYITE N, MYITE H, MYITE W, MYITE C) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -846,7 +846,7 @@ void Relu4D(posit8_t* A, MYINT N, MYINT H, MYINT W, MYINT C) {
 
 // B = relu6(A)
 // A[N][H][W][C]
-void Relu6(posit8_t* A, posit8_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div) {
+void Relu6(posit8_t* A, posit8_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT six, MYINT div) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -871,7 +871,7 @@ void Relu6(posit8_t* A, posit8_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT s
 
 // A = relu(A)
 // A[N][H][W][C]
-void Relu2D(posit8_t* A, MYINT H, MYINT W) {
+void Relu2D(posit8_t* A, MYITE H, MYITE W) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			posit8_t a = A[h * W + w];
@@ -888,7 +888,7 @@ void Relu2D(posit8_t* A, MYINT H, MYINT W) {
 
 // B = maxpool(A)
 // A[N][H][W][C], B[N][H][W][C]
-void Maxpool(posit8_t* A, posit8_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR) {
+void Maxpool(posit8_t* A, posit8_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYITE FH, MYITE FW, MYITE strideH, MYITE strideW, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR) {
 	MYITE HO = H / strideH;
 	MYITE WO = W / strideW;
 
@@ -915,7 +915,7 @@ void Maxpool(posit8_t* A, posit8_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT
 	return;
 }
 
-void NormaliseL2(posit8_t* A, posit8_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA) {
+void NormaliseL2(posit8_t* A, posit8_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT scaleA, MYINT shrA) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -945,7 +945,7 @@ void NormaliseL2(posit8_t* A, posit8_t* B, MYINT N, MYINT H, MYINT W, MYINT C, M
 }
 
 // B = exp(A)
-void Exp(posit8_t* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, posit8_t* B) {
+void Exp(posit8_t* A, MYITE I, MYITE J, MYINT shrA, MYINT shrB, posit8_t* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit8_t x = A[i * J + j];
@@ -959,7 +959,7 @@ void Exp(posit8_t* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, posit8_t* B) {
 }
 
 // A = sigmoid(A)
-void Sigmoid(posit8_t* A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit8_t* B) {
+void Sigmoid(posit8_t* A, MYITE I, MYITE J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit8_t* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			float x = convertP8ToDouble(A[i * J + j]), y;
@@ -978,16 +978,16 @@ void Sigmoid(posit8_t* A, MYINT I, MYINT J, float div, float add, float sigmoid_
 }
 
 // A = AdjustScaleShr(A)
-void AdjustScaleShr(posit8_t* A, MYINT I, MYINT J, MYINT scale) {
+void AdjustScaleShr(posit8_t* A, MYITE I, MYITE J, MYINT scale) {
 	return;
 }
 
 // A = AdjustScaleShl(A)
-void AdjustScaleShl(posit8_t* A, MYINT I, MYINT J, MYINT scale) {
+void AdjustScaleShl(posit8_t* A, MYITE I, MYITE J, MYINT scale) {
 	return;
 }
 
-void MatAddNN(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddNN(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit16_t a = A[i * J + j];
@@ -1002,7 +1002,7 @@ void MatAddNN(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT 
 }
 
 // C = A + B
-void MatAddCN(const posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddCN(const posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit16_t a = A[i * J + j];
@@ -1017,7 +1017,7 @@ void MatAddCN(const posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, 
 }
 
 // C = A + B
-void MatAddNC(posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddNC(posit16_t* A, const posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit16_t a = A[i * J + j];
@@ -1032,7 +1032,7 @@ void MatAddNC(posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT J, 
 }
 
 // C = A + B
-void MatAddCC(const posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddCC(const posit16_t* A, const posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit16_t a = A[i * J + j];
@@ -1047,7 +1047,7 @@ void MatAddCC(const posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYI
 }
 
 // C = a + B
-void MatAddBroadCastA(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddBroadCastA(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit16_t a = *A;
@@ -1062,7 +1062,7 @@ void MatAddBroadCastA(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J
 }
 
 // C = A + b
-void MatAddBroadCastB(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddBroadCastB(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit16_t a = A[i * J + j];
@@ -1077,7 +1077,7 @@ void MatAddBroadCastB(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J
 }
 
 // C = A + B
-void MatAdd4(posit16_t* A, posit16_t* B, posit16_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAdd4(posit16_t* A, posit16_t* B, posit16_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -1096,7 +1096,7 @@ void MatAdd4(posit16_t* A, posit16_t* B, posit16_t* X, MYINT N, MYINT H, MYINT W
 }
 
 // C = A - B
-void MatSub(posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatSub(posit16_t* A, const posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit16_t a = A[i * J + j];
@@ -1111,7 +1111,7 @@ void MatSub(posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT J, MY
 }
 
 // C = a - B
-void MatSubBroadCastA(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatSubBroadCastA(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit16_t a = *A;
@@ -1126,7 +1126,7 @@ void MatSubBroadCastA(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J
 }
 
 // C = A - b
-void MatSubBroadCastB(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatSubBroadCastB(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit16_t a = A[i * J + j];
@@ -1141,7 +1141,7 @@ void MatSubBroadCastB(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J
 }
 
 // C = A * B
-void MatMulNN(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulNN(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	quire16_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -1189,7 +1189,7 @@ void MatMulNN(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT K, MYINT 
 }
 
 // C = A * B
-void MatMulCN(const posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulCN(const posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	quire16_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -1237,7 +1237,7 @@ void MatMulCN(const posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT K, 
 }
 
 // C = A * B
-void MatMulNC(posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulNC(posit16_t* A, const posit16_t* B, posit16_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	quire16_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -1285,7 +1285,7 @@ void MatMulNC(posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT K, 
 }
 
 // C = A * B
-void MatMulCC(const posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulCC(const posit16_t* A, const posit16_t* B, posit16_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	quire16_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -1382,7 +1382,7 @@ void SparseMatMul(const MYINT* Aidx, const posit16_t* Aval, posit16_t* B, posit1
 }
 
 // C = A <*> B
-void MulCir(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB) {
+void MulCir(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit16_t a = A[i * J + j];
@@ -1395,7 +1395,7 @@ void MulCir(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT sh
 }
 
 // A = tanh(A)
-void TanH(posit16_t* A, MYINT I, MYINT J, float scale_in, float scale_out, posit16_t* B) {
+void TanH(posit16_t* A, MYITE I, MYITE J, float scale_in, float scale_out, posit16_t* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			double x = convertP16ToDouble(A[i * J + j]), y;
@@ -1414,11 +1414,11 @@ void TanH(posit16_t* A, MYINT I, MYINT J, float scale_in, float scale_out, posit
 }
 
 // B = reverse(A, axis)
-void Reverse2(posit16_t* A, MYINT axis, MYINT I, MYINT J, posit16_t* B) {
+void Reverse2(posit16_t* A, MYITE axis, MYITE I, MYITE J, posit16_t* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			MYINT i_prime = (axis == 0 ? (I - 1 - i) : i);
-			MYINT j_prime = (axis == 1 ? (J - 1 - j) : j);
+			MYITE i_prime = (axis == 0 ? (I - 1 - i) : i);
+			MYITE j_prime = (axis == 1 ? (J - 1 - j) : j);
 
 			B[i * J + j] = A[i_prime*J + j_prime];
 		}
@@ -1427,7 +1427,7 @@ void Reverse2(posit16_t* A, MYINT axis, MYINT I, MYINT J, posit16_t* B) {
 }
 
 // index = argmax(A)
-void ArgMax(posit16_t* A, MYINT I, MYINT J, int* index) {
+void ArgMax(posit16_t* A, MYITE I, MYITE J, int* index) {
 	posit16_t max = A[0];
 	MYITE maxIndex = 0, counter = 0;
 	for (MYITE i = 0; i < I; i++) {
@@ -1446,7 +1446,7 @@ void ArgMax(posit16_t* A, MYINT I, MYINT J, int* index) {
 }
 
 // A = A^T
-void Transpose(posit16_t* A, posit16_t* B, MYINT I, MYINT J) {
+void Transpose(posit16_t* A, posit16_t* B, MYITE I, MYITE J) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			B[i * J + j] = A[j * I + i];
@@ -1456,7 +1456,7 @@ void Transpose(posit16_t* A, posit16_t* B, MYINT I, MYINT J) {
 }
 
 // C = a * B
-void ScalarMul(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB) {
+void ScalarMul(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB) {
 	posit16_t a = *A;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -1626,7 +1626,7 @@ void MBConv(posit16_t* A, const posit16_t* F1, const posit16_t* BN1W, const posi
 
 // C = conv(A, B, <params>)
 // A[N][H][W][CIN], B[G][HF][WF][CINF][COUTF], C[N][HOUT][WOUT][COUTF*G]
-void Convolution(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void Convolution(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CIN, MYITE HF, MYITE WF, MYITE CINF, MYITE COUTF, MYITE HOUT, MYITE WOUT, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE HDL, MYITE WDL, MYITE G, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	MYITE HOffsetL = HDL * (HF / 2) - HPADL;
 	MYITE WOffsetL = WDL * (WF / 2) - WPADL;
 	MYITE HOffsetR = HDL * (HF / 2) - HPADR;
@@ -1691,7 +1691,7 @@ void Convolution(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp,
 
 // C = A # B
 // A[N][H][W][CI], B[HF][WF][CI][CO], C[N][H][W][CO]
-void Conv(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void Conv(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CI, MYITE HF, MYITE WF, MYITE CO, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	MYITE padH = (HF - 1) / 2;
 	MYITE padW = (WF - 1) / 2;
 
@@ -1754,7 +1754,7 @@ void Conv(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT 
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir4D(posit16_t* A, const posit16_t* B, posit16_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
+void AddOrSubCir4D(posit16_t* A, const posit16_t* B, posit16_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -1779,7 +1779,7 @@ void AddOrSubCir4D(posit16_t* A, const posit16_t* B, posit16_t* X, MYINT N, MYIN
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir2D(posit16_t* A, const posit16_t* B, posit16_t* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
+void AddOrSubCir2D(posit16_t* A, const posit16_t* B, posit16_t* X, MYITE H, MYITE W, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			posit16_t a = A[h * W + w];
@@ -1800,7 +1800,7 @@ void AddOrSubCir2D(posit16_t* A, const posit16_t* B, posit16_t* X, MYINT H, MYIN
 
 // A = relu(A)
 // A[N][H][W][C]
-void Relu4D(posit16_t* A, MYINT N, MYINT H, MYINT W, MYINT C) {
+void Relu4D(posit16_t* A, MYITE N, MYITE H, MYITE W, MYITE C) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -1821,7 +1821,7 @@ void Relu4D(posit16_t* A, MYINT N, MYINT H, MYINT W, MYINT C) {
 
 // B = relu6(A)
 // A[N][H][W][C]
-void Relu6(posit16_t* A, posit16_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div) {
+void Relu6(posit16_t* A, posit16_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT six, MYINT div) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -1846,7 +1846,7 @@ void Relu6(posit16_t* A, posit16_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT
 
 // A = relu(A)
 // A[N][H][W][C]
-void Relu2D(posit16_t* A, MYINT H, MYINT W) {
+void Relu2D(posit16_t* A, MYITE H, MYITE W) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			posit16_t a = A[h * W + w];
@@ -1863,7 +1863,7 @@ void Relu2D(posit16_t* A, MYINT H, MYINT W) {
 
 // B = maxpool(A)
 // A[N][H][W][C], B[N][H][W][C]
-void Maxpool(posit16_t* A, posit16_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR) {
+void Maxpool(posit16_t* A, posit16_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYITE FH, MYITE FW, MYITE strideH, MYITE strideW, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR) {
 	MYITE HO = H / strideH;
 	MYITE WO = W / strideW;
 
@@ -1890,7 +1890,7 @@ void Maxpool(posit16_t* A, posit16_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYI
 	return;
 }
 
-void NormaliseL2(posit16_t* A, posit16_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA) {
+void NormaliseL2(posit16_t* A, posit16_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT scaleA, MYINT shrA) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -1920,7 +1920,7 @@ void NormaliseL2(posit16_t* A, posit16_t* B, MYINT N, MYINT H, MYINT W, MYINT C,
 }
 
 // B = exp(A)
-void Exp(posit16_t* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, posit16_t* B) {
+void Exp(posit16_t* A, MYITE I, MYITE J, MYINT shrA, MYINT shrB, posit16_t* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit16_t x = A[i * J + j];
@@ -1934,7 +1934,7 @@ void Exp(posit16_t* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, posit16_t* B) {
 }
 
 // A = sigmoid(A)
-void Sigmoid(posit16_t* A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit16_t* B) {
+void Sigmoid(posit16_t* A, MYITE I, MYITE J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit16_t* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			float x = convertP16ToDouble(A[i * J + j]), y;
@@ -1953,18 +1953,18 @@ void Sigmoid(posit16_t* A, MYINT I, MYINT J, float div, float add, float sigmoid
 }
 
 // A = AdjustScaleShr(A)
-void AdjustScaleShr(posit16_t* A, MYINT I, MYINT J, MYINT scale) {
+void AdjustScaleShr(posit16_t* A, MYITE I, MYITE J, MYINT scale) {
 	return;
 }
 
 // A = AdjustScaleShl(A)
-void AdjustScaleShl(posit16_t* A, MYINT I, MYINT J, MYINT scale) {
+void AdjustScaleShl(posit16_t* A, MYITE I, MYITE J, MYINT scale) {
 	return;
 }
 
 
 // C = A + B
-void MatAddNN(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddNN(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit32_t a = A[i * J + j];
@@ -1979,7 +1979,7 @@ void MatAddNN(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT 
 }
 
 // C = A + B
-void MatAddCN(const posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddCN(const posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit32_t a = A[i * J + j];
@@ -1994,7 +1994,7 @@ void MatAddCN(const posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, 
 }
 
 // C = A + B
-void MatAddNC(posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddNC(posit32_t* A, const posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit32_t a = A[i * J + j];
@@ -2009,7 +2009,7 @@ void MatAddNC(posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT J, 
 }
 
 // C = A + B
-void MatAddCC(const posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddCC(const posit32_t* A, const posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit32_t a = A[i * J + j];
@@ -2024,7 +2024,7 @@ void MatAddCC(const posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYI
 }
 
 // C = a + B
-void MatAddBroadCastA(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddBroadCastA(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit32_t a = *A;
@@ -2039,7 +2039,7 @@ void MatAddBroadCastA(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J
 }
 
 // C = A + b
-void MatAddBroadCastB(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAddBroadCastB(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit32_t a = A[i * J + j];
@@ -2054,7 +2054,7 @@ void MatAddBroadCastB(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J
 }
 
 // C = A + B
-void MatAdd4(posit32_t* A, posit32_t* B, posit32_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatAdd4(posit32_t* A, posit32_t* B, posit32_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -2073,7 +2073,7 @@ void MatAdd4(posit32_t* A, posit32_t* B, posit32_t* X, MYINT N, MYINT H, MYINT W
 }
 
 // C = A - B
-void MatSub(posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatSub(posit32_t* A, const posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit32_t a = A[i * J + j];
@@ -2088,7 +2088,7 @@ void MatSub(posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT J, MY
 }
 
 // C = a - B
-void MatSubBroadCastA(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatSubBroadCastA(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit32_t a = *A;
@@ -2103,7 +2103,7 @@ void MatSubBroadCastA(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J
 }
 
 // C = A - b
-void MatSubBroadCastB(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC) {
+void MatSubBroadCastB(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit32_t a = A[i * J + j];
@@ -2118,7 +2118,7 @@ void MatSubBroadCastB(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J
 }
 
 // C = A * B
-void MatMulNN(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulNN(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	quire32_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -2166,7 +2166,7 @@ void MatMulNN(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT K, MYINT 
 }
 
 // C = A * B
-void MatMulCN(const posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulCN(const posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	quire32_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -2214,7 +2214,7 @@ void MatMulCN(const posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT K, 
 }
 
 // C = A * B
-void MatMulNC(posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulNC(posit32_t* A, const posit32_t* B, posit32_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	quire32_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -2262,7 +2262,7 @@ void MatMulNC(posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT K, 
 }
 
 // C = A * B
-void MatMulCC(const posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void MatMulCC(const posit32_t* A, const posit32_t* B, posit32_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	quire32_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -2359,7 +2359,7 @@ void SparseMatMul(const MYINT* Aidx, const posit32_t* Aval, posit32_t* B, posit3
 }
 
 // C = A <*> B
-void MulCir(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB) {
+void MulCir(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit32_t a = A[i * J + j];
@@ -2372,7 +2372,7 @@ void MulCir(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT sh
 }
 
 // A = tanh(A)
-void TanH(posit32_t* A, MYINT I, MYINT J, float scale_in, float scale_out, posit32_t* B) {
+void TanH(posit32_t* A, MYITE I, MYITE J, float scale_in, float scale_out, posit32_t* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			double x = convertP32ToDouble(A[i * J + j]), y;
@@ -2391,11 +2391,11 @@ void TanH(posit32_t* A, MYINT I, MYINT J, float scale_in, float scale_out, posit
 }
 
 // B = reverse(A, axis)
-void Reverse2(posit32_t* A, MYINT axis, MYINT I, MYINT J, posit32_t* B) {
+void Reverse2(posit32_t* A, MYITE axis, MYITE I, MYITE J, posit32_t* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			MYINT i_prime = (axis == 0 ? (I - 1 - i) : i);
-			MYINT j_prime = (axis == 1 ? (J - 1 - j) : j);
+			MYITE i_prime = (axis == 0 ? (I - 1 - i) : i);
+			MYITE j_prime = (axis == 1 ? (J - 1 - j) : j);
 
 			B[i * J + j] = A[i_prime*J + j_prime];
 		}
@@ -2404,7 +2404,7 @@ void Reverse2(posit32_t* A, MYINT axis, MYINT I, MYINT J, posit32_t* B) {
 }
 
 // index = argmax(A)
-void ArgMax(posit32_t* A, MYINT I, MYINT J, int* index) {
+void ArgMax(posit32_t* A, MYITE I, MYITE J, int* index) {
 	posit32_t max = A[0];
 	MYITE maxIndex = 0, counter = 0;
 	for (MYITE i = 0; i < I; i++) {
@@ -2423,7 +2423,7 @@ void ArgMax(posit32_t* A, MYINT I, MYINT J, int* index) {
 }
 
 // A = A^T
-void Transpose(posit32_t* A, posit32_t* B, MYINT I, MYINT J) {
+void Transpose(posit32_t* A, posit32_t* B, MYITE I, MYITE J) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			B[i * J + j] = A[j * I + i];
@@ -2433,7 +2433,7 @@ void Transpose(posit32_t* A, posit32_t* B, MYINT I, MYINT J) {
 }
 
 // C = a * B
-void ScalarMul(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB) {
+void ScalarMul(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB) {
 	posit32_t a = *A;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -2603,7 +2603,7 @@ void MBConv(posit32_t* A, const posit32_t* F1, const posit32_t* BN1W, const posi
 
 // C = conv(A, B, <params>)
 // A[N][H][W][CIN], B[G][HF][WF][CINF][COUTF], C[N][HOUT][WOUT][COUTF*G]
-void Convolution(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void Convolution(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CIN, MYITE HF, MYITE WF, MYITE CINF, MYITE COUTF, MYITE HOUT, MYITE WOUT, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE HDL, MYITE WDL, MYITE G, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	MYITE HOffsetL = HDL * (HF / 2) - HPADL;
 	MYITE WOffsetL = WDL * (WF / 2) - WPADL;
 	MYITE HOffsetR = HDL * (HF / 2) - HPADR;
@@ -2668,7 +2668,7 @@ void Convolution(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp,
 
 // C = A # B
 // A[N][H][W][CI], B[HF][WF][CI][CO], C[N][H][W][CO]
-void Conv(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2) {
+void Conv(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CI, MYITE HF, MYITE WF, MYITE CO, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2) {
 	MYITE padH = (HF - 1) / 2;
 	MYITE padW = (WF - 1) / 2;
 
@@ -2731,7 +2731,7 @@ void Conv(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT 
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir4D(posit32_t* A, const posit32_t* B, posit32_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
+void AddOrSubCir4D(posit32_t* A, const posit32_t* B, posit32_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -2756,7 +2756,7 @@ void AddOrSubCir4D(posit32_t* A, const posit32_t* B, posit32_t* X, MYINT N, MYIN
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir2D(posit32_t* A, const posit32_t* B, posit32_t* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
+void AddOrSubCir2D(posit32_t* A, const posit32_t* B, posit32_t* X, MYITE H, MYITE W, MYINT shrA, MYINT shrB, MYINT shrC, bool add) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			posit32_t a = A[h * W + w];
@@ -2777,7 +2777,7 @@ void AddOrSubCir2D(posit32_t* A, const posit32_t* B, posit32_t* X, MYINT H, MYIN
 
 // A = relu(A)
 // A[N][H][W][C]
-void Relu4D(posit32_t* A, MYINT N, MYINT H, MYINT W, MYINT C) {
+void Relu4D(posit32_t* A, MYITE N, MYITE H, MYITE W, MYITE C) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -2798,7 +2798,7 @@ void Relu4D(posit32_t* A, MYINT N, MYINT H, MYINT W, MYINT C) {
 
 // B = relu6(A)
 // A[N][H][W][C]
-void Relu6(posit32_t* A, posit32_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div) {
+void Relu6(posit32_t* A, posit32_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT six, MYINT div) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -2823,7 +2823,7 @@ void Relu6(posit32_t* A, posit32_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT
 
 // A = relu(A)
 // A[N][H][W][C]
-void Relu2D(posit32_t* A, MYINT H, MYINT W) {
+void Relu2D(posit32_t* A, MYITE H, MYITE W) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			posit32_t a = A[h * W + w];
@@ -2840,7 +2840,7 @@ void Relu2D(posit32_t* A, MYINT H, MYINT W) {
 
 // B = maxpool(A)
 // A[N][H][W][C], B[N][H][W][C]
-void Maxpool(posit32_t* A, posit32_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR) {
+void Maxpool(posit32_t* A, posit32_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYITE FH, MYITE FW, MYITE strideH, MYITE strideW, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR) {
 	MYITE HO = H / strideH;
 	MYITE WO = W / strideW;
 
@@ -2867,7 +2867,7 @@ void Maxpool(posit32_t* A, posit32_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYI
 	return;
 }
 
-void NormaliseL2(posit32_t* A, posit32_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA) {
+void NormaliseL2(posit32_t* A, posit32_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT scaleA, MYINT shrA) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -2897,7 +2897,7 @@ void NormaliseL2(posit32_t* A, posit32_t* B, MYINT N, MYINT H, MYINT W, MYINT C,
 }
 
 // B = exp(A)
-void Exp(posit32_t* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, posit32_t* B) {
+void Exp(posit32_t* A, MYITE I, MYITE J, MYINT shrA, MYINT shrB, posit32_t* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit32_t x = A[i * J + j];
@@ -2911,7 +2911,7 @@ void Exp(posit32_t* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, posit32_t* B) {
 }
 
 // A = sigmoid(A)
-void Sigmoid(posit32_t* A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit32_t* B) {
+void Sigmoid(posit32_t* A, MYITE I, MYITE J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit32_t* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			float x = convertP32ToDouble(A[i * J + j]), y;
@@ -2930,18 +2930,18 @@ void Sigmoid(posit32_t* A, MYINT I, MYINT J, float div, float add, float sigmoid
 }
 
 // A = AdjustScaleShr(A)
-void AdjustScaleShr(posit32_t* A, MYINT I, MYINT J, MYINT scale) {
+void AdjustScaleShr(posit32_t* A, MYITE I, MYITE J, MYINT scale) {
 	return;
 }
 
 // A = AdjustScaleShl(A)
-void AdjustScaleShl(posit32_t* A, MYINT I, MYINT J, MYINT scale) {
+void AdjustScaleShl(posit32_t* A, MYITE I, MYITE J, MYINT scale) {
 	return;
 }
 
 
 // C = A + B
-void MatAddNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+void MatAddNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit_2_t a = A[i * J + j];
@@ -2956,7 +2956,7 @@ void MatAddNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT 
 }
 
 // C = A + B
-void MatAddCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+void MatAddCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit_2_t a = A[i * J + j];
@@ -2971,7 +2971,7 @@ void MatAddCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, 
 }
 
 // C = A + B
-void MatAddNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+void MatAddNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit_2_t a = A[i * J + j];
@@ -2986,7 +2986,7 @@ void MatAddNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, 
 }
 
 // C = A + B
-void MatAddCC(const posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+void MatAddCC(const posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit_2_t a = A[i * J + j];
@@ -3001,7 +3001,7 @@ void MatAddCC(const posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYI
 }
 
 // C = a + B
-void MatAddBroadCastA(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+void MatAddBroadCastA(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit_2_t a = *A;
@@ -3016,7 +3016,7 @@ void MatAddBroadCastA(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J
 }
 
 // C = A + b
-void MatAddBroadCastB(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+void MatAddBroadCastB(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit_2_t a = A[i * J + j];
@@ -3031,7 +3031,7 @@ void MatAddBroadCastB(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J
 }
 
 // C = A + B
-void MatAdd4(posit_2_t* A, posit_2_t* B, posit_2_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+void MatAdd4(posit_2_t* A, posit_2_t* B, posit_2_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -3050,7 +3050,7 @@ void MatAdd4(posit_2_t* A, posit_2_t* B, posit_2_t* X, MYINT N, MYINT H, MYINT W
 }
 
 // C = A - B
-void MatSub(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+void MatSub(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit_2_t a = A[i * J + j];
@@ -3065,7 +3065,7 @@ void MatSub(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MY
 }
 
 // C = a - B
-void MatSubBroadCastA(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+void MatSubBroadCastA(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit_2_t a = *A;
@@ -3080,7 +3080,7 @@ void MatSubBroadCastA(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J
 }
 
 // C = A - b
-void MatSubBroadCastB(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
+void MatSubBroadCastB(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit_2_t a = A[i * J + j];
@@ -3095,7 +3095,7 @@ void MatSubBroadCastB(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J
 }
 
 // C = A * B
-void MatMulNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+void MatMulNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2, int bitwidth) {
 	quire_2_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -3143,7 +3143,7 @@ void MatMulNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, MYINT 
 }
 
 // C = A * B
-void MatMulCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+void MatMulCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2, int bitwidth) {
 	quire_2_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -3191,7 +3191,7 @@ void MatMulCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, 
 }
 
 // C = A * B
-void MatMulNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+void MatMulNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2, int bitwidth) {
 	quire_2_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -3239,7 +3239,7 @@ void MatMulNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, 
 }
 
 // C = A * B
-void MatMulCC(const posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+void MatMulCC(const posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2, int bitwidth) {
 	quire_2_t qz;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -3336,7 +3336,7 @@ void SparseMatMul(const MYINT* Aidx, const posit_2_t* Aval, posit_2_t* B, posit_
 }
 
 // C = A <*> B
-void MulCir(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, int bitwidth) {
+void MulCir(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit_2_t a = A[i * J + j];
@@ -3349,7 +3349,7 @@ void MulCir(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT sh
 }
 
 // A = tanh(A)
-void TanH(posit_2_t* A, MYINT I, MYINT J, float scale_in, float scale_out, posit_2_t* B, int bitwidth) {
+void TanH(posit_2_t* A, MYITE I, MYITE J, float scale_in, float scale_out, posit_2_t* B, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			double x = convertPX2ToDouble(A[i * J + j]), y;
@@ -3368,11 +3368,11 @@ void TanH(posit_2_t* A, MYINT I, MYINT J, float scale_in, float scale_out, posit
 }
 
 // B = reverse(A, axis)
-void Reverse2(posit_2_t* A, MYINT axis, MYINT I, MYINT J, posit_2_t* B, int bitwidth) {
+void Reverse2(posit_2_t* A, MYITE axis, MYITE I, MYITE J, posit_2_t* B, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			MYINT i_prime = (axis == 0 ? (I - 1 - i) : i);
-			MYINT j_prime = (axis == 1 ? (J - 1 - j) : j);
+			MYITE i_prime = (axis == 0 ? (I - 1 - i) : i);
+			MYITE j_prime = (axis == 1 ? (J - 1 - j) : j);
 
 			B[i * J + j] = A[i_prime*J + j_prime];
 		}
@@ -3381,7 +3381,7 @@ void Reverse2(posit_2_t* A, MYINT axis, MYINT I, MYINT J, posit_2_t* B, int bitw
 }
 
 // index = argmax(A)
-void ArgMax(posit_2_t* A, MYINT I, MYINT J, int* index, int bitwidth) {
+void ArgMax(posit_2_t* A, MYITE I, MYITE J, int* index, int bitwidth) {
 	posit_2_t max = A[0];
 	MYITE maxIndex = 0, counter = 0;
 	for (MYITE i = 0; i < I; i++) {
@@ -3400,7 +3400,7 @@ void ArgMax(posit_2_t* A, MYINT I, MYINT J, int* index, int bitwidth) {
 }
 
 // A = A^T
-void Transpose(posit_2_t* A, posit_2_t* B, MYINT I, MYINT J) {
+void Transpose(posit_2_t* A, posit_2_t* B, MYITE I, MYITE J) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			B[i * J + j] = A[j * I + i];
@@ -3410,7 +3410,7 @@ void Transpose(posit_2_t* A, posit_2_t* B, MYINT I, MYINT J) {
 }
 
 // C = a * B
-void ScalarMul(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, int bitwidth) {
+void ScalarMul(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, int bitwidth) {
 	posit_2_t a = *A;
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -3580,7 +3580,7 @@ void MBConv(posit_2_t* A, const posit_2_t* F1, const posit_2_t* BN1W, const posi
 
 // C = conv(A, B, <params>)
 // A[N][H][W][CIN], B[G][HF][WF][CINF][COUTF], C[N][HOUT][WOUT][COUTF*G]
-void Convolution(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+void Convolution(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CIN, MYITE HF, MYITE WF, MYITE CINF, MYITE COUTF, MYITE HOUT, MYITE WOUT, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE HDL, MYITE WDL, MYITE G, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2, int bitwidth) {
 	MYITE HOffsetL = HDL * (HF / 2) - HPADL;
 	MYITE WOffsetL = WDL * (WF / 2) - WPADL;
 	MYITE HOffsetR = HDL * (HF / 2) - HPADR;
@@ -3645,7 +3645,7 @@ void Convolution(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp,
 
 // C = A # B
 // A[N][H][W][CI], B[HF][WF][CI][CO], C[N][H][W][CO]
-void Conv(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth) {
+void Conv(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CI, MYITE HF, MYITE WF, MYITE CO, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2, int bitwidth) {
 	MYITE padH = (HF - 1) / 2;
 	MYITE padW = (WF - 1) / 2;
 
@@ -3708,7 +3708,7 @@ void Conv(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT 
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir4D(posit_2_t* A, const posit_2_t* B, posit_2_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add, int bitwidth) {
+void AddOrSubCir4D(posit_2_t* A, const posit_2_t* B, posit_2_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC, bool add, int bitwidth) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -3733,7 +3733,7 @@ void AddOrSubCir4D(posit_2_t* A, const posit_2_t* B, posit_2_t* X, MYINT N, MYIN
 
 // A = A <+> B
 // A[N][H][W][C], B[C]
-void AddOrSubCir2D(posit_2_t* A, const posit_2_t* B, posit_2_t* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add, int bitwidth) {
+void AddOrSubCir2D(posit_2_t* A, const posit_2_t* B, posit_2_t* X, MYITE H, MYITE W, MYINT shrA, MYINT shrB, MYINT shrC, bool add, int bitwidth) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			posit_2_t a = A[h * W + w];
@@ -3754,7 +3754,7 @@ void AddOrSubCir2D(posit_2_t* A, const posit_2_t* B, posit_2_t* X, MYINT H, MYIN
 
 // A = relu(A)
 // A[N][H][W][C]
-void Relu4D(posit_2_t* A, MYINT N, MYINT H, MYINT W, MYINT C, int bitwidth) {
+void Relu4D(posit_2_t* A, MYITE N, MYITE H, MYITE W, MYITE C, int bitwidth) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -3775,7 +3775,7 @@ void Relu4D(posit_2_t* A, MYINT N, MYINT H, MYINT W, MYINT C, int bitwidth) {
 
 // B = relu6(A)
 // A[N][H][W][C]
-void Relu6(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div, int bitwidth) {
+void Relu6(posit_2_t* A, posit_2_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT six, MYINT div, int bitwidth) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -3800,7 +3800,7 @@ void Relu6(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT
 
 // A = relu(A)
 // A[N][H][W][C]
-void Relu2D(posit_2_t* A, MYINT H, MYINT W, int bitwidth) {
+void Relu2D(posit_2_t* A, MYITE H, MYITE W, int bitwidth) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			posit_2_t a = A[h * W + w];
@@ -3817,7 +3817,7 @@ void Relu2D(posit_2_t* A, MYINT H, MYINT W, int bitwidth) {
 
 // B = maxpool(A)
 // A[N][H][W][C], B[N][H][W][C]
-void Maxpool(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR) {
+void Maxpool(posit_2_t* A, posit_2_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYITE FH, MYITE FW, MYITE strideH, MYITE strideW, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR) {
 	MYITE HO = H / strideH;
 	MYITE WO = W / strideW;
 
@@ -3844,7 +3844,7 @@ void Maxpool(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYI
 	return;
 }
 
-void NormaliseL2(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA, int bitwidth) {
+void NormaliseL2(posit_2_t* A, posit_2_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT scaleA, MYINT shrA, int bitwidth) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -3874,7 +3874,7 @@ void NormaliseL2(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C,
 }
 
 // B = exp(A)
-void Exp(posit_2_t* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, posit_2_t* B, int bitwidth) {
+void Exp(posit_2_t* A, MYITE I, MYITE J, MYINT shrA, MYINT shrB, posit_2_t* B, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit_2_t x = A[i * J + j];
@@ -3888,7 +3888,7 @@ void Exp(posit_2_t* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, posit_2_t* B, i
 }
 
 // A = sigmoid(A)
-void Sigmoid(posit_2_t* A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit_2_t* B, int bitwidth) {
+void Sigmoid(posit_2_t* A, MYITE I, MYITE J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit_2_t* B, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			float x = convertPX2ToDouble(A[i * J + j]), y;
@@ -3907,12 +3907,12 @@ void Sigmoid(posit_2_t* A, MYINT I, MYINT J, float div, float add, float sigmoid
 }
 
 // A = AdjustScaleShr(A)
-void AdjustScaleShr(posit_2_t* A, MYINT I, MYINT J, MYINT scale) {
+void AdjustScaleShr(posit_2_t* A, MYITE I, MYITE J, MYINT scale) {
 	return;
 }
 
 // A = AdjustScaleShl(A)
-void AdjustScaleShl(posit_2_t* A, MYINT I, MYINT J, MYINT scale) {
+void AdjustScaleShl(posit_2_t* A, MYITE I, MYITE J, MYINT scale) {
 	return;
 }
 
@@ -4220,7 +4220,7 @@ posit32_t operator-(const posit32_t& a)
 }
 
 
-void MatAddInplace(posit8_t* A, posit8_t* B, MYINT I, MYINT J) {
+void MatAddInplace(posit8_t* A, posit8_t* B, MYITE I, MYITE J) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit8_t a = A[i * J + j];
@@ -4234,7 +4234,7 @@ void MatAddInplace(posit8_t* A, posit8_t* B, MYINT I, MYINT J) {
 	return;
 }
 
-void MatAddInplace(posit16_t* A, posit16_t* B, MYINT I, MYINT J) {
+void MatAddInplace(posit16_t* A, posit16_t* B, MYITE I, MYITE J) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit16_t a = A[i * J + j];
@@ -4248,7 +4248,7 @@ void MatAddInplace(posit16_t* A, posit16_t* B, MYINT I, MYINT J) {
 	return;
 }
 
-void MatAddInplace(posit32_t* A, posit32_t* B, MYINT I, MYINT J) {
+void MatAddInplace(posit32_t* A, posit32_t* B, MYITE I, MYITE J) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit32_t a = A[i * J + j];
@@ -4262,7 +4262,7 @@ void MatAddInplace(posit32_t* A, posit32_t* B, MYINT I, MYINT J) {
 	return;
 }
 
-void AddInplace(posit_2_t* A, posit_2_t* B, MYINT I, MYINT J, int bitwidth) {
+void AddInplace(posit_2_t* A, posit_2_t* B, MYITE I, MYITE J, int bitwidth) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			posit_2_t a = A[i * J + j];

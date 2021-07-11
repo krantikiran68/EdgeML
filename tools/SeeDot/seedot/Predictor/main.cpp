@@ -201,7 +201,10 @@ int main(int argc, char* argv[]) {
 		serialExecution = true;
 		heatMap = true;
 		numExecPoints = atoi(argv[7]);
-
+	}
+	else if (argc == 8)
+	{
+		numExecPoints = atoi(argv[7]);
 	}
 
 	// Reading the dataset.

@@ -2923,6 +2923,8 @@ class IRBuilder(ASTVisitor):
                     IR.Int(J): "J",
                     IR.String(expr_out): "varName"
                 }))
+        if forFloat():
+            self.independentVars.append(expr_out.idf)
 
         prog_tanh = IR.Prog([comment, funcCall] + debugPrint)
         prog_out = IRUtil.concatPrograms(prog_in, prog_tanh)
@@ -3116,6 +3118,8 @@ class IRBuilder(ASTVisitor):
                     IR.Int(J): "J",
                     IR.String(expr_out): "varName"
                 }))
+        if forFloat():
+            self.independentVars.append(expr_out.idf)
 
         prog_sigmoid = IR.Prog([comment, funcCall] + debugPrint)
 

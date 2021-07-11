@@ -70,9 +70,9 @@ printPositDebug = True
 
 testPointsForHeatMap = 10
 
-memoryLimit = 500
+memoryLimit = int(open("memoryLimit").read())
 
-accThreshold = 0.2
+accThreshold = 10
 # Following classes are used sanity checks for arguments passed to the compiler, to prevent unexpected arguments being passed.
 # These lists should be updated as the compiler is expanded to multiple algorithms and datasets.
 

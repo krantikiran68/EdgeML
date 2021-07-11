@@ -20,7 +20,7 @@ The accuracy and other statistics are written to the output file specified.
 
 class Predictor:
 
-    def __init__(self, algo, encoding, datasetType, outputDir, scaleForX, scalesForX, scaleForY, scalesForY, problemType, numOutputs, shadow = False):
+    def __init__(self, algo, encoding, datasetType, outputDir, scaleForX, scalesForX, scaleForY, scalesForY, problemType, numOutputs, shadow = False, counted=False):
         self.algo, self.encoding, self.datasetType = algo, encoding, datasetType
 
         self.outputDir = outputDir
@@ -35,6 +35,7 @@ class Predictor:
         self.numOutputs = numOutputs
 
         self.shadow = shadow
+        self.counted = counted
 
         self.genHeaderFile()
 
@@ -169,7 +170,12 @@ class Predictor:
         Util.getLogger().debug("Execution...")
 
         exeFile = os.path.join("./Predictor")
-        args = [exeFile, self.encoding, self.datasetType, self.problemType, str(self.numOutputs), str("True"), str(self.shadow)] + ([str(config.testPointsForHeatMap)] if self.shadow else [])
+        counts = []
+        if self.shadow:
+            counts.append(str(config.testPointsForHeatMap))
+        elif self.counted:
+            counts.append(str(4000))
+        args = [exeFile, self.encoding, self.datasetType, self.problemType, str(self.numOutputs), str("True"), str(self.shadow)] + counts
 
         logFile = os.path.join(self.outputDir, "exec.txt")
         with open(logFile, 'w') as file:

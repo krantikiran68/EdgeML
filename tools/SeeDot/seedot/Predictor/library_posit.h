@@ -8,262 +8,262 @@
 // This file contains declarations for floating point versions of all operators supported by SeeDot.
 // Please refer to library_fixed.h for a description of each operator.
 
-void MatAddNN(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatAddCN(const posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatAddNC(posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatAddCC(const posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddNN(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddCN(const posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddNC(posit8_t* A, const posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddCC(const posit8_t* A, const posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MatAddBroadCastA(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatAddBroadCastB(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddBroadCastA(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddBroadCastB(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MatAdd4(posit8_t* A, posit8_t* B, posit8_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAdd4(posit8_t* A, posit8_t* B, posit8_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MatSub(posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatSubBroadCastA(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatSubBroadCastB(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatSub(posit8_t* A, const posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatSubBroadCastA(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatSubBroadCastB(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MatMulNN(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
-void MatMulCN(const posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
-void MatMulNC(posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
-void MatMulCC(const posit8_t* A, const posit8_t* B, posit8_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
+void MatMulNN(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
+void MatMulCN(const posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
+void MatMulNC(posit8_t* A, const posit8_t* B, posit8_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
+void MatMulCC(const posit8_t* A, const posit8_t* B, posit8_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
 
 void SparseMatMulX(const MYINT* Aidx, const posit8_t* Aval, posit8_t** B, posit8_t* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC);
 void SparseMatMul(const MYINT* Aidx, const posit8_t* Aval, posit8_t* B, posit8_t* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MulCir(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB);
+void MulCir(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB);
 
-void TanH(posit8_t* A, MYINT I, MYINT J, float scale_in, float scale_out, posit8_t* B);
+void TanH(posit8_t* A, MYITE I, MYITE J, float scale_in, float scale_out, posit8_t* B);
 
-void ArgMax(posit8_t* A, MYINT I, MYINT J, int* index);
+void ArgMax(posit8_t* A, MYITE I, MYITE J, int* index);
 
-void Transpose(posit8_t* A, posit8_t* B, MYINT I, MYINT J);
+void Transpose(posit8_t* A, posit8_t* B, MYITE I, MYITE J);
 
-void ScalarMul(posit8_t* A, posit8_t* B, posit8_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB);
+void ScalarMul(posit8_t* A, posit8_t* B, posit8_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB);
 
 void MBConv(posit8_t* A, const posit8_t* F1, const posit8_t* BN1W, const posit8_t* BN1B, const posit8_t* F2, const posit8_t* BN2W, const posit8_t* BN2B, const posit8_t* F3, const posit8_t* BN3W, const posit8_t* BN3B, posit8_t* C, posit8_t* X, posit8_t* T, posit8_t* U, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE D1, MYITE D2, MYITE D3, MYINT SIX_1, MYINT SIX_2, MYINT shr1, MYINT shr2, MYINT shr3, MYINT shr4, MYINT shr5, MYINT shr6, MYINT shr7, MYINT shr8, MYINT shr9, MYINT shl1, MYINT shl2, MYINT shl3, MYINT shl4, MYINT shl5, MYINT shl6, MYINT shl7, MYINT shl8, MYINT shl9, std::string name);
 
-void Conv(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
+void Conv(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CI, MYITE HF, MYITE WF, MYITE CO, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
 
-void Convolution(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
+void Convolution(posit8_t* A, const posit8_t* B, posit8_t* C, posit8_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CIN, MYITE HF, MYITE WF, MYITE CINF, MYITE COUTF, MYITE HOUT, MYITE WOUT, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE HDL, MYITE WDL, MYITE G, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
 
-void AddOrSubCir4D(posit8_t* A, const posit8_t* B, posit8_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
+void AddOrSubCir4D(posit8_t* A, const posit8_t* B, posit8_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
 
-void AddOrSubCir2D(posit8_t* A, const posit8_t* B, posit8_t* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
+void AddOrSubCir2D(posit8_t* A, const posit8_t* B, posit8_t* X, MYITE H, MYITE W, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
 
-void Relu4D(posit8_t* A, MYINT N, MYINT H, MYINT W, MYINT C);
+void Relu4D(posit8_t* A, MYITE N, MYITE H, MYITE W, MYITE C);
 
-void Relu2D(posit8_t* A, MYINT H, MYINT W);
+void Relu2D(posit8_t* A, MYITE H, MYITE W);
 
-void Relu6(posit8_t* A, posit8_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div);
+void Relu6(posit8_t* A, posit8_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT six, MYINT div);
 
-void Maxpool(posit8_t* A, posit8_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR);
+void Maxpool(posit8_t* A, posit8_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYITE FH, MYITE FW, MYITE strideH, MYITE strideW, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR);
 
-void Exp(posit8_t* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, posit8_t* B);
+void Exp(posit8_t* A, MYITE I, MYITE J, MYINT shrA, MYINT shrB, posit8_t* B);
 
-void Sigmoid(posit8_t* A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit8_t* B);
+void Sigmoid(posit8_t* A, MYITE I, MYITE J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit8_t* B);
 
-void AdjustScaleShr(posit8_t* A, MYINT I, MYINT J, MYINT scale);
-void AdjustScaleShl(posit8_t* A, MYINT I, MYINT J, MYINT scale);
+void AdjustScaleShr(posit8_t* A, MYITE I, MYITE J, MYINT scale);
+void AdjustScaleShl(posit8_t* A, MYITE I, MYITE J, MYINT scale);
 
-void Reverse2(posit8_t* A, MYINT axis, MYINT I, MYINT J, posit8_t* B);
+void Reverse2(posit8_t* A, MYITE axis, MYITE I, MYITE J, posit8_t* B);
 
-void NormaliseL2(posit8_t* A, posit8_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA);
+void NormaliseL2(posit8_t* A, posit8_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT scaleA, MYINT shrA);
 posit8_t operator-(const posit8_t& a);
 bool operator>(const posit8_t& a, const int& b);
-void AddInplace(posit8_t* A, posit8_t* B, MYINT I, MYINT J);
+void AddInplace(posit8_t* A, posit8_t* B, MYITE I, MYITE J);
 
 
-void MatAddNN(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatAddCN(const posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatAddNC(posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatAddCC(const posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddNN(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddCN(const posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddNC(posit16_t* A, const posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddCC(const posit16_t* A, const posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MatAddBroadCastA(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatAddBroadCastB(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddBroadCastA(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddBroadCastB(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MatAdd4(posit16_t* A, posit16_t* B, posit16_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAdd4(posit16_t* A, posit16_t* B, posit16_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MatSub(posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatSubBroadCastA(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatSubBroadCastB(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatSub(posit16_t* A, const posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatSubBroadCastA(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatSubBroadCastB(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MatMulNN(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
-void MatMulCN(const posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
-void MatMulNC(posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
-void MatMulCC(const posit16_t* A, const posit16_t* B, posit16_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
+void MatMulNN(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
+void MatMulCN(const posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
+void MatMulNC(posit16_t* A, const posit16_t* B, posit16_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
+void MatMulCC(const posit16_t* A, const posit16_t* B, posit16_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
 
 void SparseMatMulX(const MYINT* Aidx, const posit16_t* Aval, posit16_t** B, posit16_t* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC);
 void SparseMatMul(const MYINT* Aidx, const posit16_t* Aval, posit16_t* B, posit16_t* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MulCir(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB);
+void MulCir(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB);
 
-void TanH(posit16_t* A, MYINT I, MYINT J, float scale_in, float scale_out, posit16_t* B);
+void TanH(posit16_t* A, MYITE I, MYITE J, float scale_in, float scale_out, posit16_t* B);
 
-void ArgMax(posit16_t* A, MYINT I, MYINT J, int* index);
+void ArgMax(posit16_t* A, MYITE I, MYITE J, int* index);
 
-void Transpose(posit16_t* A, posit16_t* B, MYINT I, MYINT J);
+void Transpose(posit16_t* A, posit16_t* B, MYITE I, MYITE J);
 
-void ScalarMul(posit16_t* A, posit16_t* B, posit16_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB);
+void ScalarMul(posit16_t* A, posit16_t* B, posit16_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB);
 
 void MBConv(posit16_t* A, const posit16_t* F1, const posit16_t* BN1W, const posit16_t* BN1B, const posit16_t* F2, const posit16_t* BN2W, const posit16_t* BN2B, const posit16_t* F3, const posit16_t* BN3W, const posit16_t* BN3B, posit16_t* C, posit16_t* X, posit16_t* T, posit16_t* U, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE D1, MYITE D2, MYITE D3, MYINT SIX_1, MYINT SIX_2, MYINT shr1, MYINT shr2, MYINT shr3, MYINT shr4, MYINT shr5, MYINT shr6, MYINT shr7, MYINT shr8, MYINT shr9, MYINT shl1, MYINT shl2, MYINT shl3, MYINT shl4, MYINT shl5, MYINT shl6, MYINT shl7, MYINT shl8, MYINT shl9, std::string name);
 
-void Conv(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
+void Conv(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CI, MYITE HF, MYITE WF, MYITE CO, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
 
-void Convolution(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
+void Convolution(posit16_t* A, const posit16_t* B, posit16_t* C, posit16_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CIN, MYITE HF, MYITE WF, MYITE CINF, MYITE COUTF, MYITE HOUT, MYITE WOUT, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE HDL, MYITE WDL, MYITE G, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
 
-void AddOrSubCir4D(posit16_t* A, const posit16_t* B, posit16_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
+void AddOrSubCir4D(posit16_t* A, const posit16_t* B, posit16_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
 
-void AddOrSubCir2D(posit16_t* A, const posit16_t* B, posit16_t* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
+void AddOrSubCir2D(posit16_t* A, const posit16_t* B, posit16_t* X, MYITE H, MYITE W, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
 
-void Relu4D(posit16_t* A, MYINT N, MYINT H, MYINT W, MYINT C);
+void Relu4D(posit16_t* A, MYITE N, MYITE H, MYITE W, MYITE C);
 
-void Relu2D(posit16_t* A, MYINT H, MYINT W);
+void Relu2D(posit16_t* A, MYITE H, MYITE W);
 
-void Relu6(posit16_t* A, posit16_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div);
+void Relu6(posit16_t* A, posit16_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT six, MYINT div);
 
-void Maxpool(posit16_t* A, posit16_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR);
+void Maxpool(posit16_t* A, posit16_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYITE FH, MYITE FW, MYITE strideH, MYITE strideW, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR);
 
-void Exp(posit16_t* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, posit16_t* B);
+void Exp(posit16_t* A, MYITE I, MYITE J, MYINT shrA, MYINT shrB, posit16_t* B);
 
-void Sigmoid(posit16_t* A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit16_t* B);
+void Sigmoid(posit16_t* A, MYITE I, MYITE J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit16_t* B);
 
-void AdjustScaleShr(posit16_t* A, MYINT I, MYINT J, MYINT scale);
-void AdjustScaleShl(posit16_t* A, MYINT I, MYINT J, MYINT scale);
+void AdjustScaleShr(posit16_t* A, MYITE I, MYITE J, MYINT scale);
+void AdjustScaleShl(posit16_t* A, MYITE I, MYITE J, MYINT scale);
 
-void Reverse2(posit16_t* A, MYINT axis, MYINT I, MYINT J, posit16_t* B);
+void Reverse2(posit16_t* A, MYITE axis, MYITE I, MYITE J, posit16_t* B);
 
-void NormaliseL2(posit16_t* A, posit16_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA);
+void NormaliseL2(posit16_t* A, posit16_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT scaleA, MYINT shrA);
 posit16_t operator-(const posit16_t& a);
 bool operator>(const posit16_t& a, const int& b);
-void AddInplace(posit16_t* A, posit16_t* B, MYINT I, MYINT J);
+void AddInplace(posit16_t* A, posit16_t* B, MYITE I, MYITE J);
 
-void MatAddNN(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatAddCN(const posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatAddNC(posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatAddCC(const posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddNN(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddCN(const posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddNC(posit32_t* A, const posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddCC(const posit32_t* A, const posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MatAddBroadCastA(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatAddBroadCastB(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddBroadCastA(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAddBroadCastB(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MatAdd4(posit32_t* A, posit32_t* B, posit32_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatAdd4(posit32_t* A, posit32_t* B, posit32_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MatSub(posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatSubBroadCastA(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
-void MatSubBroadCastB(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatSub(posit32_t* A, const posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatSubBroadCastA(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
+void MatSubBroadCastB(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MatMulNN(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
-void MatMulCN(const posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
-void MatMulNC(posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
-void MatMulCC(const posit32_t* A, const posit32_t* B, posit32_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
+void MatMulNN(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
+void MatMulCN(const posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
+void MatMulNC(posit32_t* A, const posit32_t* B, posit32_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
+void MatMulCC(const posit32_t* A, const posit32_t* B, posit32_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
 
 void SparseMatMulX(const MYINT* Aidx, const posit32_t* Aval, posit32_t** B, posit32_t* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC);
 void SparseMatMul(const MYINT* Aidx, const posit32_t* Aval, posit32_t* B, posit32_t* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC);
 
-void MulCir(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB);
+void MulCir(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB);
 
-void TanH(posit32_t* A, MYINT I, MYINT J, float scale_in, float scale_out, posit32_t* B);
+void TanH(posit32_t* A, MYITE I, MYITE J, float scale_in, float scale_out, posit32_t* B);
 
-void ArgMax(posit32_t* A, MYINT I, MYINT J, int* index);
+void ArgMax(posit32_t* A, MYITE I, MYITE J, int* index);
 
-void Transpose(posit32_t* A, posit32_t* B, MYINT I, MYINT J);
+void Transpose(posit32_t* A, posit32_t* B, MYITE I, MYITE J);
 
-void ScalarMul(posit32_t* A, posit32_t* B, posit32_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB);
+void ScalarMul(posit32_t* A, posit32_t* B, posit32_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB);
 
 void MBConv(posit32_t* A, const posit32_t* F1, const posit32_t* BN1W, const posit32_t* BN1B, const posit32_t* F2, const posit32_t* BN2W, const posit32_t* BN2B, const posit32_t* F3, const posit32_t* BN3W, const posit32_t* BN3B, posit32_t* C, posit32_t* X, posit32_t* T, posit32_t* U, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE D1, MYITE D2, MYITE D3, MYINT SIX_1, MYINT SIX_2, MYINT shr1, MYINT shr2, MYINT shr3, MYINT shr4, MYINT shr5, MYINT shr6, MYINT shr7, MYINT shr8, MYINT shr9, MYINT shl1, MYINT shl2, MYINT shl3, MYINT shl4, MYINT shl5, MYINT shl6, MYINT shl7, MYINT shl8, MYINT shl9, std::string name);
 
-void Conv(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
+void Conv(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CI, MYITE HF, MYITE WF, MYITE CO, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
 
-void Convolution(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2);
+void Convolution(posit32_t* A, const posit32_t* B, posit32_t* C, posit32_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CIN, MYITE HF, MYITE WF, MYITE CINF, MYITE COUTF, MYITE HOUT, MYITE WOUT, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE HDL, MYITE WDL, MYITE G, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2);
 
-void AddOrSubCir4D(posit32_t* A, const posit32_t* B, posit32_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
+void AddOrSubCir4D(posit32_t* A, const posit32_t* B, posit32_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
 
-void AddOrSubCir2D(posit32_t* A, const posit32_t* B, posit32_t* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
+void AddOrSubCir2D(posit32_t* A, const posit32_t* B, posit32_t* X, MYITE H, MYITE W, MYINT shrA, MYINT shrB, MYINT shrC, bool add);
 
-void Relu4D(posit32_t* A, MYINT N, MYINT H, MYINT W, MYINT C);
+void Relu4D(posit32_t* A, MYITE N, MYITE H, MYITE W, MYITE C);
 
-void Relu2D(posit32_t* A, MYINT H, MYINT W);
+void Relu2D(posit32_t* A, MYITE H, MYITE W);
 
-void Relu6(posit32_t* A, posit32_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div);
+void Relu6(posit32_t* A, posit32_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT six, MYINT div);
 
-void Maxpool(posit32_t* A, posit32_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR);
+void Maxpool(posit32_t* A, posit32_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYITE FH, MYITE FW, MYITE strideH, MYITE strideW, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR);
 
-void Exp(posit32_t* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, posit32_t* B);
+void Exp(posit32_t* A, MYITE I, MYITE J, MYINT shrA, MYINT shrB, posit32_t* B);
 
-void Sigmoid(posit32_t* A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit32_t* B);
+void Sigmoid(posit32_t* A, MYITE I, MYITE J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit32_t* B);
 
-void AdjustScaleShr(posit32_t* A, MYINT I, MYINT J, MYINT scale);
-void AdjustScaleShl(posit32_t* A, MYINT I, MYINT J, MYINT scale);
+void AdjustScaleShr(posit32_t* A, MYITE I, MYITE J, MYINT scale);
+void AdjustScaleShl(posit32_t* A, MYITE I, MYITE J, MYINT scale);
 
-void Reverse2(posit32_t* A, MYINT axis, MYINT I, MYINT J, posit32_t* B);
+void Reverse2(posit32_t* A, MYITE axis, MYITE I, MYITE J, posit32_t* B);
 
-void NormaliseL2(posit32_t* A, posit32_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA);
+void NormaliseL2(posit32_t* A, posit32_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT scaleA, MYINT shrA);
 posit32_t operator-(const posit32_t& a);
 bool operator>(const posit32_t& a, const int& b);
-void AddInplace(posit32_t* A, posit32_t* B, MYINT I, MYINT J);
+void AddInplace(posit32_t* A, posit32_t* B, MYITE I, MYITE J);
 
 
 
-void MatAddNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
-void MatAddCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
-void MatAddNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
-void MatAddCC(const posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
+void MatAddNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
+void MatAddCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
+void MatAddNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
+void MatAddCC(const posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
 
-void MatAddBroadCastA(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
-void MatAddBroadCastB(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
+void MatAddBroadCastA(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
+void MatAddBroadCastB(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
 
-void MatAdd4(posit_2_t* A, posit_2_t* B, posit_2_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
+void MatAdd4(posit_2_t* A, posit_2_t* B, posit_2_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
 
-void MatSub(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
-void MatSubBroadCastA(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
-void MatSubBroadCastB(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
+void MatSub(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
+void MatSubBroadCastA(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
+void MatSubBroadCastB(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
 
-void MatMulNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth);
-void MatMulCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth);
-void MatMulNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth);
-void MatMulCC(const posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYINT I, MYINT K, MYINT J, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth);
+void MatMulNN(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2, int bitwidth);
+void MatMulCN(const posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2, int bitwidth);
+void MatMulNC(posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2, int bitwidth);
+void MatMulCC(const posit_2_t* A, const posit_2_t* B, posit_2_t* C, MYITE I, MYITE K, MYITE J, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2, int bitwidth);
 
 void SparseMatMulX(const MYINT* Aidx, const posit_2_t* Aval, posit_2_t** B, posit_2_t* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
 void SparseMatMul(const MYINT* Aidx, const posit_2_t* Aval, posit_2_t* B, posit_2_t* C, int16_t K, MYINT shrA, MYINT shrB, MYINT shrC, int bitwidth);
 
-void MulCir(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, int bitwidth);
+void MulCir(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, int bitwidth);
 
-void TanH(posit_2_t* A, MYINT I, MYINT J, float scale_in, float scale_out, posit_2_t* B, int bitwidth);
+void TanH(posit_2_t* A, MYITE I, MYITE J, float scale_in, float scale_out, posit_2_t* B, int bitwidth);
 
-void ArgMax(posit_2_t* A, MYINT I, MYINT J, int* index, int bitwidth);
+void ArgMax(posit_2_t* A, MYITE I, MYITE J, int* index, int bitwidth);
 
-void Transpose(posit_2_t* A, posit_2_t* B, MYINT I, MYINT J, int bitwidth);
+void Transpose(posit_2_t* A, posit_2_t* B, MYITE I, MYITE J, int bitwidth);
 
-void ScalarMul(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYINT I, MYINT J, MYINT shrA, MYINT shrB, int bitwidth);
+void ScalarMul(posit_2_t* A, posit_2_t* B, posit_2_t* C, MYITE I, MYITE J, MYINT shrA, MYINT shrB, int bitwidth);
 
 void MBConv(posit_2_t* A, const posit_2_t* F1, const posit_2_t* BN1W, const posit_2_t* BN1B, const posit_2_t* F2, const posit_2_t* BN2W, const posit_2_t* BN2B, const posit_2_t* F3, const posit_2_t* BN3W, const posit_2_t* BN3B, posit_2_t* C, posit_2_t* X, posit_2_t* T, posit_2_t* U, MYITE N, MYITE H, MYITE W, MYITE Cin, MYITE Ct, MYITE HF, MYITE WF, MYITE Cout, MYITE Hout, MYITE Wout, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE D1, MYITE D2, MYITE D3, MYINT SIX_1, MYINT SIX_2, MYINT shr1, MYINT shr2, MYINT shr3, MYINT shr4, MYINT shr5, MYINT shr6, MYINT shr7, MYINT shr8, MYINT shr9, MYINT shl1, MYINT shl2, MYINT shl3, MYINT shl4, MYINT shl5, MYINT shl6, MYINT shl7, MYINT shl8, MYINT shl9, std::string name, int bitwidth);
 
-void Conv(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth);
+void Conv(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CI, MYITE HF, MYITE WF, MYITE CO, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2, int bitwidth);
 
-void Convolution(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, MYINT shrA, MYINT shrB, MYINT H1, MYINT H2, int bitwidth);
+void Convolution(posit_2_t* A, const posit_2_t* B, posit_2_t* C, posit_2_t* tmp, MYITE N, MYITE H, MYITE W, MYITE CIN, MYITE HF, MYITE WF, MYITE CINF, MYITE COUTF, MYITE HOUT, MYITE WOUT, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE HDL, MYITE WDL, MYITE G, MYINT shrA, MYINT shrB, MYITE H1, MYITE H2, int bitwidth);
 
-void AddOrSubCir4D(posit_2_t* A, const posit_2_t* B, posit_2_t* X, MYINT N, MYINT H, MYINT W, MYINT C, MYINT shrA, MYINT shrB, MYINT shrC, bool add, int bitwidth);
+void AddOrSubCir4D(posit_2_t* A, const posit_2_t* B, posit_2_t* X, MYITE N, MYITE H, MYITE W, MYITE C, MYINT shrA, MYINT shrB, MYINT shrC, bool add, int bitwidth);
 
-void AddOrSubCir2D(posit_2_t* A, const posit_2_t* B, posit_2_t* X, MYINT H, MYINT W, MYINT shrA, MYINT shrB, MYINT shrC, bool add, int bitwidth);
+void AddOrSubCir2D(posit_2_t* A, const posit_2_t* B, posit_2_t* X, MYITE H, MYITE W, MYINT shrA, MYINT shrB, MYINT shrC, bool add, int bitwidth);
 
-void Relu4D(posit_2_t* A, MYINT N, MYINT H, MYINT W, MYINT C, int bitwidth);
+void Relu4D(posit_2_t* A, MYITE N, MYITE H, MYITE W, MYITE C, int bitwidth);
 
-void Relu2D(posit_2_t* A, MYINT H, MYINT W, int bitwidth);
+void Relu2D(posit_2_t* A, MYITE H, MYITE W, int bitwidth);
 
-void Relu6(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT six, MYINT div, int bitwidth);
+void Relu6(posit_2_t* A, posit_2_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT six, MYINT div, int bitwidth);
 
-void Maxpool(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, int bitwidth);
+void Maxpool(posit_2_t* A, posit_2_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYITE FH, MYITE FW, MYITE strideH, MYITE strideW, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, int bitwidth);
 
-void Exp(posit_2_t* A, MYINT I, MYINT J, MYINT shrA, MYINT shrB, posit_2_t* B, int bitwidth);
+void Exp(posit_2_t* A, MYITE I, MYITE J, MYINT shrA, MYINT shrB, posit_2_t* B, int bitwidth);
 
-void Sigmoid(posit_2_t* A, MYINT I, MYINT J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit_2_t* B, int bitwidth);
+void Sigmoid(posit_2_t* A, MYITE I, MYITE J, float div, float add, float sigmoid_limit, MYINT scale_in, MYINT scale_out, posit_2_t* B, int bitwidth);
 
-void AdjustScaleShr(posit_2_t* A, MYINT I, MYINT J, MYINT scale, int bitwidth);
-void AdjustScaleShl(posit_2_t* A, MYINT I, MYINT J, MYINT scale, int bitwidth);
+void AdjustScaleShr(posit_2_t* A, MYITE I, MYITE J, MYINT scale, int bitwidth);
+void AdjustScaleShl(posit_2_t* A, MYITE I, MYITE J, MYINT scale, int bitwidth);
 
-void Reverse2(posit_2_t* A, MYINT axis, MYINT I, MYINT J, posit_2_t* B, int bitwidth);
+void Reverse2(posit_2_t* A, MYITE axis, MYITE I, MYITE J, posit_2_t* B, int bitwidth);
 
-void NormaliseL2(posit_2_t* A, posit_2_t* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT scaleA, MYINT shrA, int bitwidth);
-void AddInplace(posit_2_t* A, posit_2_t* B, MYINT I, MYINT J, int bw);
+void NormaliseL2(posit_2_t* A, posit_2_t* B, MYITE N, MYITE H, MYITE W, MYITE C, MYINT scaleA, MYINT shrA, int bitwidth);
+void AddInplace(posit_2_t* A, posit_2_t* B, MYITE I, MYITE J, int bw);
 
 void convertPosit(posit8_t* a, posit8_t *b, int bwA, int bwB);
 void convertPosit(posit8_t* a, posit16_t *b, int bwA, int bwB);
@@ -378,7 +378,7 @@ void debugPrint(posit_2_t* A, int I, int J, int K, int L, std::string varName, i
 void debugPrint(std::string str);
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void MatAdd(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, int bwB, int bwTemp, int bwC) {
+void MatAdd(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, int bwA, int bwB, int bwTemp, int bwC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a;
@@ -395,7 +395,7 @@ void MatAdd(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, int bwB, in
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, int bwB, int bwTemp, int bwC) {
+void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, int bwA, int bwB, int bwTemp, int bwC) {
     TypeTemp a;
     convertPosit(A, &a, bwA, bwTemp);
 	for (MYITE i = 0; i < I; i++) {
@@ -413,7 +413,7 @@ void MatAddBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, i
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, int bwB, int bwTemp, int bwC) {
+void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, int bwA, int bwB, int bwTemp, int bwC) {
     TypeTemp b;
     convertPosit(B, &b, bwB, bwTemp);
 	for (MYITE i = 0; i < I; i++) {
@@ -431,7 +431,7 @@ void MatAddBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, i
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
 // TODO: shrB is int32_t because in 8-bit/16-bit code, shrB is usually very high and int8_t/int16_t will overflow.
-void MatSub(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, int bwB, int bwTemp, int bwC) {
+void MatSub(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, int bwA, int bwB, int bwTemp, int bwC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a;
@@ -448,7 +448,7 @@ void MatSub(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, int bwB, in
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, int bwB, int bwTemp, int bwC) {
+void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, int bwA, int bwB, int bwTemp, int bwC) {
     TypeTemp a;
     convertPosit(A, &a, bwA, bwTemp);
 	for (MYITE i = 0; i < I; i++) {
@@ -465,7 +465,7 @@ void MatSubBroadCastA(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, i
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void MatSubBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, int bwB, int bwTemp, int bwC) {
+void MatSubBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, int bwA, int bwB, int bwTemp, int bwC) {
     TypeTemp b;
     convertPosit(B, &b, bwB, bwTemp);
 	for (MYITE i = 0; i < I; i++) {
@@ -483,7 +483,7 @@ void MatSubBroadCastB(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, i
 
 
 template<class TypeA, class TypeB, class TypeTemp, class QuireType, class TypeC>
-void MatMul(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT K, MYINT J, int bwA, int bwB, int bwTemp, int bwC) {
+void MatMul(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE K, MYITE J, int bwA, int bwB, int bwTemp, int bwC) {
 	QuireType q;
     int positSize = 8 * sizeof(TypeTemp);
     for (MYITE i = 0; i < I; i++) {
@@ -506,7 +506,7 @@ void MatMul(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT K, MYINT J, int bwA, in
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void MulCir(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, int bwB, int bwTemp, int bwC) {
+void MulCir(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, int bwA, int bwB, int bwTemp, int bwC) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
             TypeTemp a;
@@ -522,7 +522,7 @@ void MulCir(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, int bwB, in
 }
 
 template<class TypeA>
-void ArgMax(TypeA* A, MYINT I, MYINT J, int* index, int bwA) {
+void ArgMax(TypeA* A, MYITE I, MYITE J, int* index, int bwA) {
 	double max = convertPositToDouble(A[0], bwA);
 	MYITE maxIndex = 0, counter = 0;
 	for (MYITE i = 0; i < I; i++) {
@@ -543,7 +543,7 @@ void ArgMax(TypeA* A, MYINT I, MYINT J, int* index, int bwA) {
 }
 
 template<class TypeA>
-void Transpose(TypeA* A, TypeA* B, MYINT I, MYINT J) {
+void Transpose(TypeA* A, TypeA* B, MYITE I, MYITE J) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			B[i * J + j] = A[j * I + i];
@@ -553,7 +553,7 @@ void Transpose(TypeA* A, TypeA* B, MYINT I, MYINT J) {
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void ScalarMul(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, int bwB, int bwTemp, int bwC) {
+void ScalarMul(TypeA* A, TypeB* B, TypeC* C, MYITE I, MYITE J, int bwA, int bwB, int bwTemp, int bwC) {
     TypeTemp a;
     convertPosit(A, &a, bwA, bwTemp);
 	for (MYITE i = 0; i < I; i++) {
@@ -570,7 +570,7 @@ void ScalarMul(TypeA* A, TypeB* B, TypeC* C, MYINT I, MYINT J, int bwA, int bwB,
 
 
 template<class TypeA, class TypeB>
-void Sigmoid(TypeA* A,  TypeA* B, MYINT I, MYINT J, int bwA, int bwTemp, int bwB) {
+void Sigmoid(TypeA* A,  TypeA* B, MYITE I, MYITE J, int bwA, int bwTemp, int bwB) {
 
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
@@ -583,7 +583,7 @@ void Sigmoid(TypeA* A,  TypeA* B, MYINT I, MYINT J, int bwA, int bwTemp, int bwB
 }
 
 template<class TypeA, class TypeB>
-void TanH(TypeA* A, TypeB* B, MYINT I, MYINT J, int bwA, int bwTemp, int bwB) {
+void TanH(TypeA* A, TypeB* B, MYITE I, MYITE J, int bwA, int bwTemp, int bwB) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
             double x = convertPositToDouble(A[i * J + j], bwA);         
@@ -595,7 +595,7 @@ void TanH(TypeA* A, TypeB* B, MYINT I, MYINT J, int bwA, int bwTemp, int bwB) {
 }
 
 template<typename TypeA, typename TypeTemp, typename TypeB>
-void Exp(TypeA* A, TypeB *B, MYINT I, MYINT J, int bwA, int bwTemp, int bwB) {
+void Exp(TypeA* A, TypeB *B, MYITE I, MYITE J, int bwA, int bwTemp, int bwB) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeA x = A[i * J + j];
@@ -681,7 +681,7 @@ void SparseMatMul(const TypeAidx* Aidx, TypeA* Aval, TypeB* B, TypeC* C, int16_t
 }
 
 template<typename TypeA, typename TypeB, typename TypeTemp>
-void AddInplace(TypeA* A, TypeB* B, MYINT I, MYINT J, int bwA, int bwTemp, int bwB) {
+void AddInplace(TypeA* A, TypeB* B, MYITE I, MYITE J, int bwA, int bwTemp, int bwB) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
 			TypeTemp a, b;
@@ -698,11 +698,11 @@ void AddInplace(TypeA* A, TypeB* B, MYINT I, MYINT J, int bwA, int bwTemp, int b
 
 // B = reverse(A, axis)
 template<typename TypeA>
-void Reverse2(TypeA* A, MYINT axis, MYINT I, MYINT J, TypeA* B) {
+void Reverse2(TypeA* A, MYITE axis, MYITE I, MYITE J, TypeA* B) {
 	for (MYITE i = 0; i < I; i++) {
 		for (MYITE j = 0; j < J; j++) {
-			MYINT i_prime = (axis == 0 ? (I - 1 - i) : i);
-			MYINT j_prime = (axis == 1 ? (J - 1 - j) : j);
+			MYITE i_prime = (axis == 0 ? (I - 1 - i) : i);
+			MYITE j_prime = (axis == 1 ? (J - 1 - j) : j);
 
 			B[i * J + j] = A[i_prime*J + j_prime];
 		}
@@ -723,7 +723,7 @@ void ConvertPosit(TypeA* A, TypeB* B, MYITE I, MYITE J)
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class QuireType, class TypeC>
-void Convolution(TypeA* A, TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, MYINT CIN, MYINT HF, MYINT WF, MYINT CINF, MYINT COUTF, MYINT HOUT, MYINT WOUT, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, MYINT HSTR, MYINT WSTR, MYINT HDL, MYINT WDL, MYINT G, int bwA, int bwB, int bwTemp, int bwC) {
+void Convolution(TypeA* A, TypeB* B, TypeC* C, MYITE N, MYITE H, MYITE W, MYITE CIN, MYITE HF, MYITE WF, MYITE CINF, MYITE COUTF, MYITE HOUT, MYITE WOUT, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, MYITE HSTR, MYITE WSTR, MYITE HDL, MYITE WDL, MYITE G, int bwA, int bwB, int bwTemp, int bwC) {
 	MYITE HOffsetL = HDL*(HF/2) - HPADL;
 	MYITE WOffsetL = WDL*(WF/2) - WPADL;
 	MYITE HOffsetR = HDL*(HF/2) - HPADR;
@@ -768,7 +768,7 @@ void Convolution(TypeA* A, TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, MYINT 
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class QuireType, class TypeC>
-void Conv(TypeA* A, TypeB* B, TypeC* C, MYINT N, MYINT H, MYINT W, MYINT CI, MYINT HF, MYINT WF, MYINT CO, int bwA, int bwB, int bwTemp, int bwC) {
+void Conv(TypeA* A, TypeB* B, TypeC* C, MYITE N, MYITE H, MYITE W, MYITE CI, MYITE HF, MYITE WF, MYITE CO, int bwA, int bwB, int bwTemp, int bwC) {
 	MYITE padH = (HF - 1) / 2;
 	MYITE padW = (WF - 1) / 2;
 
@@ -998,7 +998,7 @@ void MBConv(TypeA* A,
 // A = A <+> B
 // A[N][H][W][C], B[C]
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void AddOrSubCir4D(TypeA* A, TypeB* B, TypeC* X, MYINT N, MYINT H, MYINT W, MYINT C, bool add, int bwA, int bwB, int bwTemp, int bwC) {
+void AddOrSubCir4D(TypeA* A, TypeB* B, TypeC* X, MYITE N, MYITE H, MYITE W, MYITE C, bool add, int bwA, int bwB, int bwTemp, int bwC) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -1023,7 +1023,7 @@ void AddOrSubCir4D(TypeA* A, TypeB* B, TypeC* X, MYINT N, MYINT H, MYINT W, MYIN
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeC>
-void AddOrSubCir2D(TypeA* A, TypeB* B, TypeC* X, MYINT H, MYINT W, bool add, int bwA, int bwB, int bwTemp, int bwC) {
+void AddOrSubCir2D(TypeA* A, TypeB* B, TypeC* X, MYITE H, MYITE W, bool add, int bwA, int bwB, int bwTemp, int bwC) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			TypeTemp a, b;
@@ -1044,7 +1044,7 @@ void AddOrSubCir2D(TypeA* A, TypeB* B, TypeC* X, MYINT H, MYINT W, bool add, int
 }
 
 template<class TypeA>
-void Relu4D(TypeA* A, MYINT N, MYINT H, MYINT W, MYINT C, int bwA) {
+void Relu4D(TypeA* A, MYITE N, MYITE H, MYITE W, MYITE C, int bwA) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {
@@ -1066,7 +1066,7 @@ void Relu4D(TypeA* A, MYINT N, MYINT H, MYINT W, MYINT C, int bwA) {
 }
 
 template<class TypeA, class TypeB>
-void Relu6(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, int bwA, int bwB) {
+void Relu6(TypeA* A, TypeB* B, MYITE N, MYITE H, MYITE W, MYITE C, int bwA, int bwB) {
 	TypeA zero, six_a;
 	convertDoubleToPosit(6.0, &six_a, bwA);
 	convertDoubleToPosit(0.0, &zero, bwA);
@@ -1090,7 +1090,7 @@ void Relu6(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, int bwA, int 
 }
 
 template<class TypeA>
-void Relu2D(TypeA* A, MYINT H, MYINT W, int bwA) {
+void Relu2D(TypeA* A, MYITE H, MYITE W, int bwA) {
 	for (MYITE h = 0; h < H; h++) {
 		for (MYITE w = 0; w < W; w++) {
 			TypeA a = A[h * W + w];
@@ -1108,7 +1108,7 @@ void Relu2D(TypeA* A, MYINT H, MYINT W, int bwA) {
 }
 
 template<class TypeA, class TypeB>
-void Maxpool(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, MYINT FW, MYINT strideH, MYINT strideW, MYINT HPADL, MYINT HPADR, MYINT WPADL, MYINT WPADR, int bwA, int bwB) {
+void Maxpool(TypeA* A, TypeB* B, MYITE N, MYITE H, MYITE W, MYITE C, MYITE FH, MYITE FW, MYITE strideH, MYITE strideW, MYITE HPADL, MYITE HPADR, MYITE WPADL, MYITE WPADR, int bwA, int bwB) {
 	MYITE HO = H / strideH;
 	MYITE WO = W / strideW;
 
@@ -1135,7 +1135,7 @@ void Maxpool(TypeA* A, TypeB* B, MYINT N, MYINT H, MYINT W, MYINT C, MYINT FH, M
 }
 
 template<class TypeA>
-void NormaliseL2(TypeA* A, TypeA* B, MYINT N, MYINT H, MYINT W, MYINT C, int bwA) {
+void NormaliseL2(TypeA* A, TypeA* B, MYITE N, MYITE H, MYITE W, MYITE C, int bwA) {
 	TypeA zero, one;
 	convertDoubleToPosit(0, &zero, bwA);
 	convertDoubleToPosit(1, &one, bwA);
@@ -1168,7 +1168,7 @@ void NormaliseL2(TypeA* A, TypeA* B, MYINT N, MYINT H, MYINT W, MYINT C, int bwA
 }
 
 template<class TypeA, class TypeB, class TypeTemp, class TypeX>
-void MatAdd4(TypeA* A, TypeB* B, TypeX* X, MYINT N, MYINT H, MYINT W, MYINT C, int bwA, int bwB, int bwTemp, int bwC) {
+void MatAdd4(TypeA* A, TypeB* B, TypeX* X, MYITE N, MYITE H, MYITE W, MYITE C, int bwA, int bwB, int bwTemp, int bwC) {
 	for (MYITE n = 0; n < N; n++) {
 		for (MYITE h = 0; h < H; h++) {
 			for (MYITE w = 0; w < W; w++) {

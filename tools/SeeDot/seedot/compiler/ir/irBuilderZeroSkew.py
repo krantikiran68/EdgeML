@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT license.
 
+from logging import debug
 import numpy as np
 import operator
 import math
@@ -199,15 +200,15 @@ class IRBuilderZeroSkew(IRBuilder):
         })
 
         debugPrint = []
-        if config.zeroSkewDebug:
-            debugPrint.append(IR.FuncCall("debugPrint", {
-                expr_out: "expr",
-                IR.Int(I): "I",
-                IR.Int(K): "J",
-                IR.Float(scale_out): "scale",
-                IR.Int(zero_out): "zero",
-                IR.String(expr_out): "varName"
-            }))
+        # if config.zeroSkewDebug:
+        #     debugPrint.append(IR.FuncCall("debugPrint", {
+        #         expr_out: "expr",
+        #         IR.Int(I): "I",
+        #         IR.Int(K): "J",
+        #         IR.Float(scale_out): "scale",
+        #         IR.Int(zero_out): "zero",
+        #         IR.String(expr_out): "varName"
+        #     }))
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
@@ -960,17 +961,18 @@ class IRBuilderZeroSkew(IRBuilder):
         self.counter_inst += 1
         self.updateLiveRange([a, b, expr_out])
 
-        debugPrint = IR.FuncCall("debugPrint", {
-                expr_out: "expr",
-                IR.Int(I): "I",
-                IR.Int(J): "J",
-                IR.Float(scale_out): "scale",
-                IR.Int(zero_out): "zero",
-                IR.String(expr_out): "varName"
-            })
+        debugPrint = []
+        # if config.zeroSkewDebug:
+        #     debugPrint = IR.FuncCall("debugPrint", {
+        #             expr_out: "expr",
+        #             IR.Int(I): "I",
+        #             IR.Int(J): "J",
+        #             IR.Float(scale_out): "scale",
+        #             IR.Int(zero_out): "zero",
+        #             IR.String(expr_out): "varName"
+        #         })
 
-
-        prog_mul = IR.Prog([comment, funcCall] + ([debugPrint] if config.zeroSkewDebug else []))
+        prog_mul = IR.Prog([comment, funcCall] + (debugPrint if config.zeroSkewDebug else []))
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -1109,20 +1111,21 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(clamp_max): "clamp_max"
         })
 
-        debugPrint = IR.FuncCall("debugPrint", {
-                expr_out: "expr",
-                # expr_temp: "T",
-                IR.Int(I): "I",
-                IR.Int(J): "J",
-                IR.Float(scale_out): "scale",
-                IR.Int(zero_out): "zero",
-                IR.String(expr_out): "varName"
-            })
+        debugPrint = []
+        # if config.zeroSkewDebug:
+        #     debugPrint.append(IR.FuncCall("debugPrint", {
+        #         expr_out: "expr",
+        #         IR.Int(I): "I",
+        #         IR.Int(K): "J",
+        #         IR.Float(scale_out): "scale",
+        #         IR.Int(zero_out): "zero",
+        #         IR.String(expr_out): "varName"
+        #     }))
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
 
-        prog_mul = IR.Prog([comment, funcCall] + ([debugPrint] if config.zeroSkewDebug else []))
+        prog_mul = IR.Prog([comment, funcCall] + (debugPrint if config.zeroSkewDebug else []))
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -1278,6 +1281,18 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(node.padding[3]): "WPADR",
             IR.Int(node.stride[0]): "HSTR",
             IR.Int(node.stride[1]): "WSTR",
+            IR.Float(scale_in_A): "scaleA",
+            IR.Float(scale_in_F1): "scaleF1",
+            IR.Float(scale_in_W1): "scaleW1",
+            IR.Float(scale_in_B1): "scaleB1",
+            IR.Float(scale_in_X): "scaleX",
+            IR.Float(scale_in_F2): "scaleF2",
+            IR.Float(scale_in_W2): "scaleW2",
+            IR.Float(scale_in_B2): "scaleB2",
+            IR.Float(scale_in_T): "scaleT",
+            IR.Float(scale_in_F3): "scaleF3",
+            IR.Float(scale_in_W3): "scaleW3",
+            IR.Float(scale_in_B3): "scaleB3",
             IR.Int(-zero_in_A): "zeroA",
             IR.Int(-zero_in_F1): "zeroF1",
             IR.Int(-zero_in_W1): "zeroBN1W",
@@ -1586,16 +1601,16 @@ class IRBuilderZeroSkew(IRBuilder):
                 IR.Int(clamp_max): "clamp_max",
                 IR.Bool(add): "add"
             })
-            debugPrint = IR.FuncCall("debugPrint", {
-                expr_out: "expr",
-                IR.Int(N): "N",
-                IR.Int(H): "H",
-                IR.Int(W): "W",
-                IR.Int(C): "C",
-                IR.Float(scale_out): "scale",
-                IR.Int(zero_out): "zero",
-                IR.String(expr_out): "varName"
-            })
+            # debugPrint = IR.FuncCall("debugPrint", {
+            #     expr_out: "expr",
+            #     IR.Int(N): "N",
+            #     IR.Int(H): "H",
+            #     IR.Int(W): "W",
+            #     IR.Int(C): "C",
+            #     IR.Float(scale_out): "scale",
+            #     IR.Int(zero_out): "zero",
+            #     IR.String(expr_out): "varName"
+            # })
         elif type_out.dim == 2:
             [H, W] = type_out.shape
             funcCall = IR.FuncCall("AddOrSubCir2D", {
@@ -1643,14 +1658,14 @@ class IRBuilderZeroSkew(IRBuilder):
                 IR.Int(clamp_max): "clamp_max",
                 IR.Bool(add): "add"
             })
-            debugPrint = IR.FuncCall("debugPrint", {
-                expr_out: "expr",
-                IR.Int(H): "H",
-                IR.Int(W): "W",
-                IR.Float(scale_out): "scale",
-                IR.Int(zero_out): "zero",
-                IR.String(expr_out): "varName"
-            })
+            # debugPrint = IR.FuncCall("debugPrint", {
+            #     expr_out: "expr",
+            #     IR.Int(H): "H",
+            #     IR.Int(W): "W",
+            #     IR.Float(scale_out): "scale",
+            #     IR.Int(zero_out): "zero",
+            #     IR.String(expr_out): "varName"
+            # })
         else:
             assert False, "AddCir only supports 2D and 4D tensors."
 
@@ -1660,7 +1675,7 @@ class IRBuilderZeroSkew(IRBuilder):
         if bitwidth_in_A == bitwidth_out:
             self.setMemorySharableVariables(expr_in_A, expr_out)
 
-        prog_cir = IR.Prog([comment, funcCall] + ([debugPrint] if config.zeroSkewDebug else []))
+        prog_cir = IR.Prog([comment, funcCall] + ([] if config.zeroSkewDebug else []))
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_cir)
 
@@ -1719,7 +1734,7 @@ class IRBuilderZeroSkew(IRBuilder):
                 IR.Int(C): "C",
                 IR.Float(scale_in): "scale_in",
                 IR.Float(scale_out): "scale_out",
-                IR.Int(zero_in): "zero_in",
+                IR.Int(-zero_in): "zero_in",
                 IR.Int(zero_out): "zero_out",
                 IR.Int(M0): "M0",
                 IR.Int(-N0): "N0",
@@ -1734,7 +1749,7 @@ class IRBuilderZeroSkew(IRBuilder):
                 IR.Int(C): "C",
                 IR.Float(scale_in): "scale_in",
                 IR.Float(scale_out): "scale_out",
-                IR.Int(zero_in): "zero_in",
+                IR.Int(-zero_in): "zero_in",
                 IR.Int(zero_out): "zero_out",
                 IR.Int(M0): "M0",
                 IR.Int(-N0): "N0",
@@ -2111,29 +2126,29 @@ class IRBuilderZeroSkew(IRBuilder):
                     # irdemote: "demote"
                 })
 
-            debugPrint = 0
-            if type_out.dim == 2:
-                debugPrint = IR.FuncCall("debugPrint", {
-                    expr_out: "expr",
-                    # expr_temp: "T",
-                    IR.Int(I): "I",
-                    IR.Int(J): "J",
-                    IR.Float(scale_out): "scale",
-                    IR.Int(zero_out): "zero",
-                    IR.String(expr_out): "varName"
-                })
-            else:
-                debugPrint = IR.FuncCall("debugPrint", {
-                    expr_out: "expr",
-                    # expr_temp: "T",
-                    IR.Int(N): "N",
-                    IR.Int(H): "H",
-                    IR.Int(W): "W",
-                    IR.Int(C): "C",
-                    IR.Float(scale_out): "scale",
-                    IR.Int(zero_out): "zero",
-                    IR.String(expr_out): "varName"
-                })
+            debugPrint = []
+            # if type_out.dim == 2:
+            #     debugPrint = IR.FuncCall("debugPrint", {
+            #         expr_out: "expr",
+            #         # expr_temp: "T",
+            #         IR.Int(I): "I",
+            #         IR.Int(J): "J",
+            #         IR.Float(scale_out): "scale",
+            #         IR.Int(zero_out): "zero",
+            #         IR.String(expr_out): "varName"
+            #     })
+            # else:
+            #     debugPrint = IR.FuncCall("debugPrint", {
+            #         expr_out: "expr",
+            #         # expr_temp: "T",
+            #         IR.Int(N): "N",
+            #         IR.Int(H): "H",
+            #         IR.Int(W): "W",
+            #         IR.Int(C): "C",
+            #         IR.Float(scale_out): "scale",
+            #         IR.Int(zero_out): "zero",
+            #         IR.String(expr_out): "varName"
+            #     })
 
             self.counter_inst += 1
             self.updateLiveRange([expr_in_A, expr_in_B, expr_out])
@@ -2196,7 +2211,7 @@ class IRBuilderZeroSkew(IRBuilder):
             # else:
             #     assert False, "Illegal number of dimensions"
 
-            prog_bop = IR.Prog( [comment, funcCall] + ([debugPrint] if config.zeroSkewDebug else []))
+            prog_bop = IR.Prog( [comment, funcCall] + (debugPrint if config.zeroSkewDebug else []))
 
             prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_bop)
 
@@ -2414,20 +2429,22 @@ class IRBuilderZeroSkew(IRBuilder):
             IR.Int(clamp_radius): "clamp_radius"
         })
 
-        debugPrint = IR.FuncCall("debugPrint", {
-                expr_out: "expr",
-                # expr_temp: "T",
-                IR.Int(I): "I",
-                IR.Int(J): "J",
-                IR.Float(scale_out): "scale",
-                IR.Int(zero_out): "zero",
-                IR.String(expr_out): "varName"
-            })
+        debugPrint = []
+        # if config.zeroSkewDebug:
+        #     debugPrint.append(IR.FuncCall("debugPrint", {
+        #             expr_out: "expr",
+        #             # expr_temp: "T",
+        #             IR.Int(I): "I",
+        #             IR.Int(J): "J",
+        #             IR.Float(scale_out): "scale",
+        #             IR.Int(zero_out): "zero",
+        #             IR.String(expr_out): "varName"
+        #         }))
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        prog_tanh = IR.Prog([comment, funcCall] + ([debugPrint] if config.zeroSkewDebug else []))
+        prog_tanh = IR.Prog([comment, funcCall] + (debugPrint if config.zeroSkewDebug else []))
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_tanh)
 
@@ -2590,17 +2607,19 @@ class IRBuilderZeroSkew(IRBuilder):
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        debugPrint = IR.FuncCall("debugPrint", {
-                expr_out: "expr",
-                # expr_temp: "T",
-                IR.Int(I): "I",
-                IR.Int(J): "J",
-                IR.Float(scale_out): "scale",
-                IR.Int(zero_out): "zero",
-                IR.String(expr_out): "varName"
-            })
+        debugPrint = []
+        # if config.zeroSkewDebug:
+        #     debugPrint.append(IR.FuncCall("debugPrint", {
+        #             expr_out: "expr",
+        #             # expr_temp: "T",
+        #             IR.Int(I): "I",
+        #             IR.Int(J): "J",
+        #             IR.Float(scale_out): "scale",
+        #             IR.Int(zero_out): "zero",
+        #             IR.String(expr_out): "varName"
+        #         }))
 
-        prog_sigmoid = IR.Prog([comment, funcCall] + ([debugPrint] if config.zeroSkewDebug else []))
+        prog_sigmoid = IR.Prog([comment, funcCall] + (debugPrint if config.zeroSkewDebug else []))
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_sigmoid)
 
@@ -3001,15 +3020,15 @@ class IRBuilderZeroSkew(IRBuilder):
         })
 
         debugPrint = []
-        if config.zeroSkewDebug:
-            debugPrint.append(IR.FuncCall("debugPrint", {
-                expr_out: "expr",
-                IR.Int(P): "I",
-                IR.Int(R): "J",
-                IR.Float(scale_out): "scale",
-                IR.Int(zero_out): "zero",
-                IR.String(expr_out): "varName"
-            }))
+        # if config.zeroSkewDebug:
+        #     debugPrint.append(IR.FuncCall("debugPrint", {
+        #         expr_out: "expr",
+        #         IR.Int(P): "I",
+        #         IR.Int(R): "J",
+        #         IR.Float(scale_out): "scale",
+        #         IR.Int(zero_out): "zero",
+        #         IR.String(expr_out): "varName"
+        #     }))
 
         self.counter_inst += 1
         self.updateLiveRange([in_A_idx, in_A_val, expr_in_B, expr_out, tmp_out])

@@ -840,4 +840,3 @@ class Main:
             return self.runForFloat()
         else:
             return self.runEncoded()
-

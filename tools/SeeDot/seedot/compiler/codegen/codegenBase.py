@@ -77,7 +77,7 @@ class CodegenBase:
             assert False
 
     def printFloat(self, ir):
-        self.out.printf('%ff', ir.n)
+        self.out.printf('%.8ff', ir.n)
 
     def printVar(self, ir, isPointer=False):
         # If floating point mode is used or VBW mode is off, then the variable is printed normally (see else branch).

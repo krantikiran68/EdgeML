@@ -111,7 +111,8 @@ class Main:
             # Variables that have been given a second chance 
         self.doNotPromote = []
             # Variables that have been demoted to 8-bit and shouldn't be promoted again
-        self.configurationAccMap = []
+        self.configurationMap = []
+        self.AccMap = []
 
     # This function is invoked right at the beginning for moving around files into the working directory.
     def setup(self):
@@ -283,14 +284,14 @@ class Main:
         return True
 
     # Build and run the Predictor project.
-    def predict(self, encoding, datasetType, shadow=False, counted=False):
+    def predict(self, encoding, datasetType, shadow=False, counted=False, clean=False):
         outputDir = os.path.join("output", encoding)
 
         curDir = os.getcwd()
         os.chdir(os.path.join(config.tempdir, "Predictor"))
 
         obj = Predictor(self.algo, encoding, datasetType,
-                        outputDir, self.scaleForX, self.scalesForX, self.scaleForY, self.scalesForY, self.problemType, self.numOutputs, shadow, counted)
+                        outputDir, self.scaleForX, self.scalesForX, self.scaleForY, self.scalesForY, self.problemType, self.numOutputs, shadow, counted, clean)
         execMap = obj.run()
 
         os.chdir(curDir)
@@ -418,19 +419,22 @@ class Main:
         while True:
             self.clearHeatMapLog()
             self.partialCompile(self.encoding, config.Target.x86, None, True, None, 0, dict(self.variableToBitwidthMap), [], {})
+            self.runAndSaveAcc(self.variableToBitwidthMap, self.encoding, config.DatasetType.training)
             valMapvbW = self.runAndCreateVarMap(self.encoding, config.DatasetType.training)
             print("Run Completed")
             heat_map = self.createHeatMap(valMapvbW, valMap16Bit)
             print("Heat Map Created")
             self.variableToBitwidthMap = dict(self.runAttackingAlgorithm(self.encoding, config.DatasetType.training, heat_map))
-            if self.previousResConfig == self.variableToBitwidthMap:
+            if self.variableToBitwidthMap in self.configurationMap:
                 print("Termination condition reached at : " , str(self.variableToBitwidthMap))
-                # maxAcc = 0
-                # for bwConfig in self.configurationAccMap:
-                #     bwConfig, acc = bwConfig 
-                #     if acc > maxAcc:
-                #         maxAcc = acc
-                #         self.variableToBitwidthMap = dict(bwConfig)
+                maxAcc = self.AccMap[0]
+                maxIdx = 0
+                for i in range(1, len(self.AccMap)):
+                    acc = self.AccMap[i]
+                    if acc > maxAcc:
+                        maxAcc = acc
+                        maxIdx = i
+                self.variableToBitwidthMap = self.configurationMap[maxIdx]
                 return
             else:
                 self.previousResConfig = dict(self.variableToBitwidthMap)
@@ -439,6 +443,10 @@ class Main:
     def promote(self, varName):
         self.variableToBitwidthMap[varName] = 16
         return True
+    def demote(self, varName):
+        self.variableToBitwidthMap[varName] = 8
+        return True
+    
     def findMinNumPromote(self, heat_map):
         min_num_promote = 0
         for i in range(len(heat_map)):
@@ -450,45 +458,58 @@ class Main:
         return min_num_promote
 
     def runAttackingAlgorithm(self, encoding, datasetType, heat_map, isFirstIter = False):
-        min_num_promote = self.findMinNumPromote(heat_map) if not isFirstIter else 0
+        # min_num_promote = self.findMinNumPromote(heat_map) if not isFirstIter else 0
         promoted_count = 0
         promoted_in_this_iter = []
-        for i in range(len(heat_map)):
-            var = heat_map[i][0]
-            if self.variableToBitwidthMap[var] == 8:
-                if var in self.doNotPromote:
-                    continue
-                promoted_flag = self.promote(var)
-                if not promoted_flag:
-                    continue
-                promoted_count += 1
-                promoted_in_this_iter.append(var)
-                memUsage = self.checkMemoryThreshold()
-                if memUsage > config.memoryLimit:
-                    memThreshold = False
-                else: 
-                    memThreshold = True
-                if memThreshold:
-                    print("Case 0")
-                    self.previousMemUsage = memUsage
-                    self.previousVarConfig = dict(self.variableToBitwidthMap)
-                    self.movingErrorThreshold = heat_map[i][1][0]
-                    continue
-                else:
-                    if promoted_count > min_num_promote:
-                        print("Case 1")
-                        self.movingErrorThreshold = heat_map[i-1][1][0]
-                        return self.previousVarConfig
-                    elif not self.defending(encoding, datasetType, heat_map, promoted_in_this_iter):
-                        # Attempting to demote variables to make room failed 
-                        print("Case 2")
-                        self.movingErrorThreshold = heat_map[i-1][1][0]
-                        return self.previousVarConfig
-                    else:
-                        # Successfully demoted variables
-                        print("Case 3")
+        while True:
+            promotable_vars = []
+            for i in range(len(heat_map)):
+                var = heat_map[i][0]
+                if self.variableToBitwidthMap[var] == 8:
+                    if var in self.doNotPromote:
                         continue
-        return self.variableToBitwidthMap
+                    promoted_flag = self.promote(var)
+                    if not promoted_flag:
+                        continue
+                    promotable_vars.append(var)
+                    memUsage = self.checkMemoryThreshold()
+                    # f = open("memChecking", "a")
+                    # f.write(str(config.memoryLimit) + '\n')
+                    # f.close()
+                    if memUsage > config.memoryLimit:
+                        self.demote(var)
+                    else: 
+                        promoted_count += 1
+                        promoted_in_this_iter.append(var)
+            
+            if promoted_count > 0:
+                print("Case 0")
+                return self.variableToBitwidthMap
+            if len(promotable_vars) == 0:
+                print("Case1")
+                return self.variableToBitwidthMap
+            else:
+                self.promote(promotable_vars[0])
+                promoted_in_this_iter.append(promotable_vars[0])
+                self.previousVarConfig = dict(self.variableToBitwidthMap)
+            if not self.defending(encoding, datasetType, heat_map, promoted_in_this_iter):
+                # Attempting to demote variables to make room failed 
+                print("Case 2")
+                return self.previousVarConfig
+            else:
+                # Successfully demoted variables
+                print("Case 3")
+                continue
+    
+    def runAndSaveAcc(self, bwConfiguration, encoding, datasetType):
+        execMap = self.predict(encoding, datasetType, counted=True, clean=True)
+        self.configurationMap.append(dict(bwConfiguration))
+        if self.metric == config.Metric.accuracy:
+            self.AccMap.append(execMap['default'][0])
+        elif self.metric == config.Metric.disagreements:
+            self.AccMap.append(-execMap['default'][1])
+        elif self.metric == config.Metric.reducedDisagreements:
+            self.AccMap.append(-execMap['default'][2])
 
     def checkMemoryThreshold(self):
         memUsage = self.computMemoryUsage(self.variableToBitwidthMap, self.extendedVariableToBitwidthMap)
@@ -503,25 +524,34 @@ class Main:
         self.partialCompile(self.encoding, config.Target.x86, None, True, None, -1, dict(self.variableToBitwidthMap), [], {})
         demoteableVars = []
         initialSecondChance = list(self.secondChance)
+        allowedDemotions = []
         for var in cool_map:
+            curr_err = var[1][0]
+            prev_err = var[1][2]
             var = var[0]
             if var in promoted_in_this_iter:
                 continue
             if (self.variableToBitwidthMap[var] in [12, 16]) and (var in heat_map_vars):
                 demoteableVars.append(var)
-        numCodes = len(demoteableVars)
-        if numCodes == 0:
-            return False
+                if curr_err < prev_err:
+                    decrease = (prev_err - curr_err)/prev_err
+                    if decrease > config.accThreshold:
+                        allowedDemotions.append(var)
 
-        for i in range(len(demoteableVars)):
-            var = demoteableVars[i]
-            newbitwidthMap = dict(self.variableToBitwidthMap)
-            newbitwidthMap[var] = 12 if newbitwidthMap[var] == 16 else 8 
-            self.partialCompile(self.encoding, config.Target.x86, None, False, i+1, -1 if i != (numCodes - 1) else numCodes, dict(newbitwidthMap), [], {})
-            codeIdToDemotedVars[i+1] = var
 
-        allowedDemotions = self.runAccComputation(encoding, datasetType, codeIdToDemotedVars)
+        # numCodes = len(demoteableVars)
+        # if numCodes == 0:
+        #     return False
 
+        # for i in range(len(demoteableVars)):
+        #     var = demoteableVars[i]
+        #     newbitwidthMap = dict(self.variableToBitwidthMap)
+        #     newbitwidthMap[var] = 12 if newbitwidthMap[var] == 16 else 8 
+        #     self.partialCompile(self.encoding, config.Target.x86, None, False, i+1, -1 if i != (numCodes - 1) else numCodes, dict(newbitwidthMap), [], {})
+        #     codeIdToDemotedVars[i+1] = var
+
+        # allowedDemotions = self.runAccComputation(encoding, datasetType, codeIdToDemotedVars)
+            
         newbitwidthMap = dict(self.variableToBitwidthMap)
         for _ in range(2):
             prospective_do_not_promote = []
@@ -542,9 +572,8 @@ class Main:
                     self.doNotPromote.extend(prospective_do_not_promote)
                     return True
             finalSecondChance = list(self.secondChance)
-            if promoted_in_this_iter == []:
-                if finalSecondChance != initialSecondChance:
-                    continue
+            if finalSecondChance != initialSecondChance:
+                continue
             else:
                 break
         return False
@@ -568,7 +597,8 @@ class Main:
             elif self.variableToBitwidthMap[var] == 12:
                 if math.fabs(acc - baseAcc) < config.accThreshold:
                     allowedDemotions.append(var)
-            return allowedDemotions
+
+        return allowedDemotions
 
     def createHeatMap(self, newMap, baseMap):
         heat_map = {}
@@ -607,8 +637,6 @@ class Main:
 
     def runAndCreateVarMap(self, encoding, datasetType, saveConfig=True):
         execMap = self.predict(encoding, datasetType, shadow=True)
-        if saveConfig:
-            self.configurationAccMap.append((self.variableToBitwidthMap, float(execMap['default'][0]))) 
         return self.createVarValueMap()
     
     def createVarValueMap(self):

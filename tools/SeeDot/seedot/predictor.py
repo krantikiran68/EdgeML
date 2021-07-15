@@ -20,7 +20,7 @@ The accuracy and other statistics are written to the output file specified.
 
 class Predictor:
 
-    def __init__(self, algo, encoding, datasetType, outputDir, scaleForX, scalesForX, scaleForY, scalesForY, problemType, numOutputs, shadow = False, counted=False):
+    def __init__(self, algo, encoding, datasetType, outputDir, scaleForX, scalesForX, scaleForY, scalesForY, problemType, numOutputs, shadow = False, counted=False, clean=False):
         self.algo, self.encoding, self.datasetType = algo, encoding, datasetType
 
         self.outputDir = outputDir
@@ -36,6 +36,8 @@ class Predictor:
 
         self.shadow = shadow
         self.counted = counted
+
+        self.clean = clean
 
         self.genHeaderFile()
 
@@ -125,6 +127,14 @@ class Predictor:
         gcc_version = os.popen('g++ -dumpversion')
         gcc_version = int(gcc_version.read().split('\n')[0])
         assert gcc_version >= config.min_gcc_version, "Minimum GCC Version >= %d required."%(config.min_gcc_version)
+        if self.clean:
+            args = ["make", "clean"]
+            logFile = os.path.join(self.outputDir, "build.txt")
+            with open(logFile, 'w') as file:
+                process = subprocess.call(args, stdout=file, stderr=subprocess.STDOUT)
+            if process == 1:
+                Util.getLogger().debug("clean FAILED!!\n\n")
+                return False
 
         args = ["make", "DEBUG=%s"%("True" if self.shadow else "False")]
 

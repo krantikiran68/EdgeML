@@ -246,6 +246,11 @@ def preProcessRawMemData(decls, coLocatedVariables, varLiveIntervals, varsForBit
     return varToLiveRange, decls, coLocatedVariables
 
 def computeScratchLocationsFirstFitPriority(decls, coLocatedVariables, varLiveIntervals, notScratch, varsForBitwidth, floatConstants, intConstants, internalVars):
+    memFile = open("memComputeScratch", "a")
+    allArgList = [decls, coLocatedVariables, varLiveIntervals, notScratch, varsForBitwidth, floatConstants, intConstants, internalVars]
+    for var in allArgList:
+        memFile.write(str(var))
+        memFile.write("\n\n")
     varToLiveRange, decls, coLocatedVariables = preProcessRawMemData(decls, coLocatedVariables, varLiveIntervals, varsForBitwidth, floatConstants, intConstants, internalVars)
     def sortkey(a):
         return (a[0][0], -a[0][1], -(a[2]*a[3])//8)
@@ -348,4 +353,7 @@ def computeScratchLocationsFirstFitPriority(decls, coLocatedVariables, varLiveIn
         y.append((usedSpaceMap[var][1][0] + usedSpaceMap[var][1][1]) / 20000)
         h.append((usedSpaceMap[var][1][1] - usedSpaceMap[var][1][0]) / 10000)
         c.append("#" + ''.join([str(int(j)) for j in 10*np.random.rand(6)]))
+    memFile.write(str(totalScratchSize + 1))
+    memFile.write("\n*****\n\n")
+    memFile.close()
     return totalScratchSize + 1

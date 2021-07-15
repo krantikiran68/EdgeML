@@ -550,6 +550,11 @@ class X86Posit(X86):
         if not Config.x86MemoryOptimize:
             return
         else:
+            memFile2 = open("memComputeScratchx86", "a")
+            allArgList = [self.decls, self.coLocatedVariables, self.varLiveIntervals, self.notScratch, self.varsForBitwidth, self.floatConstants, self.cnsts, self.internalVars]
+            for var in allArgList:
+                memFile2.write(str(var))
+                memFile2.write("\n\n")
             varToLiveRange, decls = self.preProcessRawMemData()
             def sortkey(a):
                 return (a[0][0], -a[0][1], -self.bitSizeToPositSize(a[2], a[3]))
@@ -664,9 +669,12 @@ class X86Posit(X86):
             if not forM3():
                 self.out.printf("char scratch[%d];\n"%(totalScratchSize+1), indent=True)
             self.out.printf("/* %s */"%(str(self.scratchSubs)))
-            f = open("writingPositBW.txt", "w")
-            f.write(str(totalScratchSize + 1))
-            f.close()
+            memFile = open("writingPositBW.txt", "w")
+            memFile.write(str(totalScratchSize + 1))
+            memFile.close()
+            memFile2.write(str(totalScratchSize + 1))
+            memFile2.write("\n*****\n\n")
+            memFile2.close()
             return totalScratchSize + 1
 
     def preProcessRawMemData(self):

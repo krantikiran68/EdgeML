@@ -906,7 +906,7 @@ class IRBuilderPosit(IRBuilder):
         bitwidth_mul = self.getTempBitwidth(bitwidth_in_A, bitwidth_in_B, "mul")
         
         self.varsForBitwidth[expr_treeSum.idf] = 128 if bitwidth_mul >= 16 else 64
-
+        self.notScratch.append(expr_treeSum.idf)
         # If one variable is already used as a sparse matrix, prevent further use as a dense matrix.
         assert expr_in_A.idf + "idx" not in self.sparseMatrixSizes.keys(), "Cannot use same matrix %s for both sparse and dense multiplication" % expr_in_A.idf
         templateArgs = "<%s, %s, %s, %s, %s>"%(self.getPositType(expr_in_A, bitwidth_in_A), self.getPositType(expr_in_A, bitwidth_in_B), self.getPositType(None, bitwidth_mul, isTemp=True), \
@@ -2595,8 +2595,8 @@ class IRBuilderPosit(IRBuilder):
         bitwidth_in, scale_in = self.getBitwidthAndScale(expr_in.idf)
         intv_in = self.varIntervals[expr_in.idf]
 
-        # If input is demoted to lower bit-width, demote the output to lower bit-width as well.
-        self.varsForBitwidth[expr_out.idf] = bitwidth_in
+        # # If input is demoted to lower bit-width, demote the output to lower bit-width as well.
+        # self.varsForBitwidth[expr_out.idf] = bitwidth_in
 
         tanh_intv = self.getInterval(
             scale_in, config.tanhLimit, config.tanhLimit)
@@ -2730,8 +2730,8 @@ class IRBuilderPosit(IRBuilder):
         bitwidth_in, scale_in = self.getBitwidthAndScale(expr_in.idf)
         intv_in = self.varIntervals[expr_in.idf]
 
-        # If input is demoted to lower bit-width, demote the output variable to lower bit-width as well.
-        self.varsForBitwidth[expr_out.idf] = bitwidth_in
+        # # If input is demoted to lower bit-width, demote the output variable to lower bit-width as well.
+        # self.varsForBitwidth[expr_out.idf] = self.getBitwidthAndScale(expr_out.idf)
 
         # Scale sigmoid limit and other constants.
         addition_int = self.getNumInFixedPoint(addition, scale_in)

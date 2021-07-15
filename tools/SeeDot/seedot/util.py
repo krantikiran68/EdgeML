@@ -4,6 +4,7 @@
 
 import numpy as np
 import platform
+import ctypes, math
 
 import seedot.config as config
 import logging
@@ -178,3 +179,164 @@ def computeScalingFactorForInlineCodegen(val):
 def getLogger():
     log =  logging.getLogger()    
     return log
+
+# Calculating ULP error of two floating-point values
+def calculateULPError(val, baseVal):
+    val = (ctypes.c_uint.from_buffer(ctypes.c_float(float(val)))).value
+    baseVal = (ctypes.c_uint.from_buffer(ctypes.c_float(float(baseVal)))).value
+    return abs(val - baseVal)
+
+# Calculating Relative error of two floating-point values
+def calculateRelativeError(val, baseVal):
+    val = float(val)
+    baseVal = float(baseVal)
+    if baseVal == 0.0:
+        return math.fabs(val - baseVal)
+    error = math.fabs((val  - baseVal) / baseVal)
+    return error
+
+# Compution first fit priority memory requirement
+def preProcessRawMemData(decls, coLocatedVariables, varLiveIntervals, varsForBitwidth, floatConstants, intConstants, internalVars):
+    varToLiveRange = []
+    todelete = []
+    decls = dict(decls)
+    for var in decls.keys():
+        if var in todelete:
+            continue
+        if var not in varLiveIntervals:
+            todelete.append(var)
+            continue
+        if floatConstants is not None:
+            if var in floatConstants:
+                todelete.append(var)
+                continue
+        if intConstants is not None:
+            if var in intConstants:
+                todelete.append(var)
+                continue
+        if internalVars is not None:
+            if var in internalVars:
+                todelete.append(var)
+                continue
+        size = np.prod(decls[var].shape)
+        varf = var
+        # Two co located variables can use the same memory location. Hence, the live range of one is
+        # updated and the other variable is ignored during memory allocation.
+        while varf in coLocatedVariables:
+            variableToBeRemoved = coLocatedVariables[varf]
+            if varLiveIntervals[var][1] == varLiveIntervals[variableToBeRemoved][0]:
+                varLiveIntervals[var][1] = varLiveIntervals[variableToBeRemoved][1]
+                todelete.append(variableToBeRemoved)
+            else:
+                del coLocatedVariables[varf]
+                break
+            varf = variableToBeRemoved
+        varToLiveRange.append((varLiveIntervals[var], var, size, varsForBitwidth[var]))
+    for var in todelete:
+        del decls[var]
+    return varToLiveRange, decls, coLocatedVariables
+
+def computeScratchLocationsFirstFitPriority(decls, coLocatedVariables, varLiveIntervals, notScratch, varsForBitwidth, floatConstants, intConstants, internalVars):
+    varToLiveRange, decls, coLocatedVariables = preProcessRawMemData(decls, coLocatedVariables, varLiveIntervals, varsForBitwidth, floatConstants, intConstants, internalVars)
+    def sortkey(a):
+        return (a[0][0], -a[0][1], -(a[2]*a[3])//8)
+    varToLiveRange.sort(key=sortkey)
+    freeSpace = {0:-1}
+    freeSpaceRev = {-1:0}
+    usedSpaceMap = {}
+    totalScratchSize = -1
+    listOfDimensions = []
+    for ([_,_], var, size, atomSize) in varToLiveRange:
+        listOfDimensions.append(size)
+    priorityMargin = 19200
+    x = []
+    y = []
+    w = []
+    h = []
+    c = []
+    i = 0
+    for i in range(len(varToLiveRange)):
+        ([startIns, endIns], var, size, atomSize) = varToLiveRange[i]
+        if var in notScratch:
+            continue
+        spaceNeeded = size * atomSize // 8 # 256 * np.ceil(size * atomSize // 8 /256)
+        varsToKill = []
+        for activeVar in usedSpaceMap.keys():
+            endingIns = usedSpaceMap[activeVar][0]
+            if endingIns < startIns:
+                varsToKill.append(activeVar)
+        for tbk in varsToKill:
+            (st, en) = usedSpaceMap[tbk][1]
+            en += 1
+            freeSpace[st] = en
+            freeSpaceRev[en] = st
+            if en in freeSpace.keys():
+                freeSpace[st] = freeSpace[en]
+                freeSpaceRev[freeSpace[st]] = st
+                del freeSpace[en]
+                del freeSpaceRev[en]
+            if st in freeSpaceRev.keys():
+                freeSpaceRev[freeSpace[st]] = freeSpaceRev[st]
+                freeSpace[freeSpaceRev[st]] = freeSpace[st]
+                del freeSpace[st]
+                del freeSpaceRev[st]
+            del usedSpaceMap[tbk]
+        potentialStart = -1
+        potentialEnd = -1
+        offset = 0
+        for j in range(i+1, len(varToLiveRange)):
+            ([startIns_, endIns_], var_, size_, atomSize_) = varToLiveRange[j]
+            if var_ in notScratch:
+                continue
+            if startIns_ > endIns:
+                break
+            spaceNeeded_ = (size_ * atomSize_) // 8
+            if spaceNeeded_ >= priorityMargin and spaceNeeded < priorityMargin:
+            # if spaceNeeded_ > spaceNeeded or (spaceNeeded_ == spaceNeeded and spaceNeeded < priorityMargin and (endIns_ - startIns_ > endIns - startIns)):
+                offset = max(offset, spaceNeeded_)
+
+        if offset not in freeSpace.keys() and offset > 0:
+            j = 0
+            for key in sorted(freeSpace.keys()):
+                j = key
+                if freeSpace[key] > offset:
+                    break
+            if key < offset:
+                st = j
+                en = freeSpace[j]
+                freeSpace[st] = offset
+                freeSpace[offset] = en
+                freeSpaceRev[en] = offset
+                freeSpaceRev[offset] = st
+
+        for start in sorted(freeSpace.keys()):
+            if start < offset:
+                continue
+            end = freeSpace[start]
+            if end - start >= spaceNeeded or end == -1:
+                potentialStart = start
+                potentialEnd = potentialStart + spaceNeeded - 1
+                break
+            else:
+                continue
+
+        usedSpaceMap[var] = (endIns, (potentialStart, potentialEnd))
+        freeSpaceEnd = freeSpace[potentialStart]
+        del freeSpace[potentialStart]
+        if potentialEnd + 1 != freeSpaceEnd:
+            freeSpace[potentialEnd + 1] = freeSpaceEnd
+        freeSpaceRev[freeSpaceEnd] = potentialEnd + 1
+        if freeSpaceEnd == potentialEnd + 1:
+            del freeSpaceRev[freeSpaceEnd]
+        totalScratchSize = max(totalScratchSize, potentialEnd)
+
+        varf = var
+        if not Config.faceDetectionHacks:
+            while varf in coLocatedVariables:
+                varf = coLocatedVariables[varf]
+        x.append((endIns + 1 + startIns) / 2)
+        w.append(endIns - startIns + 1)
+        y.append((usedSpaceMap[var][1][0] + usedSpaceMap[var][1][1]) / 20000)
+        h.append((usedSpaceMap[var][1][1] - usedSpaceMap[var][1][0]) / 10000)
+        c.append("#" + ''.join([str(int(j)) for j in 10*np.random.rand(6)]))
+    return totalScratchSize + 1

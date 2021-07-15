@@ -4,6 +4,10 @@
 CC=g++
 CFLAGS=-Wall -Wno-narrowing -p -g -fPIC -O3 -std=c++11 -pthread
 
+ifeq ($(DEBUG), True)
+CFLAGS+= -DDEBUG
+endif
+
 PREDICTOR_INCLUDES=datatypes.h \
                    library_fixed.h \
                    library_float.h \

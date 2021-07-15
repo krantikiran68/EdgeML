@@ -40,6 +40,7 @@ enum ProblemType
 };
 
 bool profilingEnabled = false;
+int switchCount;
 
 // Split the CSV row into multiple values.
 vector<string> readCSVLine(string line) {
@@ -119,20 +120,20 @@ void launchThread(int features_size, MYINT** features_int, MYINT*** features_int
 	seedotFixed(features_int, res);
 	seedotFloat(features_float, float_res);
 
-	for (int i = 0; i < switches; i++) {
+	for (int i = 0; i < switchCount; i++) {
 		seedotFixedSwitch(i, features_intV[i], resV[i]);
 	}
 
 	for (int i = 0; i < features_size; i++) {
 		delete features_int[i];
 		delete features_float[i];
-		for (int j = 0; j < switches; j++) {
+		for (int j = 0; j < switchCount; j++) {
 			delete features_intV[j][i];
 		}
 	}
 	delete[] features_int;
 	delete[] features_float;
-	for (int j = 0; j < switches; j++) {
+	for (int j = 0; j < switchCount; j++) {
 		delete[] features_intV[j];
 	}
 	delete[] features_intV;
@@ -180,6 +181,20 @@ int main(int argc, char* argv[]) {
 
 	int numOutputs = atoi(argv[4]);
 
+	bool serialExecution = false;
+	bool heatMap = false;
+
+	int numExecPoints = -1;
+	if (argc == 8 && string(argv[6]) == "True")
+	{
+		serialExecution = true;
+		heatMap = true;
+		numExecPoints = atoi(argv[7]);
+	} else if (argc == 8)
+	{
+		numExecPoints = atoi(argv[7]);
+	}
+
 	// Reading the dataset.
 	string inputDir = "input/";
 
@@ -199,10 +214,12 @@ int main(int argc, char* argv[]) {
 	ofstream output(outputFile);
 	ofstream stats(statsFile);
 
+	switchCount = switches;
+
 	bool alloc = false;
 	int features_size = -1;
 	MYINT** features_int = NULL;
-	vector<MYINT**> features_intV(switches, NULL);
+	vector<MYINT**> features_intV(switchCount, NULL);
 	float** features_float = NULL;
 
 	// Initialize variables used for profiling.
@@ -252,7 +269,7 @@ int main(int argc, char* argv[]) {
 				features_int[i] = new MYINT[1];
 			}
 
-			for (int i = 0; i < switches; i++) {
+			for (int i = 0; i < switchCount; i++) {
 				features_intV[i] = new MYINT* [features_size];
 				for (int j = 0; j < features_size; j++) {
 					features_intV[i][j] = new MYINT[1];
@@ -270,7 +287,7 @@ int main(int argc, char* argv[]) {
 		// Populate the array using the feature vector.
 		if (debugMode || version == Fixed) {
 			populateFixedVector(features_int, features, scaleForX);
-			for (int i = 0; i < switches; i++) {
+			for (int i = 0; i < switchCount; i++) {
 				populateFixedVector(features_intV[i], features, scalesForX[i]);
 			}
 			populateFloatVector(features_float, features);
@@ -281,7 +298,7 @@ int main(int argc, char* argv[]) {
 		// Invoke the predictor function.
 		int* fixed_res = NULL;
 		float* float_res = NULL;
-		vector <int> resV(switches, -1);
+		vector <int> resV(switchCount, -1);
 
 		if (debugMode) {
 			float_res = new float[numOutputs];
@@ -308,9 +325,9 @@ int main(int argc, char* argv[]) {
 				} else if (problem == Regression) {
 					labelsFloat.push_back(labelFloat);
 				}
-				int** switchRes = new int* [switches];
+				int** switchRes = new int* [switchCount];
 				// Instantiating vectors for storing inference results for each generated code.
-				for (int i = 0; i < switches; i++) {
+				for (int i = 0; i < switchCount; i++) {
 					switchRes[i] = new int[numOutputs];
 				}
 				vector_int_resV.push_back(switchRes);
@@ -325,21 +342,25 @@ int main(int argc, char* argv[]) {
 					features_float_copy[i] = new float[1];
 					features_float_copy[i][0] = features_float[i][0];
 				}
-				features_intV_copy = new MYINT** [switches];
-				for (int j = 0; j < switches; j++) {
+				features_intV_copy = new MYINT** [switchCount];
+				for (int j = 0; j < switchCount; j++) {
 					features_intV_copy[j] = new MYINT* [features_size];
 					for (int i = 0; i < features_size; i++) {
 						features_intV_copy[j][i] = new MYINT[1];
 						features_intV_copy[j][i][0] = features_intV[j][i][0];
 					}
 				}
-				// Launching one thread which processes one datapoint.
-				if (threads.size() < 64) {
-					threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back()));
+				if (serialExecution) {
+					launchThread(features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back());
 				} else {
-					threads.front().join();
-					threads.pop_front();
-					threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back()));
+					// Launching one thread which processes one datapoint.
+					if (threads.size() < 64) {
+						threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back()));
+					} else {
+						threads.front().join();
+						threads.pop_front();
+						threads.push_back(thread(launchThread, features_size, features_int_copy, features_intV_copy, features_float_copy, counter, vector_float_res.back(), vector_int_res.back(), vector_int_resV.back()));
+					}
 				}
 			} else if (version == Float) {
 				float_res = new float[numOutputs];
@@ -361,6 +382,14 @@ int main(int argc, char* argv[]) {
 
 		flushProfile();
 		counter++;
+
+		if (numExecPoints != -1)
+		{
+			if (counter == numExecPoints)
+			{
+				break;
+			}
+		}
 	}
 
 	for (list<thread>::iterator it = threads.begin(); it != threads.end(); it++) {
@@ -372,11 +401,11 @@ int main(int argc, char* argv[]) {
 	// Correct, Disagreements are used for Classification problems' accuracy etc.
 	// Errors, Ferrors are used for Regression problems' error etc.
 
-	vector<int> correctV(switches, 0), totalV(switches, 0);
-	vector<int> disagreementsV(switches, 0), reduced_disagreementsV(switches, 0);
+	vector<int> correctV(switchCount, 0), totalV(switchCount, 0);
+	vector<int> disagreementsV(switchCount, 0), reduced_disagreementsV(switchCount, 0);
 
 	vector<float> errors(0, 0), ferrors(0, 0);
-	vector<vector<float>> errorsV(switches, vector<float>(0, 0)), ferrorsV(switches, vector<float>(0, 0));
+	vector<vector<float>> errorsV(switchCount, vector<float>(0, 0)), ferrorsV(switchCount, vector<float>(0, 0));
 
 	ofstream trace("trace.txt");
 
@@ -411,7 +440,7 @@ int main(int argc, char* argv[]) {
 				}
 				total++;
 
-				for (int k = 0; k < switches; k++) {
+				for (int k = 0; k < switchCount; k++) {
 					if (version == Float) {
 						throw "Multiple codes not expected in Floating point execution";
 					}
@@ -450,7 +479,7 @@ int main(int argc, char* argv[]) {
 				ferrors.push_back(ferror);
 				total++;
 
-				for (int k = 0; k < switches; k++) {
+				for (int k = 0; k < switchCount; k++) {
 					if (version == Float) {
 						throw "Multiple codes not expected in Floating point execution";
 					}
@@ -467,7 +496,7 @@ int main(int argc, char* argv[]) {
 		// Clearing memory.
 		delete[] vector_int_res[i];
 		delete[] vector_float_res[i];
-		for (int k = 0; k < switches; k++) {
+		for (int k = 0; k < switchCount; k++) {
 			delete[] vector_int_resV[i][k];
 		}
 		delete[] vector_int_resV[i];
@@ -488,7 +517,7 @@ int main(int argc, char* argv[]) {
 	}
 	delete[] features_float;
 
-	for (int i = 0; i < switches; i++) {
+	for (int i = 0; i < switchCount; i++) {
 		for (int j = 0; j < features_size; j++) {
 			delete features_intV[i][j];
 		}
@@ -497,7 +526,7 @@ int main(int argc, char* argv[]) {
 
 	float accuracy = (float)correct / total * 100.0f;
 
-	if ((argc == 6) && (argv[5] == "False"))
+	if ((argc == 6) && (strcmp(argv[5], "False") == 0))
 	{
 		cout.precision(3);
 		cout << fixed;
@@ -531,7 +560,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (version == Fixed) {
-		for (int i = 0; i < switches; i++) {
+		for (int i = 0; i < switchCount; i++) {
 			stats << i + 1 << "\n";
 			if (problem == Classification) {
 				stats << (float)correctV[i] / totalV[i] * 100.0f << "\n";

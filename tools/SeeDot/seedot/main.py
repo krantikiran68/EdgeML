@@ -11,8 +11,14 @@ import sys
 import operator
 import tempfile
 import traceback
+from typing_extensions import final
+from numpy.lib.histograms import _histogram_bin_edges_dispatcher
+from numpy.testing._private.utils import memusage
 from tqdm import tqdm
 import numpy as np
+import math
+import ast
+import copy
 import matplotlib.pyplot as plt
 
 from seedot.compiler.converter.converter import Converter
@@ -91,6 +97,23 @@ class Main:
             # In operations like WX + B, B is mostly used once in the code. So all the fixed point computations are clubbed into one.
         self.varSizes = {}
             # Map from a variable to number of elements it holds. Populated in floating point mode.
+        self.errorHeatMap = {}
+            # Map to store the error_map of previous iteration of Haunter for comparision with previous iteration
+        self.varLiveIntervals = {}
+            # Map that is used to calculate the scratch buffer sizes
+        self.notScratch = []
+            # List of variables that have to be excluded from memory calculation
+        self.coLocatedVariables = {}
+            # Map of coLocated Variables that can use the same memory location
+        self.intConstants, self.floatConstants, self.internalVars = [], [], []
+            # Constant information for use in computing memory 
+        self.decls = []
+            # Declarations, for use in computing memory usage
+        self.secondChance = []
+            # Variables that have been given a second chance 
+        self.doNotPromote = []
+            # Variables that have been demoted to 8-bit and shouldn't be promoted again
+        self.configurationAccMap = []
 
     # This function is invoked right at the beginning for moving around files into the working directory.
     def setup(self):
@@ -182,13 +205,23 @@ class Main:
                         scaleForX,
                         variableToBitwidthMap, self.sparseMatrixSizes, demotedVarsList, demotedVarsOffsets,
                         paramInNativeBitwidth)
-        obj.run()
+        res, state = obj.run()
         self.biasShifts = obj.biasShifts
         self.allScales = dict(obj.varScales)
         if encoding == config.Encoding.floatt:
             self.variableSubstitutions = obj.substitutions
             self.variableToBitwidthMap = dict.fromkeys(obj.independentVars, config.wordLength)
             self.varSizes = obj.varSizes
+            self.extendedVariableToBitwidthMap = state[11]
+        else:
+            self.varLiveIntervals = state[12]
+            self.notScratch = state[13]
+            self.coLocatedVariables = state[14]
+            self.decls = state[0]
+            self.intConstants = state[4]
+            self.floatConstants = state[8]
+            self.internalVars = state[7]
+            self.extendedVariableToBitwidthMap = state[11]
 
         self.problemType = obj.problemType
         if id is None:
@@ -250,14 +283,14 @@ class Main:
         return True
 
     # Build and run the Predictor project.
-    def predict(self, encoding, datasetType):
+    def predict(self, encoding, datasetType, shadow=False, counted=False):
         outputDir = os.path.join("output", encoding)
 
         curDir = os.getcwd()
         os.chdir(os.path.join(config.tempdir, "Predictor"))
 
         obj = Predictor(self.algo, encoding, datasetType,
-                        outputDir, self.scaleForX, self.scalesForX, self.scaleForY, self.scalesForY, self.problemType, self.numOutputs)
+                        outputDir, self.scaleForX, self.scalesForX, self.scaleForY, self.scalesForY, self.problemType, self.numOutputs, shadow, counted)
         execMap = obj.run()
 
         os.chdir(curDir)
@@ -340,20 +373,23 @@ class Main:
                 self.varDemoteDetails.sort(key=getMetricValue, reverse=True)
         return True, False
 
-    # This function performs an exploration and determines the scales and bit-widths of all variables. Described in OOPSLA'20 Paper Section 6.2.
-    # The exploration is across 4 stages:
-    # STAGE I: For input 'X', we perform an exploration trying out scales from 0 to -15. (First stage exploration in this function).
-    # STAGE II: Determining Scale all other variables in 16 bits.
-    #   For all variables except input 'X', the scale is dynamically computed using the dataset (OOPSLA'20 paper, Section 6.1).
-    #   This data is captured during the floating-point code run (collectProfileData), not performSearch.
-    #   During collectProfileData() call, self.allScales is populated which contains data driven scaling info.
-    # STAGE III: Determining accuracy when each variable is demoted to 8 bits one at a time.
-    #   Multiple fixed point codes are generated, each with one variable demoted, are generated. Data driven scales do not work for 8-bits,
-    #   so we try out multiple scales (config.offsetsPerDemotedVariable different scales).
-    # STAGE IV: Cumulatively demoting variables one after the other to reduce latency and model size, as long as accuracy remains good.
+    def clearHeatMapLog(self):
+        outputDir = os.path.join(config.tempdir, "Predictor")
+        file = os.path.join(outputDir, "debugLog")
+        open(file, "w").close()
+        file = os.path.join(outputDir, "debugLog2")
+        open(file, "w").close()
+        return
+
+    def initializeErrorMap(self):
+        for var in self.variableToBitwidthMap.keys():
+            self.errorHeatMap[var] = 0
+
     def performSearch(self):
         start, end = config.maxScaleRange
         lastStageAcc = -1
+        # Initialise Error Heat Map:
+        self.initializeErrorMap()
 
         fixedPointCounter = 0
         while True:
@@ -548,95 +584,278 @@ class Main:
                 sortedVars = sortedVars1 + sortedVars2
 
                 self.varDemoteDetails = []
-                demotedVarsOffsets = dict(self.demotedVarsOffsets)
-                demotedVarsList = list(self.demotedVarsList)
-                demotedVarsListToOffsets = {}
+                self.demotedVarsOffsets = {}
+                self.demotedVarsList = []
+                self.clearHeatMapLog()
+                valMapFloat = self.runAndCreateVarMap(config.Encoding.floatt, config.DatasetType.training, self.variableToBitwidthMap, saveConfig = False)
 
-                # Knowing the accuracy when each single variable is demoted to 8-bits one at a time, we proceed to cumulatively
-                # demoting all of them one after the other ensuring accuracy of target code does not fall below a threshold. The
-                # following for loop controls generation of inference codes.
-                for i in tqdm(range(numBatches)):
-                    Util.getLogger().info("=====\nBatch %i out of %d\n=====\n" %(i + 1, numBatches))
+                # Computed the 8-bit accuracy data and compares it to 
+                # base_line for heat_map generation
+                for (demoteVar, offset) in sortedVars:
+                    for var in demoteVar:
+                        self.variableToBitwidthMap[var] = 8
+                        self.demotedVarsOffsets[var] = offset
+                        self.demotedVarsList.append(var)
+                self.clearHeatMapLog()
+                self.partialCompile(self.encoding, config.Target.x86, self.sf, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
+                valMap8Bit = self.runAndCreateVarMap(self.encoding, config.DatasetType.training, self.variableToBitwidthMap)
+                self.previousMemUsage = self.computMemoryUsage(self.variableToBitwidthMap, self.extendedVariableToBitwidthMap)
+                self.previousVarConfig = dict(self.variableToBitwidthMap)
+                self.previousResConfig = dict(self.variableToBitwidthMap)
+                heat_map = self.createHeatMap(valMap8Bit, valMapFloat)
+                self.variableToBitwidthMap = dict(self.runAttackingAlgorithm(self.encoding, config.DatasetType.training, heat_map, isFirstIter = True))
 
-                    firstVarIndex = (totalSize * i) // numBatches
-                    lastVarIndex = (totalSize * (i+1)) // numBatches
-                    demoteBatch = [sortedVars[i] for i in range(firstVarIndex, lastVarIndex)]
-
-                    self.partialCompile(config.Encoding.fixed, config.Target.x86, self.sf, True, None, -1 if len(attemptToDemote) > 0 else 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(self.demotedVarsOffsets))
-                    contentToCodeIdMap = {}
-                    codeId = 0
-                    numCodes = len(demoteBatch)
-                    for (demoteVars, offset) in demoteBatch:
-                        newbitwidths = dict(self.variableToBitwidthMap)
-                        for var in demoteVars:
-                            if var not in self.demotedVarsList:
-                                newbitwidths[var] = config.wordLength // 2
-                                demotedVarsOffsets[var] = offset
-                            if var not in demotedVarsList:
-                                demotedVarsList.append(var)
-                        codeId += 1
-                        contentToCodeIdMap[tuple(demotedVarsList)] = {}
-                        contentToCodeIdMap[tuple(demotedVarsList)][offset] = codeId
-                        demotedVarsListToOffsets[tuple(demotedVarsList)] = dict(demotedVarsOffsets)
-                        compiled = self.partialCompile(config.Encoding.fixed, config.Target.x86, self.sf, False, codeId, -1 if codeId != numCodes else codeId, dict(newbitwidths), list(demotedVarsList), dict(demotedVarsOffsets))
-                        if compiled == False:
-                            Util.getLogger().error("Variable bitwidth exploration resulted in another compilation error\n")
-                            return False
-
-                    res, exit = self.runAll(config.Encoding.fixed, config.DatasetType.training, None, contentToCodeIdMap, True)
-
-                if exit == True or res == False:
-                    return False
-
-                # The following for loop controls how many variables are actually demoted in the final output code, which has
-                # as many variables as possible in 8-bits, while ensuring accuracy drop compared to floating point is reasonable:
-                okToDemote = ()
-                acceptedAcc = lastStageAcc
-                for ((demotedVars, _), metrics) in self.varDemoteDetails:
-                    acc = metrics[0]
-                    if self.problemType == config.ProblemType.classification and (self.flAccuracy - acc) > config.permittedClassificationAccuracyLoss:
-                        break
-                    elif self.problemType == config.ProblemType.regression and acc > config.permittedRegressionNumericalLossMargin:
-                        break
+                while True:
+                    self.demotedVarsList = []
+                    demotedVarsOffsets = {}
+                    for var in self.variableToBitwidthMap.keys():
+                        if self.variableToBitwidthMap[var] == 8:
+                            demotedVarsOffsets[var] = self.demotedVarsOffsets[var]
+                            self.demotedVarsList.append(var)
+                    self.clearHeatMapLog()
+                    self.partialCompile(self.encoding, config.Target.x86, self.sf, True, None, 0, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(demotedVarsOffsets))
+                    valMapVBW = self.runAndCreateVarMap(self.encoding, config.DatasetType.training, self.variableToBitwidthMap)
+                    print("Run Completed")
+                    heat_map = self.createHeatMap(valMapVBW, valMapFloat)
+                    print("Heat Map Created")
+                    self.variableToBitwidthMap = dict(self.runAttackingAlgorithm(self.encoding, config.DatasetType.training, heat_map))
+                    if self.previousResConfig == self.variableToBitwidthMap:
+                        print("Termination condition reached at : " , str(self.variableToBitwidthMap))
+                        # maxAcc = 0
+                        # for bwConfig in self.configurationAccMap:
+                        #     bwConfig, acc = bwConfig 
+                        #     if acc > maxAcc:
+                        #         maxAcc = acc
+                        #         self.variableToBitwidthMap = dict(bwConfig)
+                        return
                     else:
-                        okToDemote = demotedVars
-                        acceptedAcc = acc
-
-                demotedList = []
-                flash_size = 0
-                for var in self.variableToBitwidthMap.keys():
-                    tmp_var = var
-                    while tmp_var in self.variableSubstitutions.keys():
-                        tmp_var = self.variableSubstitutions[tmp_var]
-                    if tmp_var not in demotedList:
-                        if tmp_var in okToDemote:
-                            demotedList.append(tmp_var)
-                    else:
-                        print("Repeated Var: " + str(tmp_var))
-                    if tmp_var.startswith('tmp'):
-                        continue
-                    else:
-                        if tmp_var in okToDemote:
-                            flash_size += self.varSizes[tmp_var] * config.wordLength // 16
-                        else:
-                            flash_size += self.varSizes[tmp_var] * config.wordLength // 8
-                print('Demoted Variables: ' + str(demotedList))
-                print('Flash Size: ' + str(flash_size))
-                
-                self.demotedVarsList = [i for i in okToDemote] + [i for i in self.demotedVarsList]
-                assert(set(self.demotedVarsList) == set(demotedList))
-                self.demotedVarsOffsets.update(demotedVarsListToOffsets.get(okToDemote, {}))
-
-                if acceptedAcc != lastStageAcc:
-                    lastStageAcc = acceptedAcc
-                else:
-                    Util.getLogger().warning("No difference in iteration %d's stages 1 & 2. Stopping search."%fixedPointCounter)
-                    break
+                        self.previousResConfig = dict(self.variableToBitwidthMap)
+                    pass
 
             if not config.vbwEnabled or not config.fixedPointVbwIteration:
                 break
 
         return True
+
+    def promote(self, varName):
+        self.variableToBitwidthMap[varName] = 16
+        return True
+
+    def findMinNumPromote(self, heat_map):
+        min_num_promote = 0
+        for i in range(len(heat_map)):
+            error = heat_map[i][1][0]
+            if error > self.movingErrorThreshold:
+                min_num_promote += 1
+            else:
+                break
+        return min_num_promote
+
+    def runAttackingAlgorithm(self, encoding, datasetType, heat_map, isFirstIter = False):
+        min_num_promote = self.findMinNumPromote(heat_map) if not isFirstIter else 0
+        promoted_count = 0
+        promoted_in_this_iter = []
+        for i in range(len(heat_map)):
+            var = heat_map[i][0]
+            if self.variableToBitwidthMap[var] == 8:
+                if var in self.doNotPromote:
+                    continue
+                promoted_flag = self.promote(var)
+                if not promoted_flag:
+                    continue
+                promoted_count += 1
+                promoted_in_this_iter.append(var)
+                memUsage = self.checkMemoryThreshold()
+                if memUsage > config.memoryLimit:
+                    memThreshold = False
+                else: 
+                    memThreshold = True
+                if memThreshold:
+                    print("Case 0")
+                    self.previousMemUsage = memUsage
+                    self.previousVarConfig = dict(self.variableToBitwidthMap)
+                    self.movingErrorThreshold = heat_map[i][1][0]
+                    continue
+                else:
+                    if promoted_count > min_num_promote:
+                        print("Case 1")
+                        self.movingErrorThreshold = heat_map[i-1][1][0]
+                        return self.previousVarConfig
+                    elif not self.defending(encoding, datasetType, heat_map, promoted_in_this_iter):
+                        # Attempting to demote variables to make room failed 
+                        print("Case 2")
+                        self.movingErrorThreshold = heat_map[i-1][1][0]
+                        return self.previousVarConfig
+                    else:
+                        # Successfully demoted variables
+                        print("Case 3")
+                        continue
+        return self.variableToBitwidthMap
+
+    def checkMemoryThreshold(self):
+        memUsage = self.computMemoryUsage(self.variableToBitwidthMap, self.extendedVariableToBitwidthMap)
+        return memUsage
+
+    def defending(self, encoding, datasetType, heat_map, promoted_in_this_iter):
+        cool_map = list(heat_map)
+        heat_map_vars = [var[0] for var in heat_map]
+        cool_map.reverse()
+        codeIdToDemotedVars = {}
+        codeIdToDemotedVars[0] = ""
+
+        self.demotedVarsList = []
+        demotedVarsOffsets = {}
+        for var in self.variableToBitwidthMap.keys():
+            if self.variableToBitwidthMap[var] == 8:
+                demotedVarsOffsets[var] = self.demotedVarsOffsets[var]
+                self.demotedVarsList.append(var)
+        self.partialCompile(self.encoding, config.Target.x86, self.sf, True, None, -1, dict(self.variableToBitwidthMap), list(self.demotedVarsList), dict(demotedVarsOffsets))
+
+        demoteableVars = []
+        initialSecondChance = list(self.secondChance)
+        for var in cool_map:
+            var = var[0]
+            if var in promoted_in_this_iter:
+                continue
+            if (self.variableToBitwidthMap[var] == 16) and (var in heat_map_vars):
+                demoteableVars.append(var)
+        numCodes = len(demoteableVars)
+        if numCodes == 0:
+            return False
+
+        for i in range(len(demoteableVars)):
+            var = demoteableVars[i]
+            newbitwidthMap = dict(self.variableToBitwidthMap)
+            newbitwidthMap[var] = 8
+
+            self.demotedVarsList = []
+            demotedVarsOffsets = {}
+            for tmp_var in newbitwidthMap.keys():
+                if newbitwidthMap[tmp_var] == 8:
+                    demotedVarsOffsets[tmp_var] = self.demotedVarsOffsets[tmp_var]
+                    self.demotedVarsList.append(tmp_var)
+            self.partialCompile(self.encoding, config.Target.x86, self.sf, False, i + 1, -1 if i != (numCodes - 1) else numCodes, dict(newbitwidthMap), list(self.demotedVarsList), dict(demotedVarsOffsets))
+
+            codeIdToDemotedVars[i + 1] = var
+
+        allowedDemotions = self.runAccComputation(encoding, datasetType, codeIdToDemotedVars)
+
+        newbitwidthMap = dict(self.variableToBitwidthMap)
+        for _ in range(2):
+            prospective_do_not_promote = []
+            for i in range(len(cool_map)):
+                var = cool_map[i][0]
+                if var not in allowedDemotions:
+                    continue
+                newbitwidthMap[var] = 8
+                prospective_do_not_promote.append(var)
+                memUsage = self.computMemoryUsage(newbitwidthMap, self.extendedVariableToBitwidthMap)
+                if memUsage < config.memoryLimit:
+                    self.variableToBitwidthMap = dict(newbitwidthMap)
+                    self.doNotPromote.extend(prospective_do_not_promote)
+                    return True
+            finalSecondChance = list(self.secondChance)
+            if promoted_in_this_iter == []:
+                if finalSecondChance != initialSecondChance:
+                    continue
+            else:
+                break
+        return False
+
+    def runAccComputation(self, encoding, datasetType, codeIdToDemotedVarMap):
+        execMap = self.predict(encoding, datasetType, counted = True)
+        if execMap == None:
+            assert False, "Accuracy computation run failed in runAccComputation()"
+        
+        allowedDemotions = []
+        baseAcc = float(execMap['default'][2])
+
+        for codeId in codeIdToDemotedVarMap.keys():
+            if codeId == 0:
+                continue
+            acc = float(execMap[str(codeId)][2])
+            var = codeIdToDemotedVarMap[codeId]
+            if self.variableToBitwidthMap[var] == 16:
+                if (acc - baseAcc) < config.accThreshold:
+                    allowedDemotions.append(var)
+
+        return allowedDemotions
+
+    def createHeatMap(self, newMap, baseMap):
+        heat_map = {}
+        heat_map_sizes = {}
+        assert newMap.keys() == baseMap.keys(), "Different keys in Heat Map creation"
+
+        for var in newMap.keys():
+            values = newMap[var]
+            baseVals = baseMap[var]
+            assert len(values) == len(baseVals), \
+                    "Same number of values expected for variable %s"%(var)
+            for i in range(len(values)):
+                error = Util.calculateRelativeError(values[i], baseVals[i])
+                # print(error)
+                if var in heat_map.keys():
+                    heat_map[var] = max(heat_map[var], error)
+                else:
+                    heat_map[var] = error
+        
+        for var in heat_map.keys():
+            if var not in self.errorHeatMap.keys():
+                self.errorHeatMap[var] = 0
+            heat_map_sizes[var] = (heat_map[var], self.varSizes[var], self.errorHeatMap[var])
+
+        heat_map_list = self.createHeatMapWeightedList(heat_map_sizes)
+        return heat_map_list
+
+    def createHeatMapWeightedList(self, heat_map):
+        def sortErrorWeight(errorWeight):
+            return 0.1 * errorWeight[1][1]  / (0.8 * errorWeight[1][0] + 0.2 * errorWeight[1][2])
+        for var in heat_map.keys():
+            self.errorHeatMap[var] = 0.8 * heat_map[var][0] + 0.2 * heat_map[var][2]
+        heat_map_list = [(var, heat_map[var]) for var in heat_map.keys()]
+        heat_map_list.sort(key=sortErrorWeight)
+        return heat_map_list
+
+    def runAndCreateVarMap(self, encoding, datasetType, variableToBitwidthMap, saveConfig=True):
+        execMap = self.predict(encoding, datasetType, shadow=True)
+        if saveConfig:
+            self.configurationAccMap.append((self.variableToBitwidthMap, float(execMap['default'][0]))) 
+        return self.createVarValueMap(encoding, variableToBitwidthMap)
+    
+    def createVarValueMap(self, encoding, variableToBitwidthMap):
+        outputDir = os.path.join(config.tempdir, "Predictor")
+        if encoding == config.Encoding.floatt:
+            file = os.path.join(outputDir, "debugLog2")
+        else:
+            file = os.path.join(outputDir, "debugLog")
+        f = open(file).read().split("**********")
+
+        f = [data.split('\n') for data in f]
+        f = [[line.lstrip().rstrip() for line in data] for data in f]
+
+        varValueMap = {}
+        varName = None
+        for data in f:
+            for line in data:
+                if line == '':
+                    continue
+                elif line[:3] == 'tmp' or (line in self.decls):
+                    varName = line
+                else:
+                    line = line.split(' ')
+                    if varName in varValueMap.keys():
+                        for value in line:
+                            if value == '':
+                                continue
+                            varValueMap[varName].append(value)
+                    else:
+                        line = [val for val in line if val != '']
+                        varValueMap[varName] = line
+        tmp_keys = copy.deepcopy(varValueMap)
+        for var in tmp_keys.keys():
+            if var not in variableToBitwidthMap.keys():
+                del varValueMap[var]
+        return varValueMap
 
     # Reverse sort the accuracies, print the top 5 accuracies and return the
     # best scaling factor.
@@ -685,6 +904,19 @@ class Main:
         print("\n-------------------------------")
         print("Prediction on testing dataset")
         print("-------------------------------\n")
+
+        f = open("demotedVarsList", "w")
+        newbitwidths = {}
+        self.demotedVarsList = []
+        demotedOffsets = {}
+        for var in self.variableToBitwidthMap.keys():
+            if self.variableToBitwidthMap[var] == 8:
+                newbitwidths[var] = self.variableToBitwidthMap[var]
+                self.demotedVarsList.append(var)
+                demotedOffsets[var] = self.demotedVarsOffsets[var]
+        self.demotedVarsOffsets = demotedOffsets
+        f.write(str(newbitwidths))
+        f.close()
 
         Util.getLogger().debug("Setting max scaling factor to %d\n" % (self.sf))
 
@@ -884,3 +1116,16 @@ class Main:
             return self.runForFixed()
         else:
             return self.runForFloat()
+
+    def computMemoryUsage(self, vbwMap = None, extendedVBWMap = None):
+        if vbwMap == None:
+            vbwMap = dict(self.variableToBitwidthMap)
+        else:
+            vbwMap = dict(vbwMap)
+        if extendedVBWMap != None:
+            for var in extendedVBWMap.keys():
+                if var in vbwMap.keys():
+                    continue
+                else:
+                    vbwMap[var] = extendedVBWMap[var]
+        return Util.computeScratchLocationsFirstFitPriority(self.decls, self.coLocatedVariables, self.varLiveIntervals, self.notScratch, vbwMap, self.floatConstants, self.intConstants, self.internalVars) 

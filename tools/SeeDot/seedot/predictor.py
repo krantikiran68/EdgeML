@@ -20,7 +20,7 @@ The accuracy and other statistics are written to the output file specified.
 
 class Predictor:
 
-    def __init__(self, algo, encoding, datasetType, outputDir, scaleForX, scalesForX, scaleForY, scalesForY, problemType, numOutputs):
+    def __init__(self, algo, encoding, datasetType, outputDir, scaleForX, scalesForX, scaleForY, scalesForY, problemType, numOutputs, shadow = False, counted=False):
         self.algo, self.encoding, self.datasetType = algo, encoding, datasetType
 
         self.outputDir = outputDir
@@ -34,6 +34,9 @@ class Predictor:
         self.problemType = problemType
         self.numOutputs = numOutputs
 
+        self.shadow = shadow
+        self.counted = counted
+
         self.genHeaderFile()
 
     # Depending on the parameters set in config.py, util.py, this method generates a header file datatypes.h
@@ -45,12 +48,15 @@ class Predictor:
             if config.wordLength == 8:
                 file.write("#define INT8\n")
                 file.write("typedef int8_t MYINT;\n\n")
+                file.write("typedef int32_t ACINT;\n\n")
             elif config.wordLength == 16:
                 file.write("#define INT16\n")
                 file.write("typedef int16_t MYINT;\n\n")
+                file.write("typedef int64_t ACINT;\n\n")
             elif config.wordLength == 32:
                 file.write("#define INT32\n")
                 file.write("typedef int32_t MYINT;\n\n")
+                file.write("typedef int128_t ACINT;\n\n")
 
             file.write("typedef int16_t MYITE;\n")
             file.write("typedef uint16_t MYUINT;\n\n")
@@ -120,7 +126,7 @@ class Predictor:
         gcc_version = int(gcc_version.read().split('\n')[0])
         assert gcc_version >= config.min_gcc_version, "Minimum GCC Version >= %d required."%(config.min_gcc_version)
 
-        args = ["make"]
+        args = ["make", "DEBUG=%s"%("True" if self.shadow else "False")]
 
         logFile = os.path.join(self.outputDir, "build.txt")
         with open(logFile, 'w') as file:
@@ -164,7 +170,12 @@ class Predictor:
         Util.getLogger().debug("Execution...")
 
         exeFile = os.path.join("./Predictor")
-        args = [exeFile, self.encoding, self.datasetType, self.problemType, str(self.numOutputs)]
+        counts = []
+        if self.shadow:
+            counts.append(str(config.testPointsForHeatMap))
+        elif self.counted:
+            counts.append(str(4000))
+        args = [exeFile, self.encoding, self.datasetType, self.problemType, str(self.numOutputs), str("True"), str(self.shadow)] + counts
 
         logFile = os.path.join(self.outputDir, "exec.txt")
         with open(logFile, 'w') as file:

@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT license.
 
+from logging import debug
 import numpy as np
 import operator
 
@@ -897,7 +898,24 @@ class IRBuilder(ASTVisitor):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.String(expr_out): "varName"
+                }))
+        if forFixed() and config.printFixedDebug:
+            debugPrint.append(IR.FuncCall("debugPrint<int%d_t>"%(bitwidth_out), {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.Int(scale_out): "scale",
+                    IR.String(expr_out): "varName"
+                }))
+
+        prog_mul = IR.Prog(([comment, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else ([comment, funcCall] + debugPrint))
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -1026,7 +1044,24 @@ class IRBuilder(ASTVisitor):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(K): "J",
+                    IR.String(expr_out): "varName"
+                }))
+        if forFixed() and config.printFixedDebug:
+            debugPrint.append(IR.FuncCall("debugPrint<int%d_t>"%(bitwidth_out), {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(K): "J",
+                    IR.Int(scale_out): "scale",
+                    IR.String(expr_out): "varName"
+                }))
+
+        prog_mul = IR.Prog(([comment, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else ([comment, funcCall] + debugPrint))
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -1145,7 +1180,24 @@ class IRBuilder(ASTVisitor):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mul = IR.Prog([comment, cmd1, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, cmd1, funcCall])
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(P): "I",
+                    IR.Int(R): "J",
+                    IR.String(expr_out): "varName"
+                }))
+        if forFixed() and config.printFixedDebug:
+            debugPrint.append(IR.FuncCall("debugPrint<int%d_t>"%(bitwidth_out), {
+                    expr_out: "expr",
+                    IR.Int(P): "I",
+                    IR.Int(R): "J",
+                    IR.Int(scale_out): "scale",
+                    IR.String(expr_out): "varName"
+                }))
+
+        prog_mul = IR.Prog(([comment, cmd1, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else ([comment, cmd1, funcCall] + debugPrint))
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -1276,7 +1328,24 @@ class IRBuilder(ASTVisitor):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mul = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall] + adjust)
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.String(expr_out): "varName"
+                }))
+        if forFixed() and config.printFixedDebug:
+            debugPrint.append(IR.FuncCall("debugPrint<int%d_t>"%(bitwidth_out), {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.Int(scale_out): "scale",
+                    IR.String(expr_out): "varName"
+                }))
+
+        prog_mul = IR.Prog(([comment, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else ([comment, funcCall] + adjust + debugPrint))
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_mul)
 
@@ -1535,6 +1604,27 @@ class IRBuilder(ASTVisitor):
         self.counter_inst += 1
         self.updateLiveRange([expr_in_A, expr_in_F1, expr_in_F2, expr_in_F3, expr_in_W1, expr_in_W2, expr_in_W3, expr_in_B1, expr_in_B2, expr_in_B3, expr_out, expr_treeSum, expr_bufX, expr_bufT])
 
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(N): "I",
+                    IR.Int(type_out.shape[1]): "J",
+                    IR.Int(type_out.shape[2]): "K",
+                    IR.Int(Cout): "L",
+                    IR.String(expr_out): "varName"
+                }))
+        if forFixed() and config.printFixedDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(N): "I",
+                    IR.Int(type_out.shape[1]): "J",
+                    IR.Int(type_out.shape[2]): "K",
+                    IR.Int(Cout): "L",
+                    IR.Int(scale_out): "scale",
+                    IR.String(expr_out): "varName"
+                }))
+
         # Profiling the output variable in floating-point mode for computing the scale of the fixed-point code.
         profile = IR.FuncCall("Profile4", {
             expr_out: "Var",
@@ -1547,7 +1637,7 @@ class IRBuilder(ASTVisitor):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_mbconv = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        prog_mbconv = IR.Prog(([comment, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else ([comment, funcCall] + debugPrint))
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_F1, prog_in_W1, prog_in_B1, prog_in_F2, prog_in_W2, prog_in_B2, prog_in_F3, prog_in_W3, prog_in_B3, prog_mbconv)
 
         # Update metadata.
@@ -1669,6 +1759,26 @@ class IRBuilder(ASTVisitor):
         if Hf == Wf == CinF == CoutF == 1 and bitwidth_in_A == bitwidth_out:
             self.setMemorySharableVariables(expr_in_A, expr_out)
 
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(N): "I",
+                    IR.Int(type_out.shape[1]): "J",
+                    IR.Int(type_out.shape[2]): "K",
+                    IR.Int(CoutF * G): "L",
+                    IR.String(expr_out): "varName"
+                }))
+        if forFixed() and config.printFixedDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(N): "I",
+                    IR.Int(type_out.shape[1]): "J",
+                    IR.Int(type_out.shape[2]): "K",
+                    IR.Int(CoutF * G): "L",
+                    IR.Int(scale_out): "scale",
+                    IR.String(expr_out): "varName"
+                }))
         # Profile the output in floating-point mode to compute data-driven scale for fixed-point mode.
         profile = IR.FuncCall("Profile4", {
             expr_out: "Var",
@@ -1681,7 +1791,7 @@ class IRBuilder(ASTVisitor):
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_conv = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall])
+        prog_conv = IR.Prog(([comment, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else ([comment, funcCall] + debugPrint))
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_conv)
 
@@ -1873,7 +1983,45 @@ class IRBuilder(ASTVisitor):
                                             IR.Int(diff_scale): "scale"
                                         })]
 
-        prog_cir = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall] + adjust)
+        debugPrint = []
+        if type_out.dim == 2:
+            if forFloat() and config.printFloatDebug:
+                debugPrint.append(IR.FuncCall("debugPrint", {
+                        expr_out: "expr",
+                        IR.Int(H): "I",
+                        IR.Int(W): "J",
+                        IR.String(expr_out): "varName"
+                    }))
+            if forFixed() and config.printFixedDebug:
+                debugPrint.append(IR.FuncCall("debugPrint", {
+                        expr_out: "expr",
+                        IR.Int(H): "I",
+                        IR.Int(W): "J",
+                        IR.Int(scale_out): "scale",
+                        IR.String(expr_out): "varName"
+                    }))
+        elif type_out.dim == 4:
+            if forFloat() and config.printFloatDebug:
+                debugPrint.append(IR.FuncCall("debugPrint", {
+                        expr_out: "expr",
+                        IR.Int(N): "I",
+                        IR.Int(H): "J",
+                        IR.Int(W): "K",
+                        IR.Int(C): "L",
+                        IR.String(expr_out): "varName"
+                    }))
+            if forFixed() and config.printFixedDebug:
+                debugPrint.append(IR.FuncCall("debugPrint", {
+                        expr_out: "expr",
+                        IR.Int(N): "I",
+                        IR.Int(H): "J",
+                        IR.Int(W): "K",
+                        IR.Int(C): "L",
+                        IR.Int(scale_out): "scale",
+                        IR.String(expr_out): "varName"
+                    }))
+
+        prog_cir = IR.Prog(([comment, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else ([comment, funcCall] + adjust + debugPrint))
 
         prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_cir)
 
@@ -2119,7 +2267,45 @@ class IRBuilder(ASTVisitor):
             else:
                 assert False, "Illegal number of dimensions"
 
-            prog_bop = IR.Prog([comment, funcCall, profile] if forFloat() and self.ddsEnabled else [comment, funcCall] + adjust)
+            debugPrint = []
+            if type_out.dim == 2:
+                if forFloat() and config.printFloatDebug:
+                    debugPrint.append(IR.FuncCall("debugPrint", {
+                            expr_out: "expr",
+                            IR.Int(I): "I",
+                            IR.Int(J): "J",
+                            IR.String(expr_out): "varName"
+                        }))
+                if forFixed() and config.printFixedDebug:
+                    debugPrint.append(IR.FuncCall("debugPrint<int%d_t>"%(bitwidth_out), {
+                            expr_out: "expr",
+                            IR.Int(I): "I",
+                            IR.Int(J): "J",
+                            IR.Int(scale_out): "scale",
+                            IR.String(expr_out): "varName"
+                        }))
+            elif type_out.dim == 4:
+                if forFloat() and config.printFloatDebug:
+                    debugPrint.append(IR.FuncCall("debugPrint", {
+                            expr_out: "expr",
+                            IR.Int(N): "N",
+                            IR.Int(H): "H",
+                            IR.Int(W): "W",
+                            IR.Int(C): "C",
+                            IR.String(expr_out): "varName"
+                        }))
+                if forFixed() and config.printFixedDebug:
+                    debugPrint.append(IR.FuncCall("debugPrint<int%d_t>"%(bitwidth_out), {
+                            expr_out: "expr",
+                            IR.Int(N): "N",
+                            IR.Int(H): "H",
+                            IR.Int(W): "W",
+                            IR.Int(C): "C",
+                            IR.Int(scale_out): "scale",
+                            IR.String(expr_out): "varName"
+                        }))
+
+            prog_bop = IR.Prog(([comment, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else ([comment, funcCall] + adjust + debugPrint))
 
             prog_out = IRUtil.concatPrograms(prog_in_A, prog_in_B, prog_bop)
 
@@ -2225,12 +2411,33 @@ class IRBuilder(ASTVisitor):
         else:
             assert False, "inverseL2Norm only supports 4D tensors."
 
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(N): "I",
+                    IR.Int(H): "J",
+                    IR.Int(W): "K",
+                    IR.Int(C): "L",
+                    IR.String(expr_out): "varName"
+                }))
+        if forFixed() and config.printFixedDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(N): "I",
+                    IR.Int(H): "J",
+                    IR.Int(W): "K",
+                    IR.Int(C): "L",
+                    IR.Int(scale_out): "scale",
+                    IR.String(expr_out): "varName"
+                }))
+
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
         self.setMemorySharableVariables(expr_in, expr_out)
 
-        prog_func = IR.Prog([comment, funcCall])
+        prog_func = IR.Prog(([comment, funcCall] + debugPrint))
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_func)
 
@@ -2335,10 +2542,31 @@ class IRBuilder(ASTVisitor):
             IR.Int(divide): "div"
         })
 
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(N): "N",
+                    IR.Int(H): "H",
+                    IR.Int(W): "W",
+                    IR.Int(C): "C",
+                    IR.String(expr_out): "varName"
+                }))
+        if forFixed() and config.printFixedDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(N): "N",
+                    IR.Int(H): "H",
+                    IR.Int(W): "W",
+                    IR.Int(C): "C",
+                    IR.Int(scale_out): "scale",
+                    IR.String(expr_out): "varName"
+                }))
+
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        prog_relu = IR.Prog([comment, funcCall])
+        prog_relu = IR.Prog(([comment, funcCall] + debugPrint))
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_relu)
 
@@ -2527,10 +2755,28 @@ class IRBuilder(ASTVisitor):
             IR.Int(J): "J",
             IR.String(expr_out): "VarName"
         })
+
         if forFloat():
             self.independentVars.append(expr_out.idf)
 
-        prog_exp = IR.Prog([cmd0, rangeCheck, funcCall, profile] if forFloat() and self.ddsEnabled else [cmd0, funcCall])
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.String(expr_out): "varName"
+                }))
+        if forFixed() and config.printFixedDebug:
+            debugPrint.append(IR.FuncCall("debugPrint<int%d_t>"%(bitwidth_out), {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.Int(scale_out): "scale",
+                    IR.String(expr_out): "varName"
+                }))
+
+        prog_exp = IR.Prog(([cmd0, rangeCheck, funcCall, profile] + debugPrint) if forFloat() and self.ddsEnabled else ([cmd0, funcCall] + debugPrint))
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_exp)
 
@@ -2842,21 +3088,38 @@ class IRBuilder(ASTVisitor):
             IR.Int(I): "I",
             IR.Int(J): "J",
             tanh_limit: "scale_in",
-            IR.Int(tanh_limit_out): "scale_out",
+            IR.Int(tanh_limit_out): "scale",
             expr_out: "B"
         }) if not self.vbwEnabled else IR.FuncCall("TanH<int%d_t>"%(bitwidth_in), {
             expr_in: "A",
             IR.Int(I): "I",
             IR.Int(J): "J",
             tanh_limit: "scale_in",
-            IR.Int(tanh_limit_out): "scale_out",
+            IR.Int(tanh_limit_out): "scale",
             expr_out: "B"
         })
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        prog_tanh = IR.Prog([comment, funcCall])
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.String(expr_out): "varName"
+                }))
+        if forFixed() and config.printFixedDebug:
+            debugPrint.append(IR.FuncCall("debugPrint<int%d_t>"%(bitwidth_in), {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.Int(scale_out): "scale",
+                    IR.String(expr_out): "varName"
+                }))
+
+        prog_tanh = IR.Prog([comment, funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_tanh)
 
@@ -3015,7 +3278,7 @@ class IRBuilder(ASTVisitor):
             addition_ir: "add",
             sigmoid_limit_ir: "sigmoid_limit",
             IR.Int(scale_in_num): "scale_in",
-            IR.Int(scale_out_num): "scale_out",
+            IR.Int(scale_out_num): "scale",
             expr_out: "B"
         }) if not self.vbwEnabled else IR.FuncCall("Sigmoid<int%d_t>"%(bitwidth_in), {
             expr_in: "A",
@@ -3025,14 +3288,31 @@ class IRBuilder(ASTVisitor):
             addition_ir: "add",
             sigmoid_limit_ir: "sigmoid_limit",
             IR.Int(scale_in_num): "scale_in",
-            IR.Int(scale_out_num): "scale_out",
+            IR.Int(scale_out_num): "scale",
             expr_out: "B"
         })
 
         self.counter_inst += 1
         self.updateLiveRange([expr_in, expr_out])
 
-        prog_sigmoid = IR.Prog([comment, funcCall])
+        debugPrint = []
+        if forFloat() and config.printFloatDebug:
+            debugPrint.append(IR.FuncCall("debugPrint", {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.String(expr_out): "varName"
+                }))
+        if forFixed() and config.printFixedDebug:
+            debugPrint.append(IR.FuncCall("debugPrint<int%d_t>"%(bitwidth_in), {
+                    expr_out: "expr",
+                    IR.Int(I): "I",
+                    IR.Int(J): "J",
+                    IR.Int(scale_out): "scale",
+                    IR.String(expr_out): "varName"
+                }))
+
+        prog_sigmoid = IR.Prog([comment, funcCall] + debugPrint)
 
         prog_out = IRUtil.concatPrograms(prog_in, prog_sigmoid)
 

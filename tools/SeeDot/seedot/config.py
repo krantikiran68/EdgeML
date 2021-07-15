@@ -59,6 +59,14 @@ permittedRegressionNumericalLossMargin = 90.0
 # Minimum version of gcc required for compilation
 min_gcc_version = 8
 
+# Flags for printing the debug log statements
+printFloatDebug = True
+printFixedDebug = True
+
+testPointsForHeatMap = 10
+memoryLimit = int(open("memoryLimit").read())
+accThreshold = 10
+
 # Following classes are used sanity checks for arguments passed to the compiler, to prevent unexpected arguments being passed.
 # These lists should be updated as the compiler is expanded to multiple algorithms and datasets.
 

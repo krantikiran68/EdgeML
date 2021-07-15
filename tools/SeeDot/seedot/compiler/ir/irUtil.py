@@ -180,3 +180,6 @@ def print_loop(shape: list, iters: list, cmdl_body: CmdList, factor=0) -> CmdLis
         cmdl_for = [For(iters[i], 0, lt(iters[i], Int(shape[i])),
                         cmdl_for, factor), Print(Var('""'))]
     return cmdl_for
+
+def addStrPrefixAndSuffix(prefix: str, expr: Var, suffix: str, bw: int = 16) -> Var:
+    return Var(expr.idf, expr.idx, expr.inputVar, expr.internalVar, prefix, suffix)
